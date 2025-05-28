@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Star, User, GraduationCap, Hash, BookOpen } from 'lucide-react';
-import { ApplicationData, saveApplicationGrades, getApplicationGrades } from '@/services/applicationService';
+import { ArrowLeft, Save, Star, User, GraduationCap, Hash, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ApplicationData, saveApplicationGrades, getApplicationGrades, getAllApplicationsByPosition } from '@/services/applicationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,20 +32,33 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allApplications, setAllApplications] = useState<ApplicationData[]>([]);
+  const [currentApplicationIndex, setCurrentApplicationIndex] = useState(0);
+  const [averageScore, setAverageScore] = useState(0);
 
   useEffect(() => {
-    const loadGradesAndAnswers = async () => {
+    const loadApplicationsAndGrades = async () => {
       try {
-        // Load existing grades if any
+        // Load all applications for this position
+        const positionApplications = await getAllApplicationsByPosition(positionName);
+        const submittedApps = positionApplications.filter(app => app.status === 'submitted');
+        setAllApplications(submittedApps);
+        
+        // Find current application index
+        const currentIndex = submittedApps.findIndex(app => app.id === application.id);
+        setCurrentApplicationIndex(currentIndex);
+
+        // Load existing grades for current executive
         const existingGrades = await getApplicationGrades(application.id);
+        const myGrades = existingGrades?.executiveGrades?.find(eg => eg.executiveId === userProfile?.uid);
         
         // Convert application answers to questions format
         const questionsList: Question[] = Object.entries(application.answers || {}).map(([key, answer], index) => {
-          const existingGrade = existingGrades?.grades.find(g => g.questionId === key);
+          const existingGrade = myGrades?.grades.find(g => g.questionId === key);
           
           return {
             id: key,
-            question: `Question ${index + 1}`, // You might want to store actual questions
+            question: `Question ${index + 1}`,
             answer: answer as string,
             score: existingGrade?.score || 0,
             maxScore: existingGrade?.maxScore || 10
@@ -54,6 +66,15 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         });
 
         setQuestions(questionsList);
+        
+        // Calculate average score from all executives
+        if (existingGrades?.executiveGrades && existingGrades.executiveGrades.length > 0) {
+          const totalScore = existingGrades.executiveGrades.reduce((sum, eg) => sum + eg.totalScore, 0);
+          const avgScore = totalScore / existingGrades.executiveGrades.length;
+          setAverageScore(avgScore);
+        } else {
+          setAverageScore(0);
+        }
       } catch (error) {
         console.error('Error loading grades:', error);
       } finally {
@@ -61,8 +82,8 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
       }
     };
 
-    loadGradesAndAnswers();
-  }, [application.id, application.answers]);
+    loadApplicationsAndGrades();
+  }, [application.id, application.answers, positionName, userProfile?.uid]);
 
   const updateScore = (questionId: string, newScore: number) => {
     setQuestions(prev => 
@@ -74,7 +95,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     );
   };
 
-  const averageScore = questions.length > 0 ? 
+  const myScore = questions.length > 0 ? 
     questions.reduce((sum, q) => sum + q.score, 0) / questions.length : 0;
 
   const handleSave = async () => {
@@ -90,15 +111,16 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     try {
       const gradesData = {
         applicationId: application.id,
+        executiveId: userProfile.uid,
+        executiveName: userProfile.fullName || 'Unknown Executive',
         grades: questions.map(q => ({
           questionId: q.id,
           score: q.score,
           maxScore: q.maxScore,
           feedback: ''
         })),
-        totalScore: averageScore,
+        totalScore: myScore,
         maxTotalScore: 10,
-        gradedBy: userProfile.uid,
         gradedAt: new Date()
       };
 
@@ -106,16 +128,65 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
       
       toast({
         title: "Grades Saved",
-        description: "Application has been graded successfully.",
+        description: "Your grades have been saved successfully.",
       });
-      
-      onBack();
     } catch (error) {
       console.error('Error saving grades:', error);
       toast({
         title: "Error",
         description: "Failed to save grades. Please try again.",
         variant: "destructive",
+      });
+    }
+  };
+
+  const navigateToApplication = (direction: 'next' | 'prev') => {
+    let newIndex;
+    if (direction === 'next') {
+      newIndex = (currentApplicationIndex + 1) % allApplications.length;
+    } else {
+      newIndex = currentApplicationIndex === 0 ? allApplications.length - 1 : currentApplicationIndex - 1;
+    }
+    
+    const nextApp = allApplications[newIndex];
+    if (nextApp) {
+      // Navigate to the new application - this would trigger a re-render with new application data
+      window.location.hash = `#grade-${nextApp.id}`;
+      window.location.reload(); // Simple approach - you might want to implement this more elegantly
+    }
+  };
+
+  const getNextUngradedApplication = async () => {
+    if (!userProfile?.uid) return null;
+    
+    for (let i = 1; i < allApplications.length; i++) {
+      const nextIndex = (currentApplicationIndex + i) % allApplications.length;
+      const nextApp = allApplications[nextIndex];
+      
+      try {
+        const grades = await getApplicationGrades(nextApp.id);
+        const hasMyGrades = grades?.executiveGrades?.some(eg => eg.executiveId === userProfile.uid);
+        
+        if (!hasMyGrades) {
+          return { app: nextApp, index: nextIndex };
+        }
+      } catch (error) {
+        console.error('Error checking grades for application:', nextApp.id);
+      }
+    }
+    
+    return null;
+  };
+
+  const navigateToNextUngraded = async () => {
+    const nextUngraded = await getNextUngradedApplication();
+    if (nextUngraded) {
+      window.location.hash = `#grade-${nextUngraded.app.id}`;
+      window.location.reload();
+    } else {
+      toast({
+        title: "All Done!",
+        description: "You have graded all submitted applications for this position.",
       });
     }
   };
@@ -156,7 +227,44 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Applications
                 </Button>
+                
+                {/* Navigation Controls */}
+                <div className="flex items-center space-x-2 ml-8">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigateToApplication('prev')}
+                    disabled={allApplications.length <= 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  
+                  <span className="text-sm text-gray-600 px-3">
+                    {currentApplicationIndex + 1} of {allApplications.length}
+                  </span>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigateToApplication('next')}
+                    disabled={allApplications.length <= 1}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={navigateToNextUngraded}
+                    className="ml-4 bg-blue-600 hover:bg-blue-700"
+                  >
+                    Next Ungraded →
+                  </Button>
+                </div>
               </div>
+              
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 Grading Application
               </h1>
@@ -209,14 +317,26 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
               </p>
             </div>
             
-            <div className="text-right">
+            <div className="text-right space-y-2">
               <div className="flex items-center space-x-2 mb-2">
                 <Star className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-bold">{averageScore.toFixed(1)}/10</span>
+                <span className="text-2xl font-bold">{myScore.toFixed(1)}/10</span>
               </div>
-              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-                Current Average
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800 mb-2">
+                Your Score
               </Badge>
+              
+              {averageScore > 0 && (
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <Star className="h-4 w-4 text-gray-600" />
+                    <span className="text-lg font-semibold">{averageScore.toFixed(1)}/10</span>
+                  </div>
+                  <Badge variant="outline" className="bg-gray-50 text-gray-700">
+                    Team Average
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -298,16 +418,34 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center mb-4">
-                    <Label className="text-lg font-semibold">Average Score</Label>
+                    <Label className="text-lg font-semibold">Your Score</Label>
                     <div className="flex items-center space-x-2">
                       <Star className="h-5 w-5 text-blue-600" />
-                      <span className="text-xl font-bold">{averageScore.toFixed(1)}/10</span>
+                      <span className="text-xl font-bold">{myScore.toFixed(1)}/10</span>
                     </div>
                   </div>
                   
-                  <Button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700">
+                  {averageScore > 0 && (
+                    <div className="flex justify-between items-center mb-4 p-2 bg-gray-50 rounded">
+                      <Label className="text-sm font-medium text-gray-600">Team Average</Label>
+                      <div className="flex items-center space-x-2">
+                        <Star className="h-4 w-4 text-gray-600" />
+                        <span className="text-lg font-semibold">{averageScore.toFixed(1)}/10</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700 mb-3">
                     <Save className="h-4 w-4 mr-2" />
-                    Save Scores
+                    Save My Scores
+                  </Button>
+                  
+                  <Button 
+                    onClick={navigateToNextUngraded} 
+                    variant="outline" 
+                    className="w-full"
+                  >
+                    Next Ungraded →
                   </Button>
                 </div>
               </CardContent>

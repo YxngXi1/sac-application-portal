@@ -1,4 +1,3 @@
-
 import { doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -29,12 +28,30 @@ export interface QuestionGrade {
   feedback?: string;
 }
 
-export interface ApplicationGrades {
-  applicationId: string;
+export interface ExecutiveGrade {
+  executiveId: string;
+  executiveName: string;
   grades: QuestionGrade[];
   totalScore: number;
   maxTotalScore: number;
-  gradedBy: string;
+  gradedAt: Date;
+}
+
+export interface ApplicationGrades {
+  applicationId: string;
+  executiveGrades: ExecutiveGrade[];
+  averageScore: number;
+  maxTotalScore: number;
+  lastUpdated: Date;
+}
+
+export interface ExecutiveGradeSubmission {
+  applicationId: string;
+  executiveId: string;
+  executiveName: string;
+  grades: QuestionGrade[];
+  totalScore: number;
+  maxTotalScore: number;
   gradedAt: Date;
 }
 
@@ -119,17 +136,59 @@ export const getAllApplications = async (): Promise<ApplicationData[]> => {
   });
 };
 
-export const saveApplicationGrades = async (grades: ApplicationGrades): Promise<void> => {
-  const gradesRef = doc(db, 'applicationGrades', grades.applicationId);
-  await setDoc(gradesRef, {
-    ...grades,
-    gradedAt: new Date(),
-  });
+export const saveApplicationGrades = async (gradeSubmission: ExecutiveGradeSubmission): Promise<void> => {
+  const gradesRef = doc(db, 'applicationGrades', gradeSubmission.applicationId);
   
-  // Also update the application with the total score
-  const applicationRef = doc(db, 'applications', grades.applicationId);
+  // Get existing grades
+  const existingGradesSnap = await getDoc(gradesRef);
+  let applicationGrades: ApplicationGrades;
+  
+  if (existingGradesSnap.exists()) {
+    applicationGrades = existingGradesSnap.data() as ApplicationGrades;
+  } else {
+    applicationGrades = {
+      applicationId: gradeSubmission.applicationId,
+      executiveGrades: [],
+      averageScore: 0,
+      maxTotalScore: gradeSubmission.maxTotalScore,
+      lastUpdated: new Date()
+    };
+  }
+  
+  // Update or add the executive's grades
+  const existingGradeIndex = applicationGrades.executiveGrades.findIndex(
+    eg => eg.executiveId === gradeSubmission.executiveId
+  );
+  
+  const newExecutiveGrade: ExecutiveGrade = {
+    executiveId: gradeSubmission.executiveId,
+    executiveName: gradeSubmission.executiveName,
+    grades: gradeSubmission.grades,
+    totalScore: gradeSubmission.totalScore,
+    maxTotalScore: gradeSubmission.maxTotalScore,
+    gradedAt: new Date()
+  };
+  
+  if (existingGradeIndex >= 0) {
+    applicationGrades.executiveGrades[existingGradeIndex] = newExecutiveGrade;
+  } else {
+    applicationGrades.executiveGrades.push(newExecutiveGrade);
+  }
+  
+  // Calculate new average score
+  const totalScore = applicationGrades.executiveGrades.reduce((sum, eg) => sum + eg.totalScore, 0);
+  applicationGrades.averageScore = applicationGrades.executiveGrades.length > 0 
+    ? totalScore / applicationGrades.executiveGrades.length 
+    : 0;
+  applicationGrades.lastUpdated = new Date();
+  
+  // Save the updated grades
+  await setDoc(gradesRef, applicationGrades);
+  
+  // Also update the application with the average score
+  const applicationRef = doc(db, 'applications', gradeSubmission.applicationId);
   await updateDoc(applicationRef, {
-    score: grades.totalScore,
+    score: applicationGrades.averageScore,
     updatedAt: new Date(),
   });
 };
@@ -142,7 +201,11 @@ export const getApplicationGrades = async (applicationId: string): Promise<Appli
     const data = gradesSnap.data() as ApplicationGrades;
     return {
       ...data,
-      gradedAt: data.gradedAt instanceof Date ? data.gradedAt : new Date(data.gradedAt),
+      lastUpdated: data.lastUpdated instanceof Date ? data.lastUpdated : new Date(data.lastUpdated),
+      executiveGrades: data.executiveGrades.map(eg => ({
+        ...eg,
+        gradedAt: eg.gradedAt instanceof Date ? eg.gradedAt : new Date(eg.gradedAt)
+      }))
     };
   }
   
