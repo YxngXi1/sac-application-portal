@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, FileText, Plus, User } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ApplicationDashboard = () => {
@@ -43,9 +44,21 @@ const ApplicationDashboard = () => {
     ).join(' ');
   };
 
+  const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* Exec View Button */}
+        {isExecOrSuperAdmin && (
+          <div className="flex justify-end">
+            <Button variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
+              <Settings className="h-4 w-4 mr-2" />
+              Show Exec View
+            </Button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
