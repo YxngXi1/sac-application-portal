@@ -7,12 +7,12 @@ import { cn } from "@/lib/utils";
 
 export const ShuffleHero = () => {
   return (
-    <section className="w-full px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 md:grid-cols-2 items-center gap-6 sm:gap-8 max-w-6xl mx-auto">
+    <section className="w-full px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 md:grid-cols-2 items-center gap-6 sm:gap-8 max-w-6xl mx-auto bg-white">
       <div className="order-2 md:order-1">
-        <span className="block mb-3 sm:mb-4 text-xs md:text-sm text-blue-600 font-medium">
+        <span className="block mb-3 sm:mb-4 text-xs md:text-sm text-gray-600 font-medium">
           Student Advisory Council
         </span>
-        <h3 className="text-3xl sm:text-4xl md:text-6xl font-semibold text-gray-900 leading-tight">
+        <h3 className="text-3xl sm:text-4xl md:text-6xl font-semibold text-black leading-tight">
           Make a Difference at John Fraser
         </h3>
         <p className="text-sm sm:text-base md:text-lg text-gray-600 my-3 sm:my-4 md:my-6">
