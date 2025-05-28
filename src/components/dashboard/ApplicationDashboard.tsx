@@ -3,10 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target, RotateCcw, AlertCircle } from 'lucide-react';
+import { Settings, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { loadApplicationProgress } from '@/services/applicationService';
+import { loadApplicationProgress, saveApplicationProgress } from '@/services/applicationService';
 import ProfileEditDialog from './ProfileEditDialog';
 import ExecDashboard from './ExecDashboard';
 import { useToast } from '@/hooks/use-toast';
@@ -43,11 +42,6 @@ const ApplicationDashboard = () => {
 
     loadProgress();
   }, [userProfile]);
-  
-  // Application deadline
-  const applicationDeadline = new Date('2025-06-03');
-  const currentDate = new Date();
-  const daysLeft = Math.ceil((applicationDeadline.getTime() - currentDate.getTime()) / (1000 * 3600 * 24));
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
 
@@ -89,18 +83,6 @@ const ApplicationDashboard = () => {
     }
   };
 
-  const getProgressStatus = () => {
-    if (applicationProgress === 0) return 'Not Started';
-    if (applicationProgress < 100) return 'In Progress';
-    return 'Completed';
-  };
-
-  const getProgressColor = () => {
-    if (applicationProgress === 0) return 'text-gray-600';
-    if (applicationProgress < 100) return 'text-blue-600';
-    return 'text-green-600';
-  };
-
   // Show exec dashboard if toggled
   if (showExecView && isExecOrSuperAdmin) {
     return <ExecDashboard />;
@@ -119,34 +101,8 @@ const ApplicationDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="fixed left-0 top-0 h-full w-16 bg-gray-900 flex flex-col items-center py-4 space-y-6">
-        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-          <User className="h-4 w-4 text-gray-900" />
-        </div>
-        <div className="space-y-4">
-          <div className="w-8 h-8 flex items-center justify-center">
-            <FileText className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="w-8 h-8 flex items-center justify-center">
-            <Calendar className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="w-8 h-8 flex items-center justify-center">
-            <Users className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="w-8 h-8 flex items-center justify-center">
-            <Target className="h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-        <div className="mt-auto">
-          <div className="w-8 h-8 flex items-center justify-center">
-            <Settings className="h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="ml-16 p-8">
+      <div className="p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-start mb-8">
@@ -160,10 +116,6 @@ const ApplicationDashboard = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Week</span>
-              </div>
               {isExecOrSuperAdmin && (
                 <Button 
                   variant="outline" 
@@ -202,7 +154,7 @@ const ApplicationDashboard = () => {
                     <div>
                       <CardTitle className="text-xl">Your Application Progress</CardTitle>
                       <CardDescription>
-                        Position: {selectedPosition} • Status: <span className={getProgressColor()}>{getProgressStatus()}</span>
+                        Position: {selectedPosition} • Progress: {applicationProgress}%
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
@@ -212,88 +164,9 @@ const ApplicationDashboard = () => {
                       >
                         Continue Application
                       </Button>
-                      <Button
-                        onClick={handleRestartApplication}
-                        variant="outline"
-                        className="text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Restart
-                      </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span>{applicationProgress}%</span>
-                    </div>
-                    <Progress value={applicationProgress} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Metrics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-0">
-                <div className="bg-gradient-to-br from-purple-400 to-purple-600 text-white p-6 rounded-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm opacity-90">Applications</span>
-                    <FileText className="h-5 w-5 opacity-80" />
-                  </div>
-                  <div className="text-3xl font-bold mb-1">{hasStartedApplication ? '1' : '0'}</div>
-                  <div className="text-sm opacity-75">
-                    {hasStartedApplication ? 'In progress' : 'Not started'}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-0">
-                <div className="bg-gradient-to-br from-cyan-400 to-cyan-600 text-white p-6 rounded-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm opacity-90">Progress</span>
-                    <TrendingUp className="h-5 w-5 opacity-80" />
-                  </div>
-                  <div className="text-3xl font-bold mb-1">{applicationProgress}%</div>
-                  <div className="text-sm opacity-75">Overall completion</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-0">
-                <div className={`bg-gradient-to-br ${daysLeft > 7 ? 'from-green-400 to-green-600' : daysLeft > 0 ? 'from-orange-400 to-orange-600' : 'from-red-400 to-red-600'} text-white p-6 rounded-lg`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm opacity-90">Days Left</span>
-                    <Clock className="h-5 w-5 opacity-80" />
-                  </div>
-                  <div className="text-3xl font-bold mb-1">{Math.max(0, daysLeft)}</div>
-                  <div className="text-sm opacity-75">
-                    {daysLeft > 0 ? 'Until deadline' : 'Applications closed'}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Deadline Alert */}
-          {daysLeft <= 7 && daysLeft > 0 && (
-            <div className="mb-8">
-              <Card className="border-orange-200 bg-orange-50">
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2 text-orange-800">
-                    <AlertCircle className="h-5 w-5" />
-                    <span className="font-medium">
-                      Application deadline is approaching! Due: Tuesday, June 3rd, 2025
-                    </span>
-                  </div>
-                </CardContent>
               </Card>
             </div>
           )}

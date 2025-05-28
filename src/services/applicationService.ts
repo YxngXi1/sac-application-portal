@@ -67,9 +67,9 @@ export const loadApplicationProgress = async (userId: string): Promise<Applicati
     const data = applicationSnap.data() as ApplicationData;
     return {
       ...data,
-      createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-      updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
-      submittedAt: data.submittedAt?.toDate?.() || undefined,
+      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
+      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
+      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
     };
   }
   
@@ -96,9 +96,9 @@ export const getAllApplicationsByPosition = async (position: string): Promise<Ap
     const data = doc.data() as ApplicationData;
     return {
       ...data,
-      createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-      updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
-      submittedAt: data.submittedAt?.toDate?.() || undefined,
+      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
+      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
+      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
     };
   });
 };
@@ -111,9 +111,9 @@ export const getAllApplications = async (): Promise<ApplicationData[]> => {
     const data = doc.data() as ApplicationData;
     return {
       ...data,
-      createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt),
-      updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt),
-      submittedAt: data.submittedAt?.toDate?.() || undefined,
+      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
+      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
+      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
     };
   });
 };
@@ -141,7 +141,7 @@ export const getApplicationGrades = async (applicationId: string): Promise<Appli
     const data = gradesSnap.data() as ApplicationGrades;
     return {
       ...data,
-      gradedAt: data.gradedAt?.toDate?.() || new Date(data.gradedAt),
+      gradedAt: data.gradedAt instanceof Date ? data.gradedAt : new Date(data.gradedAt),
     };
   }
   
