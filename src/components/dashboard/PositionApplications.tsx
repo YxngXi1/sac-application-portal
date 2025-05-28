@@ -22,6 +22,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
 }) => {
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicationData | null>(null);
   const [gradeMode, setGradeMode] = useState(false);
+  const [viewMode, setViewMode] = useState(false);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +62,11 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     }
   };
 
+  const handleViewApplication = (application: ApplicationData) => {
+    setSelectedApplicant(application);
+    setViewMode(true);
+  };
+
   if (selectedApplicant && gradeMode) {
     return (
       <ApplicationGrader
@@ -74,9 +80,87 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     );
   }
 
+  if (selectedApplicant && viewMode) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b shadow-sm px-8 py-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center space-x-4 mb-2">
+              <Button variant="ghost" onClick={() => {
+                setSelectedApplicant(null);
+                setViewMode(false);
+              }}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Applications
+              </Button>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {selectedApplicant.userProfile?.fullName || 'Unknown Applicant'}
+            </h1>
+            <p className="text-gray-600">
+              Position: {positionName} • Status: {selectedApplicant.status}
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto p-8">
+          <Card className="border shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle>Application Details</CardTitle>
+              <CardDescription>
+                Review the applicant's information and responses
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Applicant Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Full Name</Label>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {selectedApplicant.userProfile?.fullName || 'Not provided'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Grade</Label>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {selectedApplicant.userProfile?.grade || 'Not provided'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">Student Number</Label>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {selectedApplicant.userProfile?.studentNumber || 'Not provided'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Application Responses */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Application Responses</h3>
+                {selectedApplicant.answers && Object.keys(selectedApplicant.answers).length > 0 ? (
+                  Object.entries(selectedApplicant.answers).map(([key, answer], index) => (
+                    <div key={key} className="mb-6 p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Question {index + 1}</h4>
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-gray-800">{answer as string}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No responses found</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading applications...</p>
@@ -90,7 +174,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const interviewedCount = applications.filter(app => app.interviewScheduled).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
@@ -112,45 +196,45 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       <div className="max-w-7xl mx-auto p-8">
         {/* Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-3xl font-bold">{applications.length}</p>
-                <p className="text-sm text-blue-100">Total Applications</p>
+                <p className="text-3xl font-bold text-gray-900">{applications.length}</p>
+                <p className="text-sm text-gray-600">Total Applications</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-3xl font-bold">{submittedApplications.length}</p>
-                <p className="text-sm text-green-100">Submitted</p>
+                <p className="text-3xl font-bold text-blue-600">{submittedApplications.length}</p>
+                <p className="text-sm text-gray-600">Submitted</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-3xl font-bold">{inProgressApplications.length}</p>
-                <p className="text-sm text-orange-100">In Progress</p>
+                <p className="text-3xl font-bold text-gray-600">{inProgressApplications.length}</p>
+                <p className="text-sm text-gray-600">In Progress</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-3xl font-bold">{interviewedCount}</p>
-                <p className="text-sm text-purple-100">Interviewed</p>
+                <p className="text-3xl font-bold text-gray-800">{interviewedCount}</p>
+                <p className="text-sm text-gray-600">Interviewed</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Applications Table */}
-        <Card className="border-0 shadow-lg bg-white">
+        <Card className="border shadow-sm bg-white">
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
@@ -208,7 +292,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                       <TableCell>
                         {application.score ? (
                           <div className="flex items-center space-x-1">
-                            <Star className="h-4 w-4 text-yellow-500" />
+                            <Star className="h-4 w-4 text-gray-600" />
                             <span className="font-medium">{application.score.toFixed(1)}/10</span>
                           </div>
                         ) : (
@@ -244,7 +328,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedApplicant(application)}
+                            onClick={() => handleViewApplication(application)}
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View

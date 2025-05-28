@@ -75,7 +75,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading applications...</p>
@@ -85,7 +85,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
@@ -107,57 +107,57 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
       <div className="max-w-7xl mx-auto p-8">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-100">Total Applications</p>
-                  <p className="text-3xl font-bold">{totalApplications}</p>
+                  <p className="text-sm font-medium text-gray-600">Total Applications</p>
+                  <p className="text-3xl font-bold text-gray-900">{totalApplications}</p>
                 </div>
-                <FileText className="h-8 w-8 text-blue-200" />
+                <FileText className="h-8 w-8 text-gray-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-green-500 to-green-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-100">Submitted</p>
-                  <p className="text-3xl font-bold">{totalSubmitted}</p>
+                  <p className="text-sm font-medium text-gray-600">Submitted</p>
+                  <p className="text-3xl font-bold text-blue-600">{totalSubmitted}</p>
                 </div>
-                <Target className="h-8 w-8 text-green-200" />
+                <Target className="h-8 w-8 text-blue-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-100">In Progress</p>
-                  <p className="text-3xl font-bold">{totalInProgress}</p>
+                  <p className="text-sm font-medium text-gray-600">In Progress</p>
+                  <p className="text-3xl font-bold text-gray-600">{totalInProgress}</p>
                 </div>
-                <Clock className="h-8 w-8 text-orange-200" />
+                <Clock className="h-8 w-8 text-gray-400" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+          <Card className="border shadow-sm bg-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-100">Interviewed</p>
-                  <p className="text-3xl font-bold">{totalInterviewed}</p>
+                  <p className="text-sm font-medium text-gray-600">Interviewed</p>
+                  <p className="text-3xl font-bold text-gray-800">{totalInterviewed}</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-200" />
+                <Users className="h-8 w-8 text-gray-500" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Positions Grid */}
-        <Card className="border-0 shadow-lg bg-white">
+        <Card className="border shadow-sm bg-white">
           <CardHeader>
             <CardTitle>Applications by Position</CardTitle>
             <CardDescription>
@@ -171,13 +171,13 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                 return (
                   <Card 
                     key={position.id}
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:scale-105"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border shadow-sm hover:scale-105"
                     onClick={() => setSelectedPosition(position.id)}
                   >
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="font-semibold text-lg text-gray-900">{position.name}</h3>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                           {stats.total} total
                         </Badge>
                       </div>
@@ -185,26 +185,26 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                       <div className="space-y-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Submitted:</span>
-                          <span className="font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                          <span className="font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
                             {stats.submitted}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">In Progress:</span>
-                          <span className="font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                          <span className="font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded">
                             {stats.inProgress}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Interviewed:</span>
-                          <span className="font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                          <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded">
                             {stats.interviewed}
                           </span>
                         </div>
                       </div>
 
                       <Button 
-                        className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700" 
+                        className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedPosition(position.id);
