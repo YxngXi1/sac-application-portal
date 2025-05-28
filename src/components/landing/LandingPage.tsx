@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,9 +17,9 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-white">
       {/* Hero Section with Shuffle Grid */}
-      <section className="min-h-screen flex items-center justify-center px-4 py-20">
+      <section className="min-h-screen flex items-center justify-center px-4 py-20 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <img 
@@ -42,7 +43,7 @@ const LandingPage = () => {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 text-lg"
+                className="border-black text-black hover:bg-gray-100 px-8 py-4 text-lg"
                 onClick={scrollToProcess}
               >
                 Learn More
