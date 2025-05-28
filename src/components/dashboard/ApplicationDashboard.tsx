@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import ProfileEditDialog from './ProfileEditDialog';
 
 const ApplicationDashboard = () => {
   const { userProfile } = useAuth();
   
   // Check if user has started an application
   const [hasStartedApplication, setHasStartedApplication] = React.useState(false);
+  const [showProfileDialog, setShowProfileDialog] = React.useState(false);
   
   React.useEffect(() => {
     const saved = localStorage.getItem('applicationProgress');
@@ -149,11 +151,19 @@ const ApplicationDashboard = () => {
             ))}
           </div>
 
-          {/* Student Info */}
+          {/* Student Info with Edit Button */}
           <div className="max-w-md">
             <Card className="border-0 shadow-sm">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-lg">Student Profile</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowProfileDialog(true)}
+                  className="h-8"
+                >
+                  Edit
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -179,6 +189,11 @@ const ApplicationDashboard = () => {
           </div>
         </div>
       </div>
+
+      <ProfileEditDialog 
+        open={showProfileDialog} 
+        onOpenChange={setShowProfileDialog}
+      />
     </div>
   );
 };
