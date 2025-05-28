@@ -1,13 +1,30 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import StudentDashboard from '@/components/dashboard/StudentDashboard';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
+  const { userProfile } = useAuth();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
+        {userProfile?.role === 'student' && <StudentDashboard />}
+        {userProfile?.role === 'exec' && (
+          <div className="text-center py-20">
+            <h1 className="text-2xl font-bold text-gray-900">Executive Dashboard</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        )}
+        {userProfile?.role === 'teacher' && (
+          <div className="text-center py-20">
+            <h1 className="text-2xl font-bold text-gray-900">Teacher Supervisor View</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        )}
       </div>
-    </div>
+    </ProtectedRoute>
   );
 };
 
