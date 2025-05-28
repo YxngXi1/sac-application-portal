@@ -133,7 +133,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                           <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span>Grade {candidate.userProfile?.grade}</span>
                             <span>Student #{candidate.userProfile?.studentNumber}</span>
-                            {candidate.userProfile?.studentType && candidate.userProfile.studentType !== 'None' && (
+                            {candidate.userProfile?.studentType && candidate.userProfile.studentType !== 'none' && (
                               <Badge variant="outline" className="text-xs border-gray-300">
                                 {candidate.userProfile.studentType}
                               </Badge>

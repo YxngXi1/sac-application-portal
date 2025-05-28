@@ -126,7 +126,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                 {candidate.userProfile?.studentNumber || 'N/A'}
                               </TableCell>
                               <TableCell>
-                                {candidate.userProfile?.studentType && candidate.userProfile.studentType !== 'None' ? (
+                                {candidate.userProfile?.studentType && candidate.userProfile.studentType !== 'none' ? (
                                   <Badge variant="outline" className="border-gray-300 text-gray-700">
                                     {candidate.userProfile.studentType}
                                   </Badge>
