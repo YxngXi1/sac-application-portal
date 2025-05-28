@@ -43,20 +43,20 @@ const OnboardingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border-black">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">
+          <CardTitle className="text-2xl font-bold text-black">
             Complete Your Profile
           </CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardDescription className="text-black">
             We need a few details to get you started with your SAC application
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="text-black">Full Name</Label>
               <Input
                 id="name"
                 type="text"
@@ -64,11 +64,12 @@ const OnboardingPage = () => {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 placeholder="Enter your full name"
+                className="border-black focus:border-blue-600"
               />
             </div>
             
             <div>
-              <Label htmlFor="studentNumber">Student Number</Label>
+              <Label htmlFor="studentNumber" className="text-black">Student Number</Label>
               <Input
                 id="studentNumber"
                 type="text"
@@ -76,12 +77,13 @@ const OnboardingPage = () => {
                 onChange={(e) => setFormData({ ...formData, studentNumber: e.target.value })}
                 required
                 placeholder="Enter your student number"
+                className="border-black focus:border-blue-600"
               />
             </div>
 
             <Button 
               type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0"
               disabled={loading}
             >
               {loading ? 'Saving...' : 'Complete Setup'}

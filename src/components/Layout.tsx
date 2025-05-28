@@ -14,7 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white border-b border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -29,9 +29,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {user && (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-gray-600" />
+                  <User className="h-4 w-4 text-black" />
                   <span className="text-sm text-black">{userProfile?.name}</span>
-                  <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                  <span className="text-xs text-white bg-blue-600 px-2 py-1 rounded-full">
                     {userProfile?.role}
                   </span>
                 </div>
@@ -39,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   variant="ghost" 
                   size="sm" 
                   onClick={logout}
-                  className="text-gray-600 hover:text-black hover:bg-gray-100"
+                  className="text-black hover:text-black hover:bg-gray-100 border border-black"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
