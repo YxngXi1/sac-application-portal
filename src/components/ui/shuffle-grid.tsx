@@ -1,4 +1,3 @@
-
 "use client"
 
 import { motion } from "framer-motion";
@@ -6,6 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export const ShuffleHero = () => {
+  const handleApplyClick = () => {
+    // Navigate to sign-in page by reloading (which will show LoginPage since user is not authenticated)
+    window.location.reload();
+  };
+
   return (
     <section className="w-full px-4 sm:px-8 py-8 sm:py-12 grid grid-cols-1 md:grid-cols-2 items-center gap-6 sm:gap-8 max-w-6xl mx-auto bg-white">
       <div className="order-2 md:order-1">
@@ -18,11 +22,14 @@ export const ShuffleHero = () => {
         <p className="text-sm sm:text-base md:text-lg text-gray-600 my-3 sm:my-4 md:my-6">
           Join our Student Advisory Council and help shape the future of our school community. Lead initiatives, organize events, and be the voice of student body.
         </p>
-        <button className={cn(
-          "bg-blue-600 text-white font-medium py-2 sm:py-3 px-4 sm:px-6 rounded-md text-sm sm:text-base",
-          "transition-all hover:bg-blue-700 active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-        )}>
+        <button 
+          onClick={handleApplyClick}
+          className={cn(
+            "bg-blue-600 text-white font-medium py-2 sm:py-3 px-4 sm:px-6 rounded-md text-sm sm:text-base",
+            "transition-all hover:bg-blue-700 active:scale-95",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+          )}
+        >
           Apply Now
         </button>
       </div>
