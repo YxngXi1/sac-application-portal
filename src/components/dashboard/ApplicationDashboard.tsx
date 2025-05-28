@@ -101,7 +101,7 @@ const ApplicationDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your dashboard...</p>
@@ -111,14 +111,14 @@ const ApplicationDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-100">
       {/* Main Content */}
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-start mb-8">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-4xl font-bold text-black mb-2">
                 SAC Application Portal
               </h1>
               <p className="text-gray-600 text-lg">
@@ -130,7 +130,7 @@ const ApplicationDashboard = () => {
               {isExecOrSuperAdmin && (
                 <Button 
                   variant="outline" 
-                  className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50 shadow-sm"
+                  className="bg-white border-gray-300 text-gray-800 hover:bg-gray-50 shadow-sm"
                   onClick={() => setShowExecView(!showExecView)}
                 >
                   <Settings className="h-4 w-4 mr-2" />
@@ -144,16 +144,16 @@ const ApplicationDashboard = () => {
             {/* Main Application Section */}
             <div className="lg:col-span-2 space-y-6">
               {!hasStartedApplication ? (
-                <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <Card className="border-0 shadow-lg bg-gradient-to-r from-gray-800 to-black text-white">
                   <CardContent className="p-8 text-center">
                     <h2 className="text-3xl font-bold mb-4">Ready to Apply?</h2>
-                    <p className="text-blue-100 mb-8 text-lg">
+                    <p className="text-gray-300 mb-8 text-lg">
                       Start your SAC application process and join our amazing team!
                     </p>
                     <Button 
                       onClick={handleStartApplication}
                       size="lg"
-                      className="bg-white text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg font-semibold shadow-lg"
+                      className="bg-blue-600 text-white hover:bg-blue-700 px-8 py-3 text-lg font-semibold shadow-lg"
                     >
                       Get Started
                     </Button>
@@ -161,11 +161,11 @@ const ApplicationDashboard = () => {
                 </Card>
               ) : (
                 <Card className="border-0 shadow-lg bg-white">
-                  <CardHeader className="bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-t-lg">
+                  <CardHeader className="bg-gradient-to-r from-gray-700 to-black text-white rounded-t-lg">
                     <div className="flex justify-between items-center">
                       <div>
                         <CardTitle className="text-2xl">Your Application Progress</CardTitle>
-                        <CardDescription className="text-green-100">
+                        <CardDescription className="text-gray-300">
                           Position: {selectedPosition} • Progress: {applicationProgress}%
                         </CardDescription>
                       </div>
@@ -180,7 +180,7 @@ const ApplicationDashboard = () => {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
-                          className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-300" 
+                          className="bg-blue-600 h-3 rounded-full transition-all duration-300" 
                           style={{ width: `${applicationProgress}%` }}
                         ></div>
                       </div>
@@ -189,14 +189,14 @@ const ApplicationDashboard = () => {
                     <div className="flex gap-4">
                       <Button
                         onClick={handleContinueApplication}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 flex-1"
+                        className="bg-blue-600 hover:bg-blue-700 flex-1"
                       >
                         Continue Application
                       </Button>
                       
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+                          <Button variant="outline" className="border-gray-300 text-gray-600 hover:bg-gray-50">
                             <RotateCcw className="h-4 w-4 mr-2" />
                             Reset
                           </Button>
@@ -204,7 +204,7 @@ const ApplicationDashboard = () => {
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle className="flex items-center gap-2">
-                              <AlertTriangle className="h-5 w-5 text-red-500" />
+                              <AlertTriangle className="h-5 w-5 text-gray-600" />
                               Reset Application
                             </AlertDialogTitle>
                             <AlertDialogDescription>
@@ -215,7 +215,7 @@ const ApplicationDashboard = () => {
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={handleRestartApplication}
-                              className="bg-red-600 hover:bg-red-700"
+                              className="bg-gray-600 hover:bg-gray-700"
                             >
                               Reset Application
                             </AlertDialogAction>
@@ -231,7 +231,7 @@ const ApplicationDashboard = () => {
             {/* Student Profile Sidebar */}
             <div>
               <Card className="border-0 shadow-lg bg-white">
-                <CardHeader className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-t-lg">
+                <CardHeader className="bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-t-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <User className="h-6 w-6" />
@@ -270,7 +270,7 @@ const ApplicationDashboard = () => {
                     {userProfile?.studentType && userProfile.studentType !== 'none' && (
                       <div>
                         <div className="text-sm font-medium text-gray-500 mb-1">Program</div>
-                        <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border-blue-200">
+                        <Badge className="bg-blue-100 text-blue-800 border-blue-200">
                           {userProfile.studentType}
                         </Badge>
                       </div>
