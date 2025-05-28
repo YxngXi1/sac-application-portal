@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,7 +176,10 @@ const ApplicationFlow = () => {
             <CardTitle className="text-2xl">Start Your Application</CardTitle>
             <p className="text-gray-600">Ready to join the Student Activity Council?</p>
           </CardHeader>
-          <CardContent className="text-center">
+          <CardContent className="text-center space-y-4">
+            <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
+              Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.
+            </div>
             <Button 
               onClick={handleGetStarted}
               size="lg"
