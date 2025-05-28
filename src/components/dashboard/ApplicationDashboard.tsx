@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target, RotateCcw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProfileEditDialog from './ProfileEditDialog';
+import ExecDashboard from './ExecDashboard';
 import { useToast } from '@/hooks/use-toast';
 
 const ApplicationDashboard = () => {
@@ -18,6 +18,7 @@ const ApplicationDashboard = () => {
   const [applicationProgress, setApplicationProgress] = React.useState(0);
   const [selectedPosition, setSelectedPosition] = React.useState<string>('');
   const [showProfileDialog, setShowProfileDialog] = React.useState(false);
+  const [showExecView, setShowExecView] = React.useState(false);
   
   React.useEffect(() => {
     const saved = localStorage.getItem('applicationProgress');
@@ -74,6 +75,11 @@ const ApplicationDashboard = () => {
     return 'text-green-600';
   };
 
+  // Show exec dashboard if toggled
+  if (showExecView && isExecOrSuperAdmin) {
+    return <ExecDashboard />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -122,9 +128,13 @@ const ApplicationDashboard = () => {
                 <span className="text-sm text-gray-600">Week</span>
               </div>
               {isExecOrSuperAdmin && (
-                <Button variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
+                <Button 
+                  variant="outline" 
+                  className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50"
+                  onClick={() => setShowExecView(!showExecView)}
+                >
                   <Settings className="h-4 w-4 mr-2" />
-                  Show Exec View
+                  {showExecView ? 'Show Student View' : 'Show Exec View'}
                 </Button>
               )}
             </div>
