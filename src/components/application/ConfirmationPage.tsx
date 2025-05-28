@@ -13,12 +13,14 @@ interface ConfirmationPageProps {
   position: string;
   answers: Record<string, string>;
   onBack: () => void;
+  onSubmissionComplete: () => void;
 }
 
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   position,
   answers,
-  onBack
+  onBack,
+  onSubmissionComplete
 }) => {
   const { userProfile, user } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +45,9 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
       
       // Clear saved progress
       localStorage.removeItem('applicationProgress');
+      
+      // Mark submission as complete
+      onSubmissionComplete();
       
       // Show success message and redirect
       toast({
