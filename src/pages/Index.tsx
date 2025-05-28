@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import StudentDashboard from '@/components/dashboard/StudentDashboard';
+import AvailablePositions from '@/pages/AvailablePositions';
 import LandingPage from '@/components/landing/LandingPage';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,7 +16,7 @@ const Index = () => {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-white">
-        {userProfile?.role === 'student' && <StudentDashboard />}
+        {userProfile?.role === 'student' && <AvailablePositions />}
         {userProfile?.role === 'superadmin' && (
           <div className="text-center py-20">
             <h1 className="text-2xl font-bold text-black">Superadmin Dashboard</h1>
