@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Star } from 'lucide-react';
+import { ArrowLeft, Save, Star, User, GraduationCap, Hash, BookOpen } from 'lucide-react';
 import { ApplicationData, saveApplicationGrades, getApplicationGrades } from '@/services/applicationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -120,9 +120,22 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     }
   };
 
+  const getStudentTypeDisplay = (studentType: string) => {
+    switch (studentType) {
+      case 'AP':
+        return 'Advanced Placement (AP)';
+      case 'SHSM':
+        return 'Specialist High Skills Major (SHSM)';
+      case 'none':
+        return 'None';
+      default:
+        return 'Not specified';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading application...</p>
@@ -132,21 +145,65 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center space-x-4 mb-2">
+              <div className="flex items-center space-x-4 mb-4">
                 <Button variant="ghost" onClick={onBack}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Applications
                 </Button>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Grading: {application.userProfile?.fullName || 'Unknown Applicant'}
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Grading Application
               </h1>
+              
+              {/* Applicant Details */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <User className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Applicant</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {application.userProfile?.fullName || 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <GraduationCap className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Grade</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {application.userProfile?.grade || 'Not provided'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <Hash className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Student Number</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {application.userProfile?.studentNumber || 'Not provided'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <BookOpen className="h-5 w-5 text-gray-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Program</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {getStudentTypeDisplay(application.userProfile?.studentType || 'none')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               <p className="text-gray-600">
                 Position: {positionName}
               </p>
@@ -154,10 +211,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
             
             <div className="text-right">
               <div className="flex items-center space-x-2 mb-2">
-                <Star className="h-5 w-5 text-yellow-500" />
+                <Star className="h-5 w-5 text-blue-600" />
                 <span className="text-2xl font-bold">{averageScore.toFixed(1)}/10</span>
               </div>
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                 Current Average
               </Badge>
             </div>
@@ -169,7 +226,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Questions and Answers */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="border-0 shadow-lg bg-white">
+            <Card className="border shadow-sm bg-white">
               <CardHeader>
                 <CardTitle>Application Responses</CardTitle>
                 <CardDescription>
@@ -179,14 +236,14 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
             </Card>
 
             {questions.length === 0 ? (
-              <Card className="border-0 shadow-lg bg-white">
+              <Card className="border shadow-sm bg-white">
                 <CardContent className="p-8 text-center">
                   <p className="text-gray-500">No responses found for this application.</p>
                 </CardContent>
               </Card>
             ) : (
               questions.map((question, index) => (
-                <Card key={question.id} className="border-0 shadow-lg bg-white">
+                <Card key={question.id} className="border shadow-sm bg-white">
                   <CardHeader>
                     <CardTitle className="text-lg">
                       Question {index + 1}
@@ -209,7 +266,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
           {/* Scoring Panel */}
           <div className="space-y-6">
-            <Card className="sticky top-8 border-0 shadow-lg bg-white">
+            <Card className="sticky top-8 border shadow-sm bg-white">
               <CardHeader>
                 <CardTitle>Score Questions</CardTitle>
                 <CardDescription>
@@ -243,12 +300,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                   <div className="flex justify-between items-center mb-4">
                     <Label className="text-lg font-semibold">Average Score</Label>
                     <div className="flex items-center space-x-2">
-                      <Star className="h-5 w-5 text-yellow-500" />
+                      <Star className="h-5 w-5 text-blue-600" />
                       <span className="text-xl font-bold">{averageScore.toFixed(1)}/10</span>
                     </div>
                   </div>
                   
-                  <Button onClick={handleSave} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  <Button onClick={handleSave} className="w-full bg-blue-600 hover:bg-blue-700">
                     <Save className="h-4 w-4 mr-2" />
                     Save Scores
                   </Button>

@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
   const [formData, setFormData] = useState({
     fullName: '',
     studentNumber: '',
+    grade: '',
     studentType: 'none' as 'AP' | 'SHSM' | 'none'
   });
 
@@ -41,8 +43,8 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
       description: "Please provide your full name and student number.",
     },
     {
-      title: "Academic Program",
-      description: "Let us know about your current academic program.",
+      title: "Academic Information",
+      description: "Tell us about your grade and academic program.",
     },
   ];
 
@@ -59,6 +61,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
       await updateUserProfile({
         fullName: formData.fullName,
         studentNumber: formData.studentNumber,
+        grade: formData.grade,
         studentType: formData.studentType,
         isOnboarded: true,
       });
@@ -69,6 +72,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
   };
 
   const isStep2Valid = formData.fullName.trim() !== '' && formData.studentNumber.trim() !== '';
+  const isStep3Valid = formData.grade.trim() !== '';
 
   return (
     <Dialog open={open}>
@@ -109,24 +113,44 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
 
           {step === 3 && (
             <div className="space-y-4">
-              <Label>Are you in any of these programs?</Label>
-              <RadioGroup
-                value={formData.studentType}
-                onValueChange={(value) => setFormData({ ...formData, studentType: value as 'AP' | 'SHSM' | 'none' })}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="AP" id="ap" />
-                  <Label htmlFor="ap">Advanced Placement (AP)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="SHSM" id="shsm" />
-                  <Label htmlFor="shsm">Specialist High Skills Major (SHSM)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="none" id="none" />
-                  <Label htmlFor="none">None of the above</Label>
-                </div>
-              </RadioGroup>
+              <div className="space-y-2">
+                <Label htmlFor="grade">Grade</Label>
+                <Select
+                  value={formData.grade}
+                  onValueChange={(value) => setFormData({ ...formData, grade: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="9">Grade 9</SelectItem>
+                    <SelectItem value="10">Grade 10</SelectItem>
+                    <SelectItem value="11">Grade 11</SelectItem>
+                    <SelectItem value="12">Grade 12</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Academic Program</Label>
+                <RadioGroup
+                  value={formData.studentType}
+                  onValueChange={(value) => setFormData({ ...formData, studentType: value as 'AP' | 'SHSM' | 'none' })}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="AP" id="ap" />
+                    <Label htmlFor="ap">Advanced Placement (AP)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="SHSM" id="shsm" />
+                    <Label htmlFor="shsm">Specialist High Skills Major (SHSM)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="none" />
+                    <Label htmlFor="none">None</Label>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
           )}
 
@@ -148,7 +172,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
                   className="group" 
                   type="button" 
                   onClick={handleContinue}
-                  disabled={step === 2 && !isStep2Valid}
+                  disabled={(step === 2 && !isStep2Valid) || (step === 3 && !isStep3Valid)}
                 >
                   Next
                   <ArrowRight

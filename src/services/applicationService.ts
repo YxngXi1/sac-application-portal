@@ -18,6 +18,7 @@ export interface ApplicationData {
     fullName: string;
     studentNumber: string;
     grade: string;
+    studentType?: 'AP' | 'SHSM' | 'none';
   };
 }
 
