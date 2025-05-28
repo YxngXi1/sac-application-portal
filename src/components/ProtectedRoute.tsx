@@ -2,19 +2,14 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginPage from '@/components/auth/LoginPage';
-import OnboardingPage from '@/components/onboarding/OnboardingPage';
 import Layout from '@/components/Layout';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requireOnboarding?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requireOnboarding = true 
-}) => {
-  const { user, userProfile, loading } = useAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -29,10 +24,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (!user) {
     return <LoginPage />;
-  }
-
-  if (requireOnboarding && (!userProfile?.isOnboarded)) {
-    return <OnboardingPage />;
   }
 
   return <Layout>{children}</Layout>;
