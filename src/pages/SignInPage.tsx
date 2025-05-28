@@ -92,7 +92,7 @@ const SignInPage = () => {
             <img src="/lovable-uploads/8a63f40b-6935-4ee7-b788-560b8353aa1e.png" alt="SAC John Fraser" className="h-12 w-auto" />
 
             <div className="space-y-2 text-center">
-              <h1 className="text-3xl font-semibold text-foreground">Login to SAC!</h1>
+              <h1 className="text-3xl font-semibold text-foreground">Login to Apply!</h1>
               <p className="text-muted-foreground text-sm">
                 Sign in with your PDSB account to apply
               </p>
