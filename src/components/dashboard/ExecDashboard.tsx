@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
+import InterviewView from './InterviewView';
 
 interface ExecDashboardProps {
   onBack: () => void;
@@ -14,6 +15,7 @@ interface ExecDashboardProps {
 
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [showInterviewView, setShowInterviewView] = useState(false);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -73,6 +75,10 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     );
   }
 
+  if (showInterviewView) {
+    return <InterviewView onBack={() => setShowInterviewView(false)} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -89,10 +95,18 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center mb-4">
+          <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" onClick={onBack} className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
+            </Button>
+            
+            <Button
+              onClick={() => setShowInterviewView(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Interview View
             </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
