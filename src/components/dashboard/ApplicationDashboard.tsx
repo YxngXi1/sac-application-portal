@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress, saveApplicationProgress } from '@/services/applicationService';
 import ProfileEditDialog from './ProfileEditDialog';
 import ExecDashboard from './ExecDashboard';
+import DeadlineTile from './DeadlineTile';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -228,8 +229,12 @@ const ApplicationDashboard = () => {
               )}
             </div>
 
-            {/* Student Profile Sidebar */}
-            <div>
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Deadline Tile */}
+              <DeadlineTile />
+              
+              {/* Student Profile */}
               <Card className="border-0 shadow-lg bg-white">
                 <CardHeader className="bg-gradient-to-r from-gray-600 to-gray-800 text-white rounded-t-lg">
                   <div className="flex items-center justify-between">
