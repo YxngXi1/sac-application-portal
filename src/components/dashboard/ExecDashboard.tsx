@@ -3,23 +3,27 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
 
-const ExecDashboard = () => {
+interface ExecDashboardProps {
+  onBack: () => void;
+}
+
+const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const positions = [
-    { id: 'secretary', name: 'Secretary' },
-    { id: 'treasurer', name: 'Treasurer' },
-    { id: 'community-outreach', name: 'Community Outreach' },
-    { id: 'athletics-liaison', name: 'Athletics Liaison' },
-    { id: 'promotions-officer', name: 'Promotions Officer' },
-    { id: 'photography-exec', name: 'Photography Exec' }
+    { id: 'Secretary', name: 'Secretary' },
+    { id: 'Treasurer', name: 'Treasurer' },
+    { id: 'Community Outreach', name: 'Community Outreach' },
+    { id: 'Athletics Liaison', name: 'Athletics Liaison' },
+    { id: 'Promotions Officer', name: 'Promotions Officer' },
+    { id: 'Photography Exec', name: 'Photography Exec' }
   ];
 
   useEffect(() => {
@@ -71,7 +75,7 @@ const ExecDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading applications...</p>
@@ -81,10 +85,16 @@ const ExecDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white border-b px-8 py-6">
+      <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
+          <div className="flex items-center mb-4">
+            <Button variant="ghost" onClick={onBack} className="mr-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Executive Dashboard
           </h1>
@@ -97,57 +107,57 @@ const ExecDashboard = () => {
       <div className="max-w-7xl mx-auto p-8">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Applications</p>
+                  <p className="text-sm font-medium text-blue-100">Total Applications</p>
                   <p className="text-3xl font-bold">{totalApplications}</p>
                 </div>
-                <FileText className="h-8 w-8 text-blue-600" />
+                <FileText className="h-8 w-8 text-blue-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-green-500 to-green-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Submitted</p>
+                  <p className="text-sm font-medium text-green-100">Submitted</p>
                   <p className="text-3xl font-bold">{totalSubmitted}</p>
                 </div>
-                <Target className="h-8 w-8 text-green-600" />
+                <Target className="h-8 w-8 text-green-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">In Progress</p>
+                  <p className="text-sm font-medium text-orange-100">In Progress</p>
                   <p className="text-3xl font-bold">{totalInProgress}</p>
                 </div>
-                <Clock className="h-8 w-8 text-orange-600" />
+                <Clock className="h-8 w-8 text-orange-200" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-500 to-purple-600 text-white">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Interviewed</p>
+                  <p className="text-sm font-medium text-purple-100">Interviewed</p>
                   <p className="text-3xl font-bold">{totalInterviewed}</p>
                 </div>
-                <Users className="h-8 w-8 text-purple-600" />
+                <Users className="h-8 w-8 text-purple-200" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Positions Grid */}
-        <Card>
+        <Card className="border-0 shadow-lg bg-white">
           <CardHeader>
             <CardTitle>Applications by Position</CardTitle>
             <CardDescription>
@@ -161,35 +171,40 @@ const ExecDashboard = () => {
                 return (
                   <Card 
                     key={position.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:scale-105"
                     onClick={() => setSelectedPosition(position.id)}
                   >
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className="font-semibold text-lg">{position.name}</h3>
-                        <Badge variant="secondary">
+                        <h3 className="font-semibold text-lg text-gray-900">{position.name}</h3>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                           {stats.total} total
                         </Badge>
                       </div>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Submitted:</span>
-                          <span className="font-medium text-green-600">{stats.submitted}</span>
+                          <span className="font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                            {stats.submitted}
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">In Progress:</span>
-                          <span className="font-medium text-orange-600">{stats.inProgress}</span>
+                          <span className="font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                            {stats.inProgress}
+                          </span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Interviewed:</span>
-                          <span className="font-medium text-purple-600">{stats.interviewed}</span>
+                          <span className="font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                            {stats.interviewed}
+                          </span>
                         </div>
                       </div>
 
                       <Button 
-                        className="w-full mt-4" 
-                        variant="outline"
+                        className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700" 
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedPosition(position.id);
