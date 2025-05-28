@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <img 
-                src="/lovable-uploads/8a63f40b-6935-4ee7-b788-560b8353aa1e.png" 
+                src="/lovable-uploads/7008452c-9db1-439b-9d94-d68146b0c93b.png" 
                 alt="SAC John Fraser" 
                 className="h-10 w-auto"
               />
