@@ -1,10 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { submitApplication } from '@/services/applicationService';
+import { useToast } from '@/hooks/use-toast';
 
 interface ConfirmationPageProps {
   position: string;
@@ -17,21 +20,48 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   answers,
   onBack
 }) => {
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    // Here you would submit the application to your backend
-    console.log('Submitting application:', {
-      position,
-      answers,
-      userProfile
-    });
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to submit an application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     
-    // Clear saved progress
-    localStorage.removeItem('applicationProgress');
-    
-    // Show success message or redirect
-    alert('Application submitted successfully!');
+    try {
+      // Submit the application using the service
+      await submitApplication(user.uid);
+      
+      // Clear saved progress
+      localStorage.removeItem('applicationProgress');
+      
+      // Show success message and redirect
+      toast({
+        title: "Success",
+        description: "Application submitted successfully!",
+      });
+      
+      // Redirect to thank you page
+      navigate('/thank-you');
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,6 +125,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
                 variant="outline" 
                 onClick={onBack}
                 className="flex-1"
+                disabled={isSubmitting}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Edit
@@ -103,8 +134,9 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
               <Button 
                 onClick={handleSubmit}
                 className="flex-1 bg-green-600 hover:bg-green-700"
+                disabled={isSubmitting}
               >
-                Submit Application
+                {isSubmitting ? 'Submitting...' : 'Submit Application'}
               </Button>
             </div>
 

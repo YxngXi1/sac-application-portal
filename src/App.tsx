@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignInPage from "./pages/SignInPage";
 import ApplicationPage from "./pages/ApplicationPage";
+import ThankYouPage from "./pages/ThankYouPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
               <Route path="/" element={<Index />} />
               <Route path="/sign-in" element={<SignInPage />} />
               <Route path="/apply" element={<ApplicationPage />} />
+              <Route path="/thank-you" element={<ThankYouPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
