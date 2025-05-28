@@ -3,11 +3,17 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const ShuffleHero = () => {
-  const handleApplyClick = () => {
-    // Navigate to sign-in page by reloading (which will show LoginPage since user is not authenticated)
-    window.location.reload();
+  const { signInWithGoogle } = useAuth();
+
+  const handleApplyClick = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Sign in error:', error);
+    }
   };
 
   return (
