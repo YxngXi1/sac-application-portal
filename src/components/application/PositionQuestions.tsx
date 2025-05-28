@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,13 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   const { toast } = useToast();
 
   const getQuestions = () => {
+    // Universal question for all positions
+    const universalQuestion = {
+      id: 'commitments',
+      type: 'textarea',
+      question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.'
+    };
+
     switch (position) {
       case 'Secretary':
         return [
@@ -44,7 +52,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'secretary_3',
             type: 'textarea',
             question: "What's one strength you have that you think will help you be a great secretary? Give a brief example of how you've used that strength in the past."
-          }
+          },
+          universalQuestion
         ];
 
       case 'Treasurer':
@@ -58,7 +67,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'treasurer_2',
             type: 'textarea',
             question: "Imagine you're managing a budget for a school event, but the cost of something important is more than you expected. In a short paragraph, explain how you'd handle the situation to make sure the event still happens without overspending."
-          }
+          },
+          universalQuestion
         ];
 
       case 'Community Outreach':
@@ -77,7 +87,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'outreach_3',
             type: 'textarea',
             question: 'Community outreach requires strong communication and relationship-building skills. Share an example of a time when you successfully worked with others to achieve a goal'
-          }
+          },
+          universalQuestion
         ];
 
       case 'Athletics Liaison':
@@ -96,7 +107,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'athletics_3',
             type: 'textarea',
             question: "As the Athletics Liaison, you'll need to communicate between two councils. Describe a time when you successfully helped different groups work together toward a common goal."
-          }
+          },
+          universalQuestion
         ];
 
       case 'Promotions Officer':
@@ -117,7 +129,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'promotions_3',
             type: 'textarea',
             question: 'What access do you have to digital media and editing platforms?'
-          }
+          },
+          universalQuestion
         ];
 
       case 'Photography Exec':
@@ -125,13 +138,19 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'photo_1',
             type: 'file',
-            question: 'Submit a good photo you\'ve taken',
-            note: 'Upload your best photography work'
-          }
+            question: 'Submit at least 5 good photos you\'ve taken',
+            note: 'Upload your best photography work (minimum 5 photos required)'
+          },
+          {
+            id: 'photo_2',
+            type: 'textarea',
+            question: 'What camera and editing platform do you have access to?'
+          },
+          universalQuestion
         ];
 
       default:
-        return [];
+        return [universalQuestion];
     }
   };
 
@@ -210,6 +229,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                     accept={question.id.includes('video') ? 'video/*' : 
                            question.id.includes('poster') ? 'image/*' : 
                            question.id.includes('photo') ? 'image/*' : '*'}
+                    multiple={question.id === 'photo_1'}
                   />
                 ) : null}
               </div>

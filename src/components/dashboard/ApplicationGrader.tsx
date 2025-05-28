@@ -31,6 +31,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [overallImpression, setOverallImpression] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [allApplications, setAllApplications] = useState<ApplicationData[]>([]);
   const [currentApplicationIndex, setCurrentApplicationIndex] = useState(0);
@@ -67,6 +68,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
         setQuestions(questionsList);
         
+        // Load overall impression score
+        const overallImpressionGrade = myGrades?.grades.find(g => g.questionId === 'overall_impression');
+        setOverallImpression(overallImpressionGrade?.score || 0);
+        
         // Calculate average score from all executives
         if (existingGrades?.executiveGrades && existingGrades.executiveGrades.length > 0) {
           const totalScore = existingGrades.executiveGrades.reduce((sum, eg) => sum + eg.totalScore, 0);
@@ -86,17 +91,25 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   }, [application.id, application.answers, positionName, userProfile?.uid]);
 
   const updateScore = (questionId: string, newScore: number) => {
+    // Allow half points (e.g., 5.5)
+    const roundedScore = Math.round(newScore * 2) / 2;
     setQuestions(prev => 
       prev.map(q => 
         q.id === questionId 
-          ? { ...q, score: Math.max(0, Math.min(q.maxScore, newScore)) }
+          ? { ...q, score: Math.max(0, Math.min(q.maxScore, roundedScore)) }
           : q
       )
     );
   };
 
+  const updateOverallImpression = (newScore: number) => {
+    // Allow half points (e.g., 5.5)
+    const roundedScore = Math.round(newScore * 2) / 2;
+    setOverallImpression(Math.max(0, Math.min(10, roundedScore)));
+  };
+
   const myScore = questions.length > 0 ? 
-    questions.reduce((sum, q) => sum + q.score, 0) / questions.length : 0;
+    (questions.reduce((sum, q) => sum + q.score, 0) + overallImpression) / (questions.length + 1) : 0;
 
   const handleSave = async () => {
     if (!userProfile?.uid) {
@@ -113,12 +126,20 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         applicationId: application.id,
         executiveId: userProfile.uid,
         executiveName: userProfile.fullName || 'Unknown Executive',
-        grades: questions.map(q => ({
-          questionId: q.id,
-          score: q.score,
-          maxScore: q.maxScore,
-          feedback: ''
-        })),
+        grades: [
+          ...questions.map(q => ({
+            questionId: q.id,
+            score: q.score,
+            maxScore: q.maxScore,
+            feedback: ''
+          })),
+          {
+            questionId: 'overall_impression',
+            score: overallImpression,
+            maxScore: 10,
+            feedback: ''
+          }
+        ],
         totalScore: myScore,
         maxTotalScore: 10,
         gradedAt: new Date()
@@ -390,7 +411,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
               <CardHeader>
                 <CardTitle>Score Questions</CardTitle>
                 <CardDescription>
-                  Rate each response out of 10 points
+                  Rate each response out of 10 points (whole or half numbers)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -405,8 +426,9 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                         type="number"
                         min="0"
                         max={question.maxScore}
+                        step="0.5"
                         value={question.score}
-                        onChange={(e) => updateScore(question.id, parseInt(e.target.value) || 0)}
+                        onChange={(e) => updateScore(question.id, parseFloat(e.target.value) || 0)}
                         className="w-20"
                       />
                       <span className="text-sm text-gray-600">
@@ -415,6 +437,28 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     </div>
                   </div>
                 ))}
+
+                {/* Overall Impression */}
+                <div className="border-t pt-4 space-y-2">
+                  <Label htmlFor="overall-impression">
+                    Overall Impression
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      id="overall-impression"
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      value={overallImpression}
+                      onChange={(e) => updateOverallImpression(parseFloat(e.target.value) || 0)}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-gray-600">
+                      / 10
+                    </span>
+                  </div>
+                </div>
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center mb-4">
