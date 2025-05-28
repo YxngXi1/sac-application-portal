@@ -104,14 +104,10 @@ const SignInPage = () => {
               </Alert>}
 
             <div className="w-full space-y-4">
-              <Input type="email" placeholder="Your PDSB email (@pdsb.net)" className="w-full rounded-xl" disabled />
-              
               <Button onClick={handleSignIn} disabled={loading} className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white" size="lg">
                 <GoogleIcon className="mr-2" />
                 {loading ? 'Signing in...' : 'Sign in with Google'}
               </Button>
-
-              
 
               <div className="text-xs text-center space-y-1 text-muted-foreground">
                 
