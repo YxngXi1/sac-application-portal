@@ -13,16 +13,22 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
   const { userProfile, updateUserProfile } = useAuth();
   const { toast } = useToast();
 
-  const handleSave = async (newName: string) => {
+  const handleSave = async (newName: string, grade?: string) => {
     try {
-      await updateUserProfile({ 
+      const updateData: any = { 
         fullName: newName,
         name: newName 
-      });
+      };
+      
+      if (grade !== undefined) {
+        updateData.grade = grade;
+      }
+      
+      await updateUserProfile(updateData);
       
       toast({
         title: "Profile updated",
-        description: "Your name has been successfully updated.",
+        description: "Your profile has been successfully updated.",
       });
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -39,6 +45,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
       open={open}
       onOpenChange={onOpenChange}
       currentName={userProfile?.fullName || userProfile?.name || ''}
+      currentGrade={userProfile?.grade || ''}
       onSave={handleSave}
     />
   );

@@ -4,58 +4,74 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target, RotateCcw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProfileEditDialog from './ProfileEditDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const ApplicationDashboard = () => {
   const { userProfile } = useAuth();
+  const { toast } = useToast();
   
-  // Check if user has started an application
+  // Application state management
   const [hasStartedApplication, setHasStartedApplication] = React.useState(false);
+  const [applicationProgress, setApplicationProgress] = React.useState(0);
+  const [selectedPosition, setSelectedPosition] = React.useState<string>('');
   const [showProfileDialog, setShowProfileDialog] = React.useState(false);
   
   React.useEffect(() => {
     const saved = localStorage.getItem('applicationProgress');
-    setHasStartedApplication(!!saved);
+    const savedPosition = localStorage.getItem('selectedPosition');
+    const savedProgress = localStorage.getItem('progressPercentage');
+    
+    if (saved) {
+      setHasStartedApplication(true);
+      setSelectedPosition(savedPosition || '');
+      setApplicationProgress(parseInt(savedProgress || '0'));
+    }
   }, []);
   
-  // Mock data - will be replaced with real Firebase data
-  const applicationDeadline = new Date('2024-02-15');
+  // Application deadline
+  const applicationDeadline = new Date('2025-06-03');
   const currentDate = new Date();
   const daysLeft = Math.ceil((applicationDeadline.getTime() - currentDate.getTime()) / (1000 * 3600 * 24));
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
 
-  const metricCards = [
-    {
-      title: 'Applications',
-      value: '1',
-      change: '+1 this week',
-      icon: FileText,
-      color: 'bg-gradient-to-br from-purple-400 to-purple-600',
-      textColor: 'text-white'
-    },
-    {
-      title: 'Progress',
-      value: '65%',
-      change: '+15% this week',
-      icon: TrendingUp,
-      color: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
-      textColor: 'text-white'
-    },
-    {
-      title: 'Days Left',
-      value: daysLeft.toString(),
-      change: 'Until deadline',
-      icon: Clock,
-      color: 'bg-gradient-to-br from-orange-400 to-orange-600',
-      textColor: 'text-white'
-    }
-  ];
-
   const handleStartApplication = () => {
     window.location.href = '/apply';
+  };
+
+  const handleContinueApplication = () => {
+    window.location.href = '/apply';
+  };
+
+  const handleRestartApplication = () => {
+    localStorage.removeItem('applicationProgress');
+    localStorage.removeItem('selectedPosition');
+    localStorage.removeItem('progressPercentage');
+    localStorage.removeItem('applicationData');
+    
+    setHasStartedApplication(false);
+    setApplicationProgress(0);
+    setSelectedPosition('');
+    
+    toast({
+      title: "Application Reset",
+      description: "Your application has been cleared. You can start fresh now.",
+    });
+  };
+
+  const getProgressStatus = () => {
+    if (applicationProgress === 0) return 'Not Started';
+    if (applicationProgress < 100) return 'In Progress';
+    return 'Completed';
+  };
+
+  const getProgressColor = () => {
+    if (applicationProgress === 0) return 'text-gray-600';
+    if (applicationProgress < 100) return 'text-blue-600';
+    return 'text-green-600';
   };
 
   return (
@@ -114,8 +130,8 @@ const ApplicationDashboard = () => {
             </div>
           </div>
 
-          {/* Show Get Started section if no application started */}
-          {!hasStartedApplication && (
+          {/* Application Status Section */}
+          {!hasStartedApplication ? (
             <div className="mb-8">
               <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-purple-50">
                 <CardContent className="p-8 text-center">
@@ -131,27 +147,111 @@ const ApplicationDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+          ) : (
+            <div className="mb-8">
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="text-xl">Your Application Progress</CardTitle>
+                      <CardDescription>
+                        Position: {selectedPosition} • Status: <span className={getProgressColor()}>{getProgressStatus()}</span>
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleContinueApplication}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Continue Application
+                      </Button>
+                      <Button
+                        onClick={handleRestartApplication}
+                        variant="outline"
+                        className="text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Restart
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Progress</span>
+                      <span>{applicationProgress}%</span>
+                    </div>
+                    <Progress value={applicationProgress} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {metricCards.map((metric, index) => (
-              <Card key={index} className="border-0 shadow-sm">
-                <CardContent className="p-0">
-                  <div className={`${metric.color} ${metric.textColor} p-6 rounded-lg`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-sm opacity-90">{metric.title}</span>
-                      <metric.icon className="h-5 w-5 opacity-80" />
-                    </div>
-                    <div className="text-3xl font-bold mb-1">{metric.value}</div>
-                    <div className="text-sm opacity-75">{metric.change}</div>
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-0">
+                <div className="bg-gradient-to-br from-purple-400 to-purple-600 text-white p-6 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm opacity-90">Applications</span>
+                    <FileText className="h-5 w-5 opacity-80" />
+                  </div>
+                  <div className="text-3xl font-bold mb-1">{hasStartedApplication ? '1' : '0'}</div>
+                  <div className="text-sm opacity-75">
+                    {hasStartedApplication ? 'In progress' : 'Not started'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-0">
+                <div className="bg-gradient-to-br from-cyan-400 to-cyan-600 text-white p-6 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm opacity-90">Progress</span>
+                    <TrendingUp className="h-5 w-5 opacity-80" />
+                  </div>
+                  <div className="text-3xl font-bold mb-1">{applicationProgress}%</div>
+                  <div className="text-sm opacity-75">Overall completion</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-0">
+                <div className={`bg-gradient-to-br ${daysLeft > 7 ? 'from-green-400 to-green-600' : daysLeft > 0 ? 'from-orange-400 to-orange-600' : 'from-red-400 to-red-600'} text-white p-6 rounded-lg`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm opacity-90">Days Left</span>
+                    <Clock className="h-5 w-5 opacity-80" />
+                  </div>
+                  <div className="text-3xl font-bold mb-1">{Math.max(0, daysLeft)}</div>
+                  <div className="text-sm opacity-75">
+                    {daysLeft > 0 ? 'Until deadline' : 'Applications closed'}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Deadline Alert */}
+          {daysLeft <= 7 && daysLeft > 0 && (
+            <div className="mb-8">
+              <Card className="border-orange-200 bg-orange-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2 text-orange-800">
+                    <AlertCircle className="h-5 w-5" />
+                    <span className="font-medium">
+                      Application deadline is approaching! Due: Tuesday, June 3rd, 2025
+                    </span>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </div>
+          )}
 
-          {/* Student Info with Edit Button */}
+          {/* Student Profile */}
           <div className="max-w-md">
             <Card className="border-0 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -174,6 +274,10 @@ const ApplicationDashboard = () => {
                   <div>
                     <div className="text-sm text-gray-600">Student Number</div>
                     <div className="font-medium">{userProfile?.studentNumber || 'Not provided'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-600">Grade</div>
+                    <div className="font-medium">{userProfile?.grade || 'Not provided'}</div>
                   </div>
                   {userProfile?.studentType && userProfile.studentType !== 'none' && (
                     <div>

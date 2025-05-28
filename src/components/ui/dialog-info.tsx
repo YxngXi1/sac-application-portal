@@ -223,17 +223,20 @@ interface ProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentName: string;
-  onSave: (name: string) => void;
+  currentGrade?: string;
+  onSave: (name: string, grade?: string) => void;
 }
 
-export default function ProfileDialog({ open, onOpenChange, currentName, onSave }: ProfileDialogProps) {
+export default function ProfileDialog({ open, onOpenChange, currentName, currentGrade, onSave }: ProfileDialogProps) {
   const [authorName, setAuthorName] = useState(currentName);
+  const [grade, setGrade] = useState(currentGrade || '');
   const [image, setImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setAuthorName(currentName);
-  }, [currentName]);
+    setGrade(currentGrade || '');
+  }, [currentName, currentGrade]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -256,7 +259,7 @@ export default function ProfileDialog({ open, onOpenChange, currentName, onSave 
   };
 
   const handleSave = () => {
-    onSave(authorName);
+    onSave(authorName, grade);
     onOpenChange(false);
   };
 
@@ -339,6 +342,22 @@ export default function ProfileDialog({ open, onOpenChange, currentName, onSave 
                   onChange={(e) => setAuthorName(e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="grade">Grade</Label>
+                <select
+                  id="grade"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select Grade</option>
+                  <option value="9">Grade 9</option>
+                  <option value="10">Grade 10</option>
+                  <option value="11">Grade 11</option>
+                  <option value="12">Grade 12</option>
+                </select>
               </div>
             </div>
 
