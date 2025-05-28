@@ -60,40 +60,14 @@ const Button = React.forwardRef<
 });
 Button.displayName = "Button";
 
-const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
-  ({ className, type, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        className={cn(
-          "flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm placeholder:text-muted-foreground",
-          "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
+const GoogleIcon = ({
+  className,
+  ...props
+}: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" className={cn("w-4 h-4", className)} fill="currentColor" {...props}>
+    <path d="M3.06364 7.50914C4.70909 4.24092 8.09084 2 12 2C14.6954 2 16.959 2.99095 18.6909 4.60455L15.8227 7.47274C14.7864 6.48185 13.4681 5.97727 12 5.97727C9.39542 5.97727 7.19084 7.73637 6.40455 10.1C6.2045 10.7 6.09086 11.3409 6.09086 12C6.09086 12.6591 6.2045 13.3 6.40455 13.9C7.19084 16.2636 9.39542 18.0227 12 18.0227C13.3454 18.0227 14.4909 17.6682 15.3864 17.0682C16.4454 16.3591 17.15 15.3 17.3818 14.05H12V10.1818H21.4181C21.5364 10.8363 21.6 11.5182 21.6 12.2273C21.6 15.2727 20.5091 17.8363 18.6181 19.5773C16.9636 21.1046 14.7 22 12 22C8.09084 22 4.70909 19.7591 3.06364 16.4909C2.38638 15.1409 2 13.6136 2 12C2 10.3864 2.38638 8.85911 3.06364 7.50914Z" />
+  </svg>
 );
-Input.displayName = "Input";
-
-const Separator = React.forwardRef<
-  React.ElementRef<typeof SeparatorPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
->(({ className, orientation = "horizontal", decorative = true, ...props }, ref) => (
-  <SeparatorPrimitive.Root
-    ref={ref}
-    decorative={decorative}
-    orientation={orientation}
-    className={cn(
-      "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
-      className
-    )}
-    {...props}
-  />
-));
-Separator.displayName = SeparatorPrimitive.Root.displayName;
 
 const LoginPage = () => {
   const { signInWithGoogle, loading } = useAuth();
@@ -123,7 +97,7 @@ const LoginPage = () => {
 
             <div className="space-y-2 text-center">
               <h1 className="text-3xl font-semibold text-foreground">
-                Welcome to SAC!
+                Login to Apply!
               </h1>
               <p className="text-muted-foreground text-sm">
                 Sign in with your PDSB account to apply
@@ -138,44 +112,16 @@ const LoginPage = () => {
             )}
 
             <div className="w-full space-y-4">
-              <Input
-                type="email"
-                placeholder="Your PDSB email (@pdsb.net)"
-                className="w-full rounded-xl"
-                disabled
-              />
-              
               <Button 
                 onClick={handleSignIn}
                 disabled={loading}
                 className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white" 
                 size="lg"
               >
+                <GoogleIcon className="mr-2" />
                 {loading ? 'Signing in...' : 'Sign in with Google'}
               </Button>
-
-              <div className="flex items-center gap-4 py-2">
-                <Separator className="flex-1" />
-                <span className="text-sm text-muted-foreground">PDSB Only</span>
-                <Separator className="flex-1" />
-              </div>
-
-              <div className="text-xs text-center space-y-1 text-muted-foreground">
-                <p><strong>IMPORTANT:</strong> Only John Fraser PDSB accounts are permitted</p>
-                <p className="font-medium text-red-600">Must use @pdsb.net email address</p>
-              </div>
             </div>
-
-            <p className="text-center text-xs w-11/12 text-muted-foreground">
-              By signing in, you acknowledge that you read and agree to our{" "}
-              <a href="#" className="underline hover:text-foreground">
-                Terms of Service
-              </a>{" "}
-              and{" "}
-              <a href="#" className="underline hover:text-foreground">
-                Privacy Policy
-              </a>.
-            </p>
           </div>
         </CardContent>
       </Card>
