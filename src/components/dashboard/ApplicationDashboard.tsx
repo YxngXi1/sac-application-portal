@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target, RotateCcw, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { loadApplicationProgress } from '@/services/applicationService';
 import ProfileEditDialog from './ProfileEditDialog';
 import ExecDashboard from './ExecDashboard';
 import { useToast } from '@/hooks/use-toast';
@@ -19,18 +21,28 @@ const ApplicationDashboard = () => {
   const [selectedPosition, setSelectedPosition] = React.useState<string>('');
   const [showProfileDialog, setShowProfileDialog] = React.useState(false);
   const [showExecView, setShowExecView] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   
   React.useEffect(() => {
-    const saved = localStorage.getItem('applicationProgress');
-    const savedPosition = localStorage.getItem('selectedPosition');
-    const savedProgress = localStorage.getItem('progressPercentage');
-    
-    if (saved) {
-      setHasStartedApplication(true);
-      setSelectedPosition(savedPosition || '');
-      setApplicationProgress(parseInt(savedProgress || '0'));
-    }
-  }, []);
+    const loadProgress = async () => {
+      if (!userProfile?.uid) return;
+      
+      try {
+        const savedApplication = await loadApplicationProgress(userProfile.uid);
+        if (savedApplication) {
+          setHasStartedApplication(true);
+          setSelectedPosition(savedApplication.position);
+          setApplicationProgress(savedApplication.progress || 0);
+        }
+      } catch (error) {
+        console.error('Error loading application progress:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProgress();
+  }, [userProfile]);
   
   // Application deadline
   const applicationDeadline = new Date('2025-06-03');
@@ -47,20 +59,34 @@ const ApplicationDashboard = () => {
     window.location.href = '/apply';
   };
 
-  const handleRestartApplication = () => {
-    localStorage.removeItem('applicationProgress');
-    localStorage.removeItem('selectedPosition');
-    localStorage.removeItem('progressPercentage');
-    localStorage.removeItem('applicationData');
+  const handleRestartApplication = async () => {
+    if (!userProfile?.uid) return;
     
-    setHasStartedApplication(false);
-    setApplicationProgress(0);
-    setSelectedPosition('');
-    
-    toast({
-      title: "Application Reset",
-      description: "Your application has been cleared. You can start fresh now.",
-    });
+    try {
+      // Clear Firebase data by saving empty application
+      await saveApplicationProgress(userProfile.uid, {
+        position: '',
+        answers: {},
+        progress: 0,
+        status: 'draft',
+      });
+      
+      setHasStartedApplication(false);
+      setApplicationProgress(0);
+      setSelectedPosition('');
+      
+      toast({
+        title: "Application Reset",
+        description: "Your application has been cleared from all devices.",
+      });
+    } catch (error) {
+      console.error('Error resetting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset application. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getProgressStatus = () => {
@@ -78,6 +104,17 @@ const ApplicationDashboard = () => {
   // Show exec dashboard if toggled
   if (showExecView && isExecOrSuperAdmin) {
     return <ExecDashboard />;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

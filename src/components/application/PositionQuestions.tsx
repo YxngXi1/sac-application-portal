@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,7 @@ interface PositionQuestionsProps {
   onAnswerChange: (questionId: string, answer: string) => void;
   onNext: () => void;
   onBack: () => void;
-  onSave: () => void;
+  onSave: () => Promise<void>;
 }
 
 const PositionQuestions: React.FC<PositionQuestionsProps> = ({
@@ -139,12 +138,21 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   const questions = getQuestions();
   const isComplete = questions.every(q => answers[q.id]);
 
-  const handleSave = () => {
-    onSave();
-    toast({
-      title: "Progress Saved",
-      description: "Your application progress has been saved.",
-    });
+  const handleSave = async () => {
+    try {
+      await onSave();
+      toast({
+        title: "Progress Saved",
+        description: "Your application progress has been saved to Firebase.",
+      });
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your progress. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -153,7 +161,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         <Card>
           <CardHeader>
             <CardTitle>{position} Application</CardTitle>
-            <p className="text-gray-600">Please answer all questions below. You can save your progress at any time.</p>
+            <p className="text-gray-600">Please answer all questions below. Your progress is automatically saved to Firebase.</p>
           </CardHeader>
           <CardContent className="space-y-6">
             {questions.map((question, index) => (

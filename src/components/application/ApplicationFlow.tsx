@@ -1,16 +1,22 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveApplicationProgress, loadApplicationProgress } from '@/services/applicationService';
+import { useToast } from '@/hooks/use-toast';
 import PositionQuestions from './PositionQuestions';
 import ConfirmationPage from './ConfirmationPage';
 
 const ApplicationFlow = () => {
+  const { user, userProfile } = useAuth();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedPosition, setSelectedPosition] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
 
   const positions = [
     'Secretary',
@@ -21,13 +27,68 @@ const ApplicationFlow = () => {
     'Photography Exec'
   ];
 
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!user) return;
+      
+      try {
+        const savedApplication = await loadApplicationProgress(user.uid);
+        if (savedApplication) {
+          setCurrentStep(2); // Go directly to questions if application exists
+          setSelectedPosition(savedApplication.position);
+          setAnswers(savedApplication.answers || {});
+          
+          if (savedApplication.status === 'submitted') {
+            setCurrentStep(3); // Go to confirmation if already submitted
+          }
+        }
+      } catch (error) {
+        console.error('Error loading application progress:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your application progress. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProgress();
+  }, [user, toast]);
+
   const handleGetStarted = () => {
     setCurrentStep(1);
   };
 
-  const handlePositionSelect = () => {
-    if (selectedPosition) {
-      setCurrentStep(2);
+  const handlePositionSelect = async () => {
+    if (selectedPosition && user) {
+      try {
+        const progress = calculateProgress();
+        await saveApplicationProgress(user.uid, {
+          position: selectedPosition,
+          answers,
+          progress,
+          userProfile: {
+            fullName: userProfile?.fullName || '',
+            studentNumber: userProfile?.studentNumber || '',
+            grade: userProfile?.grade || '',
+          }
+        });
+        
+        setCurrentStep(2);
+        toast({
+          title: "Progress Saved",
+          description: "Your position selection has been saved.",
+        });
+      } catch (error) {
+        console.error('Error saving position selection:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save your selection. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -38,6 +99,50 @@ const ApplicationFlow = () => {
     }));
   };
 
+  const calculateProgress = () => {
+    if (!selectedPosition) return 0;
+    if (currentStep === 1) return 20;
+    if (currentStep === 2) {
+      const totalQuestions = getQuestionCount(selectedPosition);
+      const answeredQuestions = Object.keys(answers).length;
+      return Math.min(20 + (answeredQuestions / totalQuestions) * 70, 90);
+    }
+    return 100;
+  };
+
+  const getQuestionCount = (position: string) => {
+    switch (position) {
+      case 'Secretary': return 3;
+      case 'Treasurer': return 2;
+      case 'Community Outreach': return 3;
+      case 'Athletics Liaison': return 3;
+      case 'Promotions Officer': return 3;
+      case 'Photography Exec': return 1;
+      default: return 0;
+    }
+  };
+
+  const saveProgress = async () => {
+    if (!user) return;
+    
+    try {
+      const progress = calculateProgress();
+      await saveApplicationProgress(user.uid, {
+        position: selectedPosition,
+        answers,
+        progress,
+        userProfile: {
+          fullName: userProfile?.fullName || '',
+          studentNumber: userProfile?.studentNumber || '',
+          grade: userProfile?.grade || '',
+        }
+      });
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      throw error;
+    }
+  };
+
   const handleNext = () => {
     setCurrentStep(prev => prev + 1);
   };
@@ -46,25 +151,16 @@ const ApplicationFlow = () => {
     setCurrentStep(prev => prev - 1);
   };
 
-  const saveProgress = () => {
-    // Save to localStorage for now
-    localStorage.setItem('applicationProgress', JSON.stringify({
-      currentStep,
-      selectedPosition,
-      answers
-    }));
-  };
-
-  React.useEffect(() => {
-    // Load saved progress on mount
-    const saved = localStorage.getItem('applicationProgress');
-    if (saved) {
-      const progress = JSON.parse(saved);
-      setCurrentStep(progress.currentStep);
-      setSelectedPosition(progress.selectedPosition);
-      setAnswers(progress.answers);
-    }
-  }, []);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your application...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Step 0: Get Started
   if (currentStep === 0) {
