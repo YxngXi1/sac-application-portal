@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,14 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const ApplicationDashboard = () => {
   const { userProfile } = useAuth();
+  
+  // Check if user has started an application
+  const [hasStartedApplication, setHasStartedApplication] = React.useState(false);
+  
+  React.useEffect(() => {
+    const saved = localStorage.getItem('applicationProgress');
+    setHasStartedApplication(!!saved);
+  }, []);
   
   // Mock data - will be replaced with real Firebase data
   const applicationDeadline = new Date('2024-02-15');
@@ -79,6 +86,10 @@ const ApplicationDashboard = () => {
     { name: 'Treasurer', applicants: 6, color: 'bg-cyan-200', image: '/lovable-uploads/2ce0abb2-e135-4f67-b392-badd375b0733.png' }
   ];
 
+  const handleStartApplication = () => {
+    window.location.href = '/apply';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -134,6 +145,25 @@ const ApplicationDashboard = () => {
               )}
             </div>
           </div>
+
+          {/* Show Get Started section if no application started */}
+          {!hasStartedApplication && (
+            <div className="mb-8">
+              <Card className="border-0 shadow-sm bg-gradient-to-r from-blue-50 to-purple-50">
+                <CardContent className="p-8 text-center">
+                  <h2 className="text-2xl font-bold mb-4">Ready to Apply?</h2>
+                  <p className="text-gray-600 mb-6">Start your SAC application process and join our amazing team!</p>
+                  <Button 
+                    onClick={handleStartApplication}
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+                  >
+                    Get Started
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

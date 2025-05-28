@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignInPage from "./pages/SignInPage";
+import ApplicationPage from "./pages/ApplicationPage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/sign-in" element={<SignInPage />} />
+              <Route path="/apply" element={<ApplicationPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
