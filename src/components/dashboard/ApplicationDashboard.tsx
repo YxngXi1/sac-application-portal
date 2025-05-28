@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Settings, User, AlertTriangle, RotateCcw, CheckCircle, Clock } from 'lucide-react';
+import { Settings, User, AlertTriangle, RotateCcw, CheckCircle, Clock, Briefcase } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress, saveApplicationProgress } from '@/services/applicationService';
 import ProfileEditDialog from './ProfileEditDialog';
@@ -56,6 +55,37 @@ const ApplicationDashboard = () => {
 
     loadProgress();
   }, [userProfile]);
+
+  const availablePositions = [
+    {
+      title: "Promotion Officers (2)",
+      description: "Run SAC Instagram, design and post promotional content, collaborate on all event marketing."
+    },
+    {
+      title: "Secretary",
+      description: "Manage SAC emails, book rooms, track attendance, take meeting notes."
+    },
+    {
+      title: "Photography Exec",
+      description: "Take and post photos/videos from all events, manage SAC media library."
+    },
+    {
+      title: "Treasurer",
+      description: "Handle SAC finances, cash boxes, reimbursements, and Charity Week money tracking."
+    },
+    {
+      title: "Community Outreach",
+      description: "Coordinate with nonprofits, lead school drives, attend public events like Open House."
+    },
+    {
+      title: "Athletics Liaison",
+      description: "Plan sports events (Terry Fox, Fraser Games), act as a bridge between SAC and FAC."
+    },
+    {
+      title: "Arts Liaison",
+      description: "Make banners, run art events, coordinate between SAC and Arts Council."
+    }
+  ];
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
   const isApplicationSubmitted = applicationStatus === 'submitted';
@@ -276,6 +306,30 @@ const ApplicationDashboard = () => {
             <div className="space-y-4 sm:space-y-6">
               {/* Deadline Tile */}
               <DeadlineTile />
+              
+              {/* Available Positions */}
+              <Card className="border-0 shadow-lg bg-white">
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-t-lg p-4 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
+                    <CardTitle className="text-base sm:text-lg">Available Positions</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    {availablePositions.map((position, index) => (
+                      <div key={index} className="border-l-4 border-blue-200 pl-3 py-2">
+                        <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-1">
+                          {position.title}
+                        </h4>
+                        <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                          {position.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
               
               {/* Student Profile */}
               <Card className="border-0 shadow-lg bg-white">
