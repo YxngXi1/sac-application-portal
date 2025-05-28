@@ -2,10 +2,16 @@
 import React from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
+import LandingPage from '@/components/landing/LandingPage';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
+
+  // Show landing page if user is not signed in
+  if (!user) {
+    return <LandingPage />;
+  }
 
   return (
     <ProtectedRoute>
