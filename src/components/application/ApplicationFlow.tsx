@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +16,7 @@ const ApplicationFlow = () => {
   const [selectedPosition, setSelectedPosition] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const positions = [
     'Secretary',
@@ -151,6 +151,10 @@ const ApplicationFlow = () => {
     setCurrentStep(prev => prev - 1);
   };
 
+  const handleSubmissionComplete = () => {
+    setIsSubmitted(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -252,7 +256,8 @@ const ApplicationFlow = () => {
       <ConfirmationPage
         position={selectedPosition}
         answers={answers}
-        onBack={handleBack}
+        onBack={isSubmitted ? undefined : handleBack}
+        onSubmissionComplete={handleSubmissionComplete}
       />
     );
   }

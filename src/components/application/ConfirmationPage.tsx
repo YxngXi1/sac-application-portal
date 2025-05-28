@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 interface ConfirmationPageProps {
   position: string;
   answers: Record<string, string>;
-  onBack: () => void;
+  onBack?: () => void;
   onSubmissionComplete: () => void;
 }
 
@@ -126,19 +126,21 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
 
             {/* Buttons */}
             <div className="flex gap-3 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={onBack}
-                className="flex-1"
-                disabled={isSubmitting}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Edit
-              </Button>
+              {onBack && (
+                <Button 
+                  variant="outline" 
+                  onClick={onBack}
+                  className="flex-1"
+                  disabled={isSubmitting}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Edit
+                </Button>
+              )}
               
               <Button 
                 onClick={handleSubmit}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className={`${onBack ? 'flex-1' : 'w-full'} bg-green-600 hover:bg-green-700`}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Application'}
