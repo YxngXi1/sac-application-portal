@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,6 +156,24 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
     }
   };
 
+  const handleSaveAndGoBack = async () => {
+    try {
+      await onSave();
+      toast({
+        title: "Progress Saved",
+        description: "Your application progress has been saved.",
+      });
+      onBack();
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your progress. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-2xl mx-auto">
@@ -197,7 +216,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
               </div>
             ))}
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 pt-4">
               <Button 
                 variant="outline" 
                 onClick={onBack}
@@ -209,7 +228,17 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
               
               <Button 
                 variant="outline" 
+                onClick={handleSaveAndGoBack}
+                className="flex-1"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save & Go Back
+              </Button>
+              
+              <Button 
+                variant="outline" 
                 onClick={handleSave}
+                className="flex-1"
               >
                 <Save className="h-4 w-4 mr-2" />
                 Save Progress
