@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, Clock, FileText, Plus, User, Settings } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Settings, TrendingUp, Users, Target } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ApplicationDashboard = () => {
@@ -46,198 +46,258 @@ const ApplicationDashboard = () => {
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Exec View Button */}
-        {isExecOrSuperAdmin && (
-          <div className="flex justify-end">
-            <Button variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
-              <Settings className="h-4 w-4 mr-2" />
-              Show Exec View
-            </Button>
-          </div>
-        )}
+  const metricCards = [
+    {
+      title: 'Applications',
+      value: '1',
+      change: '+1 this week',
+      icon: FileText,
+      color: 'bg-gradient-to-br from-purple-400 to-purple-600',
+      textColor: 'text-white'
+    },
+    {
+      title: 'Progress',
+      value: '65%',
+      change: '+15% this week',
+      icon: TrendingUp,
+      color: 'bg-gradient-to-br from-cyan-400 to-cyan-600',
+      textColor: 'text-white'
+    },
+    {
+      title: 'Days Left',
+      value: daysLeft.toString(),
+      change: 'Until deadline',
+      icon: Clock,
+      color: 'bg-gradient-to-br from-orange-400 to-orange-600',
+      textColor: 'text-white'
+    }
+  ];
 
-        {/* Header */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {userProfile?.fullName || userProfile?.name || 'Student'}!
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Track your SAC application progress and submit before the deadline
-            </p>
-            {userProfile?.studentNumber && (
-              <p className="text-sm text-gray-500 mt-1">
-                Student Number: {userProfile.studentNumber}
-                {userProfile.studentType && userProfile.studentType !== 'none' && (
-                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                    {userProfile.studentType}
-                  </span>
-                )}
-              </p>
-            )}
+  const availablePositions = [
+    { name: 'Vice President', applicants: 12, color: 'bg-gray-900', image: '/lovable-uploads/3b08217b-eba6-48bb-af4f-dec9a264ad9b.png' },
+    { name: 'Secretary', applicants: 8, color: 'bg-purple-200', image: '/lovable-uploads/de8d1298-b594-4344-ac1c-fa79f04361a1.png' },
+    { name: 'Treasurer', applicants: 6, color: 'bg-cyan-200', image: '/lovable-uploads/2ce0abb2-e135-4f67-b392-badd375b0733.png' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <div className="fixed left-0 top-0 h-full w-16 bg-gray-900 flex flex-col items-center py-4 space-y-6">
+        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+          <User className="h-4 w-4 text-gray-900" />
+        </div>
+        <div className="space-y-4">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <FileText className="h-4 w-4 text-gray-400" />
           </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Clock className="h-4 w-4" />
-              <span>{daysLeft} days left to submit</span>
-            </div>
-            <div className="text-sm text-gray-500 mt-1">
-              Deadline: {applicationDeadline.toLocaleDateString()}
-            </div>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Calendar className="h-4 w-4 text-gray-400" />
+          </div>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Users className="h-4 w-4 text-gray-400" />
+          </div>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Target className="h-4 w-4 text-gray-400" />
           </div>
         </div>
+        <div className="mt-auto">
+          <div className="w-8 h-8 flex items-center justify-center">
+            <Settings className="h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+      </div>
 
-        {/* Main Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Current Application */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-xl">Current Application</CardTitle>
-                    <CardDescription>
-                      {currentApplication.position} Position
-                    </CardDescription>
-                  </div>
-                  <Badge className={getStatusColor(currentApplication.status)}>
-                    {formatStatus(currentApplication.status)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Application Progress
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {currentApplication.progress}%
-                    </span>
-                  </div>
-                  <Progress value={currentApplication.progress} className="h-2" />
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900">Application Sections</h4>
-                  {Object.entries(currentApplication.sections).map(([key, section]) => (
-                    <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          section.completed ? 'bg-green-500' : 'bg-gray-300'
-                        }`} />
-                        <span className="text-sm font-medium">{section.title}</span>
-                      </div>
-                      {section.completed ? (
-                        <Badge variant="outline" className="text-green-700 border-green-200">
-                          Complete
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-gray-600">
-                          Pending
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Continue Application
-                  </Button>
-                  <Button variant="outline">
-                    Preview
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Available Positions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  Available Positions
-                </CardTitle>
-                <CardDescription>
-                  Start a new application for additional positions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {['Vice President', 'Secretary', 'Treasurer', 'Social Coordinator', 'Spirit Coordinator', 'Grade 9 Rep'].map((position) => (
-                    <Button 
-                      key={position}
-                      variant="outline" 
-                      className="h-auto p-4 text-left justify-start hover:bg-blue-50 hover:border-blue-300"
-                    >
-                      <div>
-                        <div className="font-medium">{position}</div>
-                        <div className="text-sm text-gray-500">Click to apply</div>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+      {/* Main Content */}
+      <div className="ml-16 p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-start mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                SAC Application Portal
+              </h1>
+              <p className="text-gray-600">
+                Track your progress and manage applications
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-600">Week</span>
+              </div>
+              {isExecOrSuperAdmin && (
+                <Button variant="outline" className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Show Exec View
+                </Button>
+              )}
+            </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                    <span className="text-sm">Applications</span>
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {metricCards.map((metric, index) => (
+              <Card key={index} className="border-0 shadow-sm">
+                <CardContent className="p-0">
+                  <div className={`${metric.color} ${metric.textColor} p-6 rounded-lg`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-sm opacity-90">{metric.title}</span>
+                      <metric.icon className="h-5 w-5 opacity-80" />
+                    </div>
+                    <div className="text-3xl font-bold mb-1">{metric.value}</div>
+                    <div className="text-sm opacity-75">{metric.change}</div>
                   </div>
-                  <span className="font-semibold">1</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-green-600" />
-                    <span className="text-sm">Days Remaining</span>
-                  </div>
-                  <span className="font-semibold text-orange-600">{daysLeft}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm">Profile Complete</span>
-                  </div>
-                  <span className="font-semibold text-green-600">100%</span>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            {/* Important Dates */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Important Dates</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-sm font-medium text-red-800">Application Deadline</div>
-                  <div className="text-sm text-red-600">{applicationDeadline.toLocaleDateString()}</div>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-sm font-medium text-blue-800">Interview Period</div>
-                  <div className="text-sm text-blue-600">Feb 20 - Mar 1, 2024</div>
-                </div>
-                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-sm font-medium text-green-800">Results Announced</div>
-                  <div className="text-sm text-green-600">March 8, 2024</div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Chart Area */}
+            <div className="lg:col-span-2">
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl">Application Progress</CardTitle>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+                        <span className="text-sm text-gray-600">Completed</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-3 h-3 rounded-full bg-gray-200"></div>
+                        <span className="text-sm text-gray-600">Pending</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="text-center mb-6">
+                      <div className="text-4xl font-bold text-gray-900 mb-2">{currentApplication.progress}%</div>
+                      <div className="text-sm text-gray-600">Overall completion</div>
+                    </div>
+                    
+                    {/* Progress Chart Visualization */}
+                    <div className="h-48 flex items-end justify-center space-x-2 mb-6">
+                      {Object.entries(currentApplication.sections).map(([key, section], index) => (
+                        <div key={key} className="flex flex-col items-center">
+                          <div 
+                            className={`w-8 rounded-t-lg ${section.completed ? 'bg-cyan-400' : 'bg-gray-200'}`}
+                            style={{ height: `${section.completed ? 120 : 60}px` }}
+                          ></div>
+                          <div className="text-xs text-gray-600 mt-2 text-center w-16">
+                            {section.title.split(' ')[0]}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3">
+                      {Object.entries(currentApplication.sections).map(([key, section]) => (
+                        <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${
+                              section.completed ? 'bg-cyan-400' : 'bg-gray-300'
+                            }`} />
+                            <span className="text-sm font-medium">{section.title}</span>
+                          </div>
+                          {section.completed ? (
+                            <Badge className="bg-green-100 text-green-700 border-green-200">
+                              Complete
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-gray-600">
+                              Pending
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Continue Application
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Sidebar */}
+            <div className="space-y-6">
+              {/* Available Positions */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Positions</CardTitle>
+                    <Button variant="ghost" size="sm">⋯</Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {availablePositions.map((position, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-900 rounded-lg text-white">
+                      <div 
+                        className={`w-10 h-10 ${position.color} rounded-lg bg-cover bg-center`}
+                        style={{ backgroundImage: `url(${position.image})` }}
+                      ></div>
+                      <div className="flex-1">
+                        <div className="font-medium">{position.name}</div>
+                        <div className="text-sm text-gray-300">↗ {position.applicants} applicants</div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="space-y-3 mt-4">
+                    <div className="flex items-center space-x-3 p-3 bg-purple-100 rounded-lg">
+                      <div className="w-10 h-10 bg-purple-200 rounded-lg bg-cover bg-center" 
+                           style={{ backgroundImage: 'url(/lovable-uploads/3b8b1927-b0d2-4865-b79d-8bc77a49c10d.png)' }}></div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Social Coordinator</div>
+                        <div className="text-sm text-gray-600">↗ 15%</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 bg-cyan-100 rounded-lg">
+                      <div className="w-10 h-10 bg-cyan-200 rounded-lg bg-cover bg-center"
+                           style={{ backgroundImage: 'url(/lovable-uploads/e24ebc93-2ba8-4bff-9c7e-bd77971d1c8a.png)' }}></div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Spirit Coordinator</div>
+                        <div className="text-sm text-gray-600">↗ 8%</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Student Info */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg">Student Profile</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-sm text-gray-600">Full Name</div>
+                      <div className="font-medium">{userProfile?.fullName || 'Not provided'}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Student Number</div>
+                      <div className="font-medium">{userProfile?.studentNumber || 'Not provided'}</div>
+                    </div>
+                    {userProfile?.studentType && userProfile.studentType !== 'none' && (
+                      <div>
+                        <div className="text-sm text-gray-600">Program</div>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          {userProfile.studentType}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>
