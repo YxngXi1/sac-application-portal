@@ -19,8 +19,12 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Configure Google provider to request email
+// Configure Google provider to request email and ensure domain restriction
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
+googleProvider.setCustomParameters({
+  'hd': 'pdsb.net', // This restricts to pdsb.net domain
+  'prompt': 'select_account'
+});
 
 export default app;

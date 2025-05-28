@@ -13,8 +13,10 @@ const LoginPage = () => {
   const handleSignIn = async () => {
     try {
       setError('');
+      console.log('Starting sign in process...');
       await signInWithGoogle();
     } catch (error: any) {
+      console.error('Sign in error:', error);
       setError(error.message || 'Failed to sign in. Please try again.');
     }
   };
@@ -55,8 +57,9 @@ const LoginPage = () => {
           </Button>
           
           <div className="text-xs text-gray-500 text-center space-y-1">
-            <p>Only John Fraser Secondary School PDSB accounts are permitted</p>
-            <p className="font-medium">Must use @pdsb.net email address</p>
+            <p><strong>IMPORTANT:</strong> Only John Fraser Secondary School PDSB accounts are permitted</p>
+            <p className="font-medium text-red-600">Must use @pdsb.net email address</p>
+            <p className="text-gray-400">If you don't have a PDSB account, contact your teacher</p>
           </div>
         </CardContent>
       </Card>
