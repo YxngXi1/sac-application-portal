@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,7 +143,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
       await onSave();
       toast({
         title: "Progress Saved",
-        description: "Your application progress has been saved to Firebase.",
+        description: "Your application progress has been saved. We recommend saving a backup of these answers on another safe platform too.",
       });
     } catch (error) {
       console.error('Error saving progress:', error);
@@ -180,7 +179,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         <Card>
           <CardHeader>
             <CardTitle>{position} Application</CardTitle>
-            <p className="text-gray-600">Please answer all questions below. Your progress is automatically saved to Firebase.</p>
+            <p className="text-gray-600">Please answer all questions below. Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.</p>
           </CardHeader>
           <CardContent className="space-y-6">
             {questions.map((question, index) => (
