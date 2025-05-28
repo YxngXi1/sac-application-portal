@@ -9,7 +9,7 @@ interface UserProfile {
   email: string;
   name: string;
   studentNumber?: string;
-  role: 'student' | 'exec' | 'teacher';
+  role: 'student' | 'exec' | 'teacher' | 'superadmin';
   isOnboarded: boolean;
 }
 
@@ -32,6 +32,14 @@ export const useAuth = () => {
   return context;
 };
 
+const isValidPDSBEmail = (email: string): boolean => {
+  return email.endsWith('@pdsb.net');
+};
+
+const isSuperAdmin = (email: string): boolean => {
+  return email === '909957@pdsb.net';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -41,16 +49,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
+        // Check if email is valid PDSB email
+        if (!isValidPDSBEmail(user.email || '')) {
+          console.log('Invalid email domain, signing out user');
+          await signOut(auth);
+          setUser(null);
+          setUserProfile(null);
+          setLoading(false);
+          return;
+        }
+
         const profileDoc = await getDoc(doc(db, 'users', user.uid));
         if (profileDoc.exists()) {
-          setUserProfile(profileDoc.data() as UserProfile);
+          let profile = profileDoc.data() as UserProfile;
+          
+          // Update role if user is superadmin
+          if (isSuperAdmin(user.email || '')) {
+            profile = { ...profile, role: 'superadmin' };
+            await setDoc(doc(db, 'users', user.uid), profile);
+          }
+          
+          setUserProfile(profile);
         } else {
           // Create initial profile
           const initialProfile: UserProfile = {
             uid: user.uid,
             email: user.email || '',
             name: user.displayName || '',
-            role: 'student',
+            role: isSuperAdmin(user.email || '') ? 'superadmin' : 'student',
             isOnboarded: false,
           };
           await setDoc(doc(db, 'users', user.uid), initialProfile);
@@ -67,9 +93,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // Double-check email domain after sign-in
+      if (!isValidPDSBEmail(result.user.email || '')) {
+        await signOut(auth);
+        throw new Error('Only PDSB email addresses (@pdsb.net) are allowed to access this application.');
+      }
+    } catch (error: any) {
       console.error('Error signing in with Google:', error);
+      
+      if (error.message && error.message.includes('PDSB email')) {
+        throw error;
+      }
+      
+      throw new Error('Failed to sign in. Please ensure you are using a valid PDSB email address.');
     }
   };
 

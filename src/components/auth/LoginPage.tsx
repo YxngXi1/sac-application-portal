@@ -1,11 +1,23 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const LoginPage = () => {
   const { signInWithGoogle, loading } = useAuth();
+  const [error, setError] = useState<string>('');
+
+  const handleSignIn = async () => {
+    try {
+      setError('');
+      await signInWithGoogle();
+    } catch (error: any) {
+      setError(error.message || 'Failed to sign in. Please try again.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-4">
@@ -22,21 +34,30 @@ const LoginPage = () => {
             SAC Application Portal
           </CardTitle>
           <CardDescription className="text-gray-600">
-            Sign in with your school Google account to apply for Student Council positions
+            Sign in with your PDSB Google account to apply for Student Council positions
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <Button 
-            onClick={signInWithGoogle}
+            onClick={handleSignIn}
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             size="lg"
           >
             {loading ? 'Signing in...' : 'Sign in with Google'}
           </Button>
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Only John Fraser Secondary School Google accounts are permitted
-          </p>
+          
+          <div className="text-xs text-gray-500 text-center space-y-1">
+            <p>Only John Fraser Secondary School PDSB accounts are permitted</p>
+            <p className="font-medium">Must use @pdsb.net email address</p>
+          </div>
         </CardContent>
       </Card>
     </div>
