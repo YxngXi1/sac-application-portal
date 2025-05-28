@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Users, BookOpen, HelpCircle, ArrowDown } from 'lucide-react';
+import { ShuffleHero } from '@/components/ui/shuffle-grid';
 
 const LandingPage = () => {
   const scrollToApply = () => {
@@ -17,10 +17,10 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Hero Section */}
+      {/* Hero Section with Shuffle Grid */}
       <section className="min-h-screen flex items-center justify-center px-4 py-20">
-        <div className="max-w-6xl mx-auto text-center">
-          <div className="mb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
             <img 
               src="/lovable-uploads/8a63f40b-6935-4ee7-b788-560b8353aa1e.png" 
               alt="SAC John Fraser" 
@@ -28,34 +28,30 @@ const LandingPage = () => {
             />
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-            Join the <span className="text-blue-600">Student Council</span>
-          </h1>
+          <ShuffleHero />
           
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Make a difference at John Fraser Secondary School. Apply for a position on our Student Advisory Council and help shape the future of our school community.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button 
-              size="lg" 
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
-              onClick={scrollToApply}
-            >
-              Apply Now
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg" 
-              className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 text-lg"
-              onClick={scrollToProcess}
-            >
-              Learn More
-            </Button>
-          </div>
-          
-          <div className="animate-bounce">
-            <ArrowDown className="h-6 w-6 text-blue-600 mx-auto" />
+          <div className="text-center mt-12">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Button 
+                size="lg" 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                onClick={scrollToApply}
+              >
+                Apply Now
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-4 text-lg"
+                onClick={scrollToProcess}
+              >
+                Learn More
+              </Button>
+            </div>
+            
+            <div className="animate-bounce">
+              <ArrowDown className="h-6 w-6 text-blue-600 mx-auto" />
+            </div>
           </div>
         </div>
       </section>
