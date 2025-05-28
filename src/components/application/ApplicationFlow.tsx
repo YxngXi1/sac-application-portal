@@ -158,7 +158,7 @@ const ApplicationFlow = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your application...</p>
@@ -171,19 +171,19 @@ const ApplicationFlow = () => {
   if (currentStep === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Start Your Application</CardTitle>
-            <p className="text-gray-600">Ready to join the Student Activity Council?</p>
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader className="text-center p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl">Start Your Application</CardTitle>
+            <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council?</p>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
+          <CardContent className="text-center space-y-4 p-4 sm:p-6">
+            <div className="bg-blue-50 p-3 rounded-lg text-xs sm:text-sm text-blue-800">
               Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.
             </div>
             <Button 
               onClick={handleGetStarted}
               size="lg"
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
             >
               Get Started
             </Button>
@@ -197,30 +197,30 @@ const ApplicationFlow = () => {
   if (currentStep === 1) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Choose Your Position</CardTitle>
-            <p className="text-gray-600">Select the SAC position you'd like to apply for. You can only apply to one position.</p>
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl">Choose Your Position</CardTitle>
+            <p className="text-gray-600 text-sm sm:text-base">Select the SAC position you'd like to apply for. You can only apply to one position.</p>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 sm:p-6">
             <Select value={selectedPosition} onValueChange={setSelectedPosition}>
-              <SelectTrigger>
+              <SelectTrigger className="text-sm sm:text-base">
                 <SelectValue placeholder="Select a position" />
               </SelectTrigger>
               <SelectContent>
                 {positions.map((position) => (
-                  <SelectItem key={position} value={position}>
+                  <SelectItem key={position} value={position} className="text-sm sm:text-base">
                     {position}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button 
                 variant="outline" 
                 onClick={handleBack}
-                className="flex-1"
+                className="flex-1 text-sm sm:text-base"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -228,7 +228,7 @@ const ApplicationFlow = () => {
               <Button 
                 onClick={handlePositionSelect}
                 disabled={!selectedPosition}
-                className="flex-1"
+                className="flex-1 text-sm sm:text-base"
               >
                 Next
                 <ArrowRight className="h-4 w-4 ml-2" />
