@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -9,6 +10,9 @@ interface UserProfile {
   name: string;
   studentNumber?: string;
   role: 'student' | 'exec' | 'teacher' | 'superadmin';
+  fullName?: string;
+  studentType?: 'AP' | 'SHSM' | 'none';
+  isOnboarded?: boolean;
 }
 
 interface AuthContextType {
@@ -77,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               email: user.email || '',
               name: user.displayName || '',
               role: isSuperAdmin(user.email || '') ? 'superadmin' : 'student',
+              isOnboarded: false,
             };
             await setDoc(doc(db, 'users', user.uid), initialProfile);
             setUserProfile(initialProfile);

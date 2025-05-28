@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,11 +50,21 @@ const ApplicationDashboard = () => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {userProfile?.name || 'Student'}!
+              Welcome back, {userProfile?.fullName || userProfile?.name || 'Student'}!
             </h1>
             <p className="text-gray-600 mt-2">
               Track your SAC application progress and submit before the deadline
             </p>
+            {userProfile?.studentNumber && (
+              <p className="text-sm text-gray-500 mt-1">
+                Student Number: {userProfile.studentNumber}
+                {userProfile.studentType && userProfile.studentType !== 'none' && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    {userProfile.studentType}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <div className="flex items-center gap-2 text-sm text-gray-600">
