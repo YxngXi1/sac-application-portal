@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+interface Question {
+  id: string;
+  type: string;
+  question: string;
+  note?: string;
+}
 
 interface PositionQuestionsProps {
   position: string;
@@ -27,9 +33,9 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
 }) => {
   const { toast } = useToast();
 
-  const getQuestions = () => {
+  const getQuestions = (): Question[] => {
     // Universal question for all positions
-    const universalQuestion = {
+    const universalQuestion: Question = {
       id: 'commitments',
       type: 'textarea',
       question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.'
