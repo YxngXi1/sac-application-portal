@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Settings, User, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Settings, User, AlertTriangle, RotateCcw, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress, saveApplicationProgress } from '@/services/applicationService';
 import ProfileEditDialog from './ProfileEditDialog';
@@ -29,6 +29,7 @@ const ApplicationDashboard = () => {
   // Application state management
   const [hasStartedApplication, setHasStartedApplication] = React.useState(false);
   const [applicationProgress, setApplicationProgress] = React.useState(0);
+  const [applicationStatus, setApplicationStatus] = React.useState<string>('draft');
   const [selectedPosition, setSelectedPosition] = React.useState<string>('');
   const [showProfileDialog, setShowProfileDialog] = React.useState(false);
   const [showExecView, setShowExecView] = React.useState(false);
@@ -44,6 +45,7 @@ const ApplicationDashboard = () => {
           setHasStartedApplication(true);
           setSelectedPosition(savedApplication.position);
           setApplicationProgress(savedApplication.progress || 0);
+          setApplicationStatus(savedApplication.status || 'draft');
         }
       } catch (error) {
         console.error('Error loading application progress:', error);
@@ -56,6 +58,7 @@ const ApplicationDashboard = () => {
   }, [userProfile]);
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
+  const isApplicationSubmitted = applicationStatus === 'submitted';
 
   const handleStartApplication = () => {
     window.location.href = '/apply';
@@ -80,6 +83,7 @@ const ApplicationDashboard = () => {
       setHasStartedApplication(false);
       setApplicationProgress(0);
       setSelectedPosition('');
+      setApplicationStatus('draft');
       
       toast({
         title: "Application Reset",
@@ -158,6 +162,41 @@ const ApplicationDashboard = () => {
                     >
                       Get Started
                     </Button>
+                  </CardContent>
+                </Card>
+              ) : isApplicationSubmitted ? (
+                <Card className="border-0 shadow-lg bg-white">
+                  <CardHeader className="bg-gradient-to-r from-green-600 to-green-800 text-white rounded-t-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-6 w-6" />
+                      <div>
+                        <CardTitle className="text-2xl">Application Completed</CardTitle>
+                        <CardDescription className="text-green-100">
+                          Position: {selectedPosition}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="text-center space-y-4">
+                      <div className="flex items-center justify-center gap-2 p-4 bg-orange-50 rounded-lg">
+                        <Clock className="h-5 w-5 text-orange-600" />
+                        <Badge className="bg-orange-100 text-orange-800 border-orange-200 text-lg px-4 py-2">
+                          Application Pending
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-semibold text-gray-900">Thank you for applying!</h3>
+                        <p className="text-gray-600">
+                          Your application for <strong>{selectedPosition}</strong> has been submitted successfully. 
+                          You will be notified about the status of your application soon.
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          No further action is required at this time.
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ) : (
