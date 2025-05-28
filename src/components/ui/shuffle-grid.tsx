@@ -3,17 +3,13 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const ShuffleHero = () => {
-  const { signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
 
-  const handleApplyClick = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error('Sign in error:', error);
-    }
+  const handleApplyClick = () => {
+    navigate('/sign-in');
   };
 
   return (
