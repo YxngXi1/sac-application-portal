@@ -360,7 +360,6 @@ const LandingPage = () => {
               <AccordionContent className="text-gray-600">
                 Application deadlines are announced at the beginning of each school year. Typically, applications are due in late September, with interviews conducted in early October.
               </AccordionContent>
-            </AccordionContent>
             </AccordionItem>
             
             <AccordionItem value="notification" className="bg-white rounded-lg px-6">
