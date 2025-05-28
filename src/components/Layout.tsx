@@ -11,6 +11,9 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, userProfile, logout } = useAuth();
 
+  // Display "exec" for both exec and superadmin roles
+  const displayRole = userProfile?.role === 'superadmin' ? 'exec' : userProfile?.role;
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
@@ -38,14 +41,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     {userProfile?.name}
                   </span>
                   <span className="text-xs text-white bg-blue-600 px-2 py-1 rounded-full flex-shrink-0">
-                    {userProfile?.role}
+                    {displayRole}
                   </span>
                 </div>
                 
                 {/* Mobile: Show only role badge */}
                 <div className="sm:hidden">
                   <span className="text-xs text-white bg-blue-600 px-2 py-1 rounded-full">
-                    {userProfile?.role}
+                    {displayRole}
                   </span>
                 </div>
                 
