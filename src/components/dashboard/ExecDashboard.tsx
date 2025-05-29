@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ interface ExecDashboardProps {
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [showInterviewView, setShowInterviewView] = useState(false);
+  const [interviewPosition, setInterviewPosition] = useState<string>('');
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,15 +68,19 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   if (selectedPosition) {
     return (
       <PositionApplications 
-        positionId={selectedPosition}
-        positionName={positions.find(p => p.id === selectedPosition)?.name || ''}
+        position={selectedPosition}
         onBack={() => setSelectedPosition(null)}
       />
     );
   }
 
   if (showInterviewView) {
-    return <InterviewView onBack={() => setShowInterviewView(false)} />;
+    return (
+      <InterviewView 
+        position={interviewPosition}
+        onBack={() => setShowInterviewView(false)} 
+      />
+    );
   }
 
   if (loading) {
@@ -102,7 +106,10 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             </Button>
             
             <Button
-              onClick={() => setShowInterviewView(true)}
+              onClick={() => {
+                setInterviewPosition('All Positions');
+                setShowInterviewView(true);
+              }}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Calendar className="h-4 w-4 mr-2" />
@@ -186,7 +193,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                   <Card 
                     key={position.id}
                     className="cursor-pointer hover:shadow-lg transition-all duration-200 border shadow-sm hover:scale-105"
-                    onClick={() => setSelectedPosition(position.id)}
+                    onClick={() => setSelectedPosition(position.name)}
                   >
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
@@ -221,7 +228,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                         className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedPosition(position.id);
+                          setSelectedPosition(position.name);
                         }}
                       >
                         View Applications
