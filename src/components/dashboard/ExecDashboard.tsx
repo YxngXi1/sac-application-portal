@@ -69,7 +69,6 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     return (
       <PositionApplications 
         position={selectedPosition}
-        onBack={() => setSelectedPosition(null)}
       />
     );
   }
