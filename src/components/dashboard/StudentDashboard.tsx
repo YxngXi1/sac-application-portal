@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,13 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress } from '@/services/applicationService';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-
-interface ScheduledInterview {
-  candidateId: string;
-  date: Date;
-  timeSlot: string;
-  panelMembers: string[];
-}
 
 interface Executive {
   id: string;
@@ -25,7 +19,6 @@ const StudentDashboard = () => {
   const { userProfile } = useAuth();
   const [applicationData, setApplicationData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
-  const [scheduledInterviews, setScheduledInterviews] = React.useState<ScheduledInterview[]>([]);
   const [executives, setExecutives] = React.useState<Executive[]>([]);
   const [userInterviewData, setUserInterviewData] = React.useState<any>(null);
 
@@ -65,16 +58,26 @@ const StudentDashboard = () => {
         const interviewDoc = await getDoc(doc(db, 'interviews', userProfile.uid));
         if (interviewDoc.exists()) {
           const data = interviewDoc.data();
+          console.log('Interview data loaded:', data);
+          
+          // Check if interview exists and is not removed
           if (!data.removed && data.date && data.timeSlot) {
             setUserInterviewData({
               date: data.date.toDate(),
               timeSlot: data.timeSlot,
               panelMembers: data.panelMembers || []
             });
+          } else {
+            console.log('Interview data exists but is removed or incomplete');
+            setUserInterviewData(null);
           }
+        } else {
+          console.log('No interview document found');
+          setUserInterviewData(null);
         }
       } catch (error) {
         console.error('Error loading user interview data:', error);
+        setUserInterviewData(null);
       }
     };
 
@@ -87,6 +90,7 @@ const StudentDashboard = () => {
       
       try {
         const savedApplication = await loadApplicationProgress(userProfile.uid);
+        console.log('Application data loaded:', savedApplication);
         setApplicationData(savedApplication);
       } catch (error) {
         console.error('Error loading application:', error);
@@ -98,81 +102,40 @@ const StudentDashboard = () => {
     loadStudentApplication();
   }, [userProfile]);
 
-  // Mock data - will be replaced with real Firebase data
-  const applications = [
-    {
-      id: userProfile?.uid || '1',
-      position: applicationData?.position || 'President',
-      status: applicationData?.status || 'submitted',
-      submittedAt: applicationData?.submittedAt?.toISOString().split('T')[0] || '2024-01-15',
-      interviewDate: userInterviewData?.date,
-      interviewScheduled: !!userInterviewData,
-      timeSlot: userInterviewData?.timeSlot,
-      panelMembers: userInterviewData?.panelMembers || []
-    }
-  ];
-
-  const getScheduledInterviewInfo = (candidateId: string) => {
-    if (candidateId === userProfile?.uid && userInterviewData) {
-      return {
-        candidateId,
-        date: userInterviewData.date,
-        timeSlot: userInterviewData.timeSlot,
-        panelMembers: userInterviewData.panelMembers
-      };
-    }
-    return scheduledInterviews.find(interview => interview.candidateId === candidateId);
-  };
-
   const getPanelMemberNames = (panelMemberIds: string[]) => {
+    if (!panelMemberIds || panelMemberIds.length === 0) return 'Panel members TBD';
+    
     return panelMemberIds
       .map(id => executives.find(exec => exec.id === id)?.name)
       .filter(Boolean)
-      .join(', ');
+      .join(', ') || 'Panel members TBD';
   };
 
   const getStatusDisplay = (app: any) => {
-    if (app.status === 'submitted') {
-      if (app.interviewScheduled) {
-        const scheduledInfo = getScheduledInterviewInfo(app.id);
-        if (scheduledInfo) {
-          const panelNames = getPanelMemberNames(scheduledInfo.panelMembers);
-          return {
-            text: 'Interview Scheduled!',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-            details: `${scheduledInfo.date.toLocaleDateString()} at ${scheduledInfo.timeSlot}`,
-            panelMembers: panelNames || 'Panel members TBD'
-          };
-        } else if (app.interviewDate) {
-          return {
-            text: 'Interview Scheduled!',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-            details: `${new Date(app.interviewDate).toLocaleDateString()} at ${app.timeSlot || new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-            panelMembers: getPanelMemberNames(app.panelMembers) || 'Panel members TBD'
-          };
-        } else {
-          return {
-            text: 'Interview Scheduled!',
-            color: 'bg-green-100 text-green-800',
-            icon: CheckCircle,
-            details: 'Time and date TBD',
-            panelMembers: 'Panel members TBD'
-          };
-        }
-      } else {
+    console.log('Getting status display for app:', app);
+    console.log('User interview data:', userInterviewData);
+    
+    // Check if interview is scheduled
+    if (userInterviewData && userInterviewData.date && userInterviewData.timeSlot) {
+      const panelNames = getPanelMemberNames(userInterviewData.panelMembers);
+      return {
+        text: 'Interview Scheduled!',
+        color: 'bg-green-100 text-green-800',
+        icon: CheckCircle,
+        details: `${userInterviewData.date.toLocaleDateString()} at ${userInterviewData.timeSlot}`,
+        panelMembers: panelNames
+      };
+    }
+    
+    // Handle other statuses based on application status
+    switch (app?.status) {
+      case 'submitted': 
         return {
           text: 'Application Pending',
           color: 'bg-yellow-100 text-yellow-800',
           icon: Clock,
           details: 'Awaiting review'
         };
-      }
-    }
-    
-    // Handle other statuses
-    switch (app.status) {
       case 'draft': 
         return {
           text: 'Draft',
@@ -211,12 +174,6 @@ const StudentDashboard = () => {
     }
   };
 
-  const formatStatus = (status: string) => {
-    return status.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -224,6 +181,74 @@ const StudentDashboard = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your applications...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Create application object with real data
+  const applications = applicationData ? [{
+    id: userProfile?.uid || '1',
+    position: applicationData.position || 'Unknown Position',
+    status: applicationData.status || 'draft',
+    submittedAt: applicationData.submittedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+    interviewScheduled: !!userInterviewData,
+  }] : [];
+
+  if (applications.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Your Applications</h1>
+            <p className="text-gray-600 mt-2">Track your SAC position applications and interviews</p>
+          </div>
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="h-4 w-4 mr-2" />
+            New Application
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>No Applications Found</CardTitle>
+            <CardDescription>You haven't submitted any applications yet.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Start Your First Application
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Available Positions */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2 text-blue-600" />
+              Available Positions
+            </CardTitle>
+            <CardDescription>
+              Click on a position to start your application
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              {['President', 'Vice President', 'Secretary', 'Treasurer', 'Social Coordinator', 'Spirit Coordinator', 'Grade 9 Rep', 'Grade 10 Rep'].map((position) => (
+                <Button 
+                  key={position}
+                  variant="outline" 
+                  className="h-auto p-4 text-left justify-start hover:bg-blue-50 hover:border-blue-300"
+                >
+                  <div>
+                    <div className="font-medium">{position}</div>
+                    <div className="text-sm text-gray-500">Click to apply</div>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
