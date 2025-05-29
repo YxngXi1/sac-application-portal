@@ -99,14 +99,26 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     const loadQualifiedApplications = async () => {
       try {
         const applications = await getAllApplications();
+        // Show all submitted applications for the position, regardless of score
         const qualified = applications.filter(app => 
           app.position === positionName && 
-          app.status === 'submitted' && 
-          app.score && 
-          app.score >= 6.0
+          app.status === 'submitted'
         );
         
-        const sortedQualified = qualified.sort((a, b) => (b.score || 0) - (a.score || 0));
+        // Sort by score if available, otherwise by submission date
+        const sortedQualified = qualified.sort((a, b) => {
+          if (a.score && b.score) {
+            return (b.score || 0) - (a.score || 0);
+          }
+          if (a.score && !b.score) return -1;
+          if (!a.score && b.score) return 1;
+          // If no scores, sort by submission date
+          const aDate = a.submittedAt || a.updatedAt;
+          const bDate = b.submittedAt || b.updatedAt;
+          return bDate.getTime() - aDate.getTime();
+        });
+        
+        console.log(`Found ${qualified.length} applications for ${positionName}:`, qualified);
         setQualifiedApplications(sortedQualified);
         
         await loadScheduledInterviews(sortedQualified);
@@ -391,7 +403,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
             <CardHeader>
               <CardTitle>Candidates for {positionName}</CardTitle>
               <CardDescription>
-                {qualifiedApplications.length} qualified candidates (sorted by grade)
+                {qualifiedApplications.length} submitted applications (sorted by grade)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -409,9 +421,15 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                             <p className="text-sm text-gray-600">
                               Grade {application.userProfile?.grade} • Student #{application.userProfile?.studentNumber}
                             </p>
-                            <p className="text-sm font-medium text-blue-600">
-                              Score: {application.score?.toFixed(1)}/10
-                            </p>
+                            {application.score ? (
+                              <p className="text-sm font-medium text-blue-600">
+                                Score: {application.score?.toFixed(1)}/10
+                              </p>
+                            ) : (
+                              <p className="text-sm text-gray-500">
+                                Score: Not yet graded
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -470,7 +488,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                 
                 {qualifiedApplications.length === 0 && (
                   <p className="text-gray-500 text-center py-8">
-                    No qualified candidates found for this position.
+                    No submitted applications found for this position.
                   </p>
                 )}
               </div>
