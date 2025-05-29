@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ import { ArrowLeft, User, Clock, Star, Users, MessageSquare } from 'lucide-react
 import { ApplicationData } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { collection, getDocs, query, where, doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface InterviewGraderProps {
   candidate: ApplicationData;
@@ -33,6 +36,12 @@ interface InterviewGrades {
   averageScore: number;
 }
 
+interface Executive {
+  id: string;
+  name: string;
+  email: string;
+}
+
 const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) => {
   const { toast } = useToast();
   const { userProfile } = useAuth();
@@ -48,45 +57,60 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
   const [myGrades, setMyGrades] = useState<Record<string, number>>({});
   const [myFeedback, setMyFeedback] = useState<string>('');
   const [allPanelGrades, setAllPanelGrades] = useState<PanelMemberGrade[]>([]);
+  const [panelMembers, setPanelMembers] = useState<Executive[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock panel members - in a real app, this would come from the scheduled interview data
-  const panelMembers = [
-    { id: '1', name: 'John Smith' },
-    { id: '2', name: 'Sarah Johnson' },
-    { id: '3', name: 'Mike Chen' }
-  ];
-
   useEffect(() => {
-    // Load existing grades for this interview
-    loadInterviewGrades();
+    const loadInterviewData = async () => {
+      try {
+        // Load panel members (executives)
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'superadmin'));
+        const querySnapshot = await getDocs(q);
+        
+        const executives: Executive[] = [];
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          executives.push({
+            id: doc.id,
+            name: userData.name || userData.fullName || 'Unnamed User',
+            email: userData.email || ''
+          });
+        });
+        
+        setPanelMembers(executives);
+
+        // Load existing interview grades
+        await loadInterviewGrades();
+      } catch (error) {
+        console.error('Error loading interview data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInterviewData();
   }, [candidate.id]);
 
   const loadInterviewGrades = async () => {
     try {
-      // Mock loading existing grades - in a real app, this would be from your database
-      const mockGrades: PanelMemberGrade[] = [
-        {
-          panelMemberId: '2',
-          panelMemberName: 'Sarah Johnson',
-          grades: { sac_motivation: 4, question_2: 0, question_3: 0, question_4: 0, question_5: 0 },
-          feedback: 'Great enthusiasm and clear understanding of SAC goals.',
-          submittedAt: new Date()
+      const interviewGradesDoc = await getDoc(doc(db, 'interviewGrades', candidate.id));
+      
+      if (interviewGradesDoc.exists()) {
+        const gradesData = interviewGradesDoc.data();
+        const panelGrades: PanelMemberGrade[] = gradesData.panelGrades || [];
+        
+        setAllPanelGrades(panelGrades);
+        
+        // Load my existing grades if any
+        const myExistingGrades = panelGrades.find(g => g.panelMemberId === userProfile?.uid);
+        if (myExistingGrades) {
+          setMyGrades(myExistingGrades.grades);
+          setMyFeedback(myExistingGrades.feedback);
         }
-      ];
-      
-      setAllPanelGrades(mockGrades);
-      
-      // Load my existing grades if any
-      const myExistingGrades = mockGrades.find(g => g.panelMemberId === userProfile?.uid);
-      if (myExistingGrades) {
-        setMyGrades(myExistingGrades.grades);
-        setMyFeedback(myExistingGrades.feedback);
       }
     } catch (error) {
       console.error('Error loading interview grades:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -135,6 +159,15 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
       // Update the panel grades array
       const updatedGrades = allPanelGrades.filter(g => g.panelMemberId !== userProfile.uid);
       updatedGrades.push(myGradeData);
+      
+      // Save to Firebase
+      await setDoc(doc(db, 'interviewGrades', candidate.id), {
+        candidateId: candidate.id,
+        candidateName: candidate.userProfile?.fullName || 'Unknown',
+        panelGrades: updatedGrades,
+        updatedAt: new Date()
+      });
+
       setAllPanelGrades(updatedGrades);
 
       // Calculate average score
