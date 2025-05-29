@@ -25,6 +25,7 @@ const StudentDashboard = () => {
   const { userProfile } = useAuth();
   const [applicationData, setApplicationData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [scheduledInterviews, setScheduledInterviews] = React.useState<ScheduledInterview[]>([]);
   const [executives, setExecutives] = React.useState<Executive[]>([]);
 
   // Fetch superadmin users for panel member names
@@ -60,7 +61,6 @@ const StudentDashboard = () => {
       
       try {
         const savedApplication = await loadApplicationProgress(userProfile.uid);
-        console.log('Loaded application data:', savedApplication);
         setApplicationData(savedApplication);
       } catch (error) {
         console.error('Error loading application:', error);
@@ -72,10 +72,31 @@ const StudentDashboard = () => {
     loadStudentApplication();
   }, [userProfile]);
 
-  // Use real application data instead of mock data
-  const applications = applicationData ? [applicationData] : [];
+  // Mock data - will be replaced with real Firebase data
+  const applications = [
+    {
+      id: '1',
+      position: 'President',
+      status: 'submitted',
+      submittedAt: '2024-01-15',
+      interviewDate: null,
+      interviewScheduled: false,
+    },
+    {
+      id: '2',
+      position: 'Vice President',
+      status: 'submitted',
+      submittedAt: '2024-01-10',
+      interviewDate: '2024-01-25T14:30:00',
+      interviewScheduled: true,
+    }
+  ];
 
-  const getPanelMemberNames = (panelMemberIds: string[] = []) => {
+  const getScheduledInterviewInfo = (candidateId: string) => {
+    return scheduledInterviews.find(interview => interview.candidateId === candidateId);
+  };
+
+  const getPanelMemberNames = (panelMemberIds: string[]) => {
     return panelMemberIds
       .map(id => executives.find(exec => exec.id === id)?.name)
       .filter(Boolean)
@@ -84,24 +105,34 @@ const StudentDashboard = () => {
 
   const getStatusDisplay = (app: any) => {
     if (app.status === 'submitted') {
-      if (app.interviewScheduled && app.interviewDate && app.interviewTimeSlot) {
-        const interviewDate = new Date(app.interviewDate);
-        const panelNames = getPanelMemberNames(app.interviewPanelMembers);
-        return {
-          text: 'Interview Scheduled!',
-          color: 'bg-green-100 text-green-800',
-          icon: CheckCircle,
-          details: `${interviewDate.toLocaleDateString()} at ${app.interviewTimeSlot}`,
-          panelMembers: panelNames || 'Panel members TBD'
-        };
-      } else if (app.interviewScheduled) {
-        return {
-          text: 'Interview Scheduled!',
-          color: 'bg-green-100 text-green-800',
-          icon: CheckCircle,
-          details: 'Time and date TBD',
-          panelMembers: 'Panel members TBD'
-        };
+      if (app.interviewScheduled) {
+        const scheduledInfo = getScheduledInterviewInfo(app.id);
+        if (scheduledInfo) {
+          const panelNames = getPanelMemberNames(scheduledInfo.panelMembers);
+          return {
+            text: 'Interview Scheduled!',
+            color: 'bg-green-100 text-green-800',
+            icon: CheckCircle,
+            details: `${scheduledInfo.date.toLocaleDateString()} at ${scheduledInfo.timeSlot}`,
+            panelMembers: panelNames || 'Panel members TBD'
+          };
+        } else if (app.interviewDate) {
+          return {
+            text: 'Interview Scheduled!',
+            color: 'bg-green-100 text-green-800',
+            icon: CheckCircle,
+            details: `${new Date(app.interviewDate).toLocaleDateString()} at ${new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+            panelMembers: 'Panel members TBD'
+          };
+        } else {
+          return {
+            text: 'Interview Scheduled!',
+            color: 'bg-green-100 text-green-800',
+            icon: CheckCircle,
+            details: 'Time and date TBD',
+            panelMembers: 'Panel members TBD'
+          };
+        }
       } else {
         return {
           text: 'Application Pending',
@@ -184,7 +215,7 @@ const StudentDashboard = () => {
 
       {/* Applications Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {applications.length > 0 ? applications.map((app) => {
+        {applications.map((app) => {
           const statusInfo = getStatusDisplay(app);
           const StatusIcon = statusInfo.icon;
           
@@ -198,7 +229,7 @@ const StudentDashboard = () => {
                   </Badge>
                 </div>
                 <CardDescription>
-                  Submitted: {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Not submitted'}
+                  Submitted: {new Date(app.submittedAt).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -231,11 +262,7 @@ const StudentDashboard = () => {
               </CardContent>
             </Card>
           );
-        }) : (
-          <div className="col-span-full text-center py-8 text-gray-500">
-            No applications found. Start by applying for a position below.
-          </div>
-        )}
+        })}
       </div>
 
       {/* Available Positions */}

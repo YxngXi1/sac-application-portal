@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveApplicationProgress, loadApplicationProgress } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
@@ -18,10 +18,6 @@ const ApplicationFlow = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
-  // Set the deadline to June 3rd, 2025 at 11:59 PM EST
-  const deadline = new Date(2025, 5, 3, 23, 59, 59); // Month is 0-indexed, so 5 = June
-  const isDeadlinePassed = new Date() > deadline;
 
   const positions = [
     'Secretary',
@@ -63,28 +59,11 @@ const ApplicationFlow = () => {
   }, [user, toast]);
 
   const handleGetStarted = () => {
-    if (isDeadlinePassed) {
-      toast({
-        title: "Deadline Passed",
-        description: "The application deadline has passed. No new applications can be submitted.",
-        variant: "destructive",
-      });
-      return;
-    }
     setCurrentStep(1);
   };
 
   const handlePositionSelect = async () => {
     if (selectedPosition && user) {
-      if (isDeadlinePassed) {
-        toast({
-          title: "Deadline Passed",
-          description: "The application deadline has passed. No new applications can be submitted.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       try {
         const progress = calculateProgress();
         await saveApplicationProgress(user.uid, {
@@ -198,34 +177,16 @@ const ApplicationFlow = () => {
             <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council?</p>
           </CardHeader>
           <CardContent className="text-center space-y-4 p-4 sm:p-6">
-            {isDeadlinePassed ? (
-              <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-                <div className="flex items-center justify-center mb-2">
-                  <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-                  <span className="font-semibold text-red-800">Deadline Passed</span>
-                </div>
-                <p className="text-sm text-red-700">
-                  The application deadline was June 3rd, 2025 at 11:59 PM EST. 
-                  No new applications can be submitted at this time.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="bg-blue-50 p-3 rounded-lg text-xs sm:text-sm text-blue-800">
-                  Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.
-                </div>
-                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-xs sm:text-sm text-yellow-800">
-                  <strong>Deadline:</strong> June 3rd, 2025 at 11:59 PM EST
-                </div>
-                <Button 
-                  onClick={handleGetStarted}
-                  size="lg"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
-                >
-                  Get Started
-                </Button>
-              </>
-            )}
+            <div className="bg-blue-50 p-3 rounded-lg text-xs sm:text-sm text-blue-800">
+              Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.
+            </div>
+            <Button 
+              onClick={handleGetStarted}
+              size="lg"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
+            >
+              Get Started
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -242,19 +203,7 @@ const ApplicationFlow = () => {
             <p className="text-gray-600 text-sm sm:text-base">Select the SAC position you'd like to apply for. You can only apply to one position.</p>
           </CardHeader>
           <CardContent className="space-y-4 p-4 sm:p-6">
-            {isDeadlinePassed && (
-              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-                <div className="flex items-center mb-1">
-                  <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-                  <span className="font-semibold text-red-800 text-sm">Deadline Passed</span>
-                </div>
-                <p className="text-xs text-red-700">
-                  New applications cannot be submitted after the deadline.
-                </p>
-              </div>
-            )}
-            
-            <Select value={selectedPosition} onValueChange={setSelectedPosition} disabled={isDeadlinePassed}>
+            <Select value={selectedPosition} onValueChange={setSelectedPosition}>
               <SelectTrigger className="text-sm sm:text-base">
                 <SelectValue placeholder="Select a position" />
               </SelectTrigger>
@@ -278,7 +227,7 @@ const ApplicationFlow = () => {
               </Button>
               <Button 
                 onClick={handlePositionSelect}
-                disabled={!selectedPosition || isDeadlinePassed}
+                disabled={!selectedPosition}
                 className="flex-1 text-sm sm:text-base"
               >
                 Next

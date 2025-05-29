@@ -13,9 +13,6 @@ export interface ApplicationData {
   submittedAt?: Date;
   score?: number;
   interviewScheduled?: boolean;
-  interviewDate?: string;
-  interviewTimeSlot?: string;
-  interviewPanelMembers?: string[];
   userProfile?: {
     fullName: string;
     studentNumber: string;
@@ -218,29 +215,10 @@ export const getApplicationGrades = async (applicationId: string): Promise<Appli
   return null;
 };
 
-export const updateInterviewStatus = async (
-  applicationId: string, 
-  scheduled: boolean, 
-  date?: string, 
-  timeSlot?: string, 
-  panelMembers?: string[]
-): Promise<void> => {
+export const updateInterviewStatus = async (applicationId: string, scheduled: boolean): Promise<void> => {
   const applicationRef = doc(db, 'applications', applicationId);
-  const updateData: any = {
+  await updateDoc(applicationRef, {
     interviewScheduled: scheduled,
     updatedAt: new Date(),
-  };
-
-  if (scheduled && date && timeSlot) {
-    updateData.interviewDate = date;
-    updateData.interviewTimeSlot = timeSlot;
-    updateData.interviewPanelMembers = panelMembers || [];
-  } else {
-    // Clear interview data when removing interview
-    updateData.interviewDate = null;
-    updateData.interviewTimeSlot = null;
-    updateData.interviewPanelMembers = null;
-  }
-
-  await updateDoc(applicationRef, updateData);
+  });
 };
