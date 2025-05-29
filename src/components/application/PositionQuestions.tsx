@@ -33,6 +33,10 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
 }) => {
   const { toast } = useToast();
 
+  const getWordCount = (text: string): number => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
   const getQuestions = (): Question[] => {
     // Universal question for all positions
     const universalQuestion: Question = {
@@ -217,12 +221,24 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                 )}
                 
                 {question.type === 'textarea' ? (
-                  <Textarea
-                    value={answers[question.id] || ''}
-                    onChange={(e) => onAnswerChange(question.id, e.target.value)}
-                    placeholder="Enter your answer here..."
-                    className="min-h-[120px]"
-                  />
+                  <div className="space-y-2">
+                    <Textarea
+                      value={answers[question.id] || ''}
+                      onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                      placeholder="Enter your answer here..."
+                      className="min-h-[120px]"
+                    />
+                    <div className="flex justify-between items-center text-sm">
+                      <div className={`${getWordCount(answers[question.id] || '') > 200 ? 'text-red-500' : 'text-gray-500'}`}>
+                        {getWordCount(answers[question.id] || '')} / 200 words
+                      </div>
+                      {getWordCount(answers[question.id] || '') > 200 && (
+                        <div className="text-red-500 text-xs">
+                          Exceeds word limit
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ) : question.type === 'file' ? (
                   <Input
                     type="file"
