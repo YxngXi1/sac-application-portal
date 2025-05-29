@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, User, CheckCircle, XCircle, Calendar as CalendarIcon, Users } from 'lucide-react';
-import { ApplicationData, updateInterviewStatus } from '@/services/applicationService';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ArrowLeft, Clock, User, CheckCircle, XCircle, Calendar as CalendarIcon, Users, Edit } from 'lucide-react';
+import { ApplicationData, updateInterviewStatus, getApplicationGrades } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface InterviewSchedulerProps {
@@ -41,6 +43,10 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
   const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
   const [executives, setExecutives] = useState<Executive[]>([]);
+  const [editingInterview, setEditingInterview] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState<Date | undefined>(undefined);
+  const [editTimeSlot, setEditTimeSlot] = useState<string>('');
+  const [editPanelMembers, setEditPanelMembers] = useState<string[]>([]);
   
   // Updated time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
   const timeSlots = [
@@ -56,6 +62,34 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     const day = date.getDay();
     return day >= 1 && day <= 5; // Monday (1) to Friday (5)
   };
+
+  // Load existing interview schedules from Firebase
+  useEffect(() => {
+    const loadInterviewSchedules = async () => {
+      try {
+        const interviewsRef = collection(db, 'interviewSchedules');
+        const q = query(interviewsRef, where('position', '==', position));
+        const querySnapshot = await getDocs(q);
+        
+        const loadedInterviews: ScheduledInterview[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          loadedInterviews.push({
+            candidateId: data.candidateId,
+            date: data.date.toDate ? data.date.toDate() : new Date(data.date),
+            timeSlot: data.timeSlot,
+            panelMembers: data.panelMembers || []
+          });
+        });
+        
+        setScheduledInterviews(loadedInterviews);
+      } catch (error) {
+        console.error('Error loading interview schedules:', error);
+      }
+    };
+
+    loadInterviewSchedules();
+  }, [position]);
 
   // Fetch superadmin users from Firebase
   useEffect(() => {
@@ -91,10 +125,11 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     fetchSuperAdminUsers();
   }, [toast]);
 
-  const isTimeSlotTaken = (timeSlot: string, date: Date) => {
+  const isTimeSlotTaken = (timeSlot: string, date: Date, excludeCandidateId?: string) => {
     return scheduledInterviews.some(interview => 
       interview.timeSlot === timeSlot && 
-      interview.date.toDateString() === date.toDateString()
+      interview.date.toDateString() === date.toDateString() &&
+      interview.candidateId !== excludeCandidateId
     );
   };
 
@@ -108,6 +143,40 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         ? prev.filter(id => id !== executiveId)
         : [...prev, executiveId]
     );
+  };
+
+  const handleEditPanelMemberToggle = (executiveId: string) => {
+    setEditPanelMembers(prev => 
+      prev.includes(executiveId)
+        ? prev.filter(id => id !== executiveId)
+        : [...prev, executiveId]
+    );
+  };
+
+  const saveInterviewToFirebase = async (interview: ScheduledInterview) => {
+    try {
+      const interviewRef = doc(db, 'interviewSchedules', `${position}_${interview.candidateId}`);
+      await updateDoc(interviewRef, {
+        candidateId: interview.candidateId,
+        position: position,
+        date: interview.date,
+        timeSlot: interview.timeSlot,
+        panelMembers: interview.panelMembers,
+        updatedAt: new Date()
+      });
+    } catch (error) {
+      // If document doesn't exist, create it
+      const interviewRef = doc(db, 'interviewSchedules', `${position}_${interview.candidateId}`);
+      await updateDoc(interviewRef, {
+        candidateId: interview.candidateId,
+        position: position,
+        date: interview.date,
+        timeSlot: interview.timeSlot,
+        panelMembers: interview.panelMembers,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
   };
 
   const handleScheduleInterview = async (candidate: ApplicationData) => {
@@ -148,6 +217,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         panelMembers: selectedPanelMembers
       };
       
+      await saveInterviewToFirebase(newInterview);
       setScheduledInterviews(prev => [...prev, newInterview]);
       setSelectedTimeSlot('');
       setSelectedCandidate('');
@@ -171,9 +241,83 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     }
   };
 
+  const handleEditInterview = async (candidate: ApplicationData) => {
+    if (!editDate || !editTimeSlot) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both a date and time slot",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (editPanelMembers.length < 2) {
+      toast({
+        title: "Panel Members Required",
+        description: "Please select at least 2 panel members for the interview",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isTimeSlotTaken(editTimeSlot, editDate, candidate.id)) {
+      toast({
+        title: "Time Slot Unavailable",
+        description: "This time slot is already booked. Please select another time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const updatedInterview: ScheduledInterview = {
+        candidateId: candidate.id,
+        date: editDate,
+        timeSlot: editTimeSlot,
+        panelMembers: editPanelMembers
+      };
+      
+      await saveInterviewToFirebase(updatedInterview);
+      setScheduledInterviews(prev => 
+        prev.map(interview => 
+          interview.candidateId === candidate.id ? updatedInterview : interview
+        )
+      );
+      
+      setEditingInterview(null);
+      setEditDate(undefined);
+      setEditTimeSlot('');
+      setEditPanelMembers([]);
+      
+      const panelMemberNames = editPanelMembers.map(id => 
+        executives.find(exec => exec.id === id)?.name
+      ).join(', ');
+      
+      toast({
+        title: "Interview Updated",
+        description: `Interview updated for ${candidate.userProfile?.fullName} on ${editDate.toLocaleDateString()} at ${editTimeSlot} with panel: ${panelMemberNames}`,
+      });
+    } catch (error) {
+      console.error('Error updating interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update interview",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleRemoveInterview = async (candidate: ApplicationData) => {
     try {
       await updateInterviewStatus(candidate.id, false);
+      
+      // Remove from Firebase
+      const interviewRef = doc(db, 'interviewSchedules', `${position}_${candidate.id}`);
+      await updateDoc(interviewRef, {
+        deleted: true,
+        deletedAt: new Date()
+      });
+      
       setScheduledInterviews(prev => prev.filter(interview => interview.candidateId !== candidate.id));
       
       toast({
@@ -208,6 +352,16 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         description: "Failed to reject candidate",
         variant: "destructive",
       });
+    }
+  };
+
+  const startEditingInterview = (candidateId: string) => {
+    const scheduledInfo = getCandidateScheduledInfo(candidateId);
+    if (scheduledInfo) {
+      setEditingInterview(candidateId);
+      setEditDate(scheduledInfo.date);
+      setEditTimeSlot(scheduledInfo.timeSlot);
+      setEditPanelMembers(scheduledInfo.panelMembers);
     }
   };
 
@@ -392,21 +546,24 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               <span className="text-sm font-medium text-blue-600">
                                 Score: {candidate.score || 0}/100
                               </span>
-                              {isScheduled && scheduledInfo && (
-                                <div className="text-xs text-gray-600">
-                                  <span className="bg-gray-200 px-2 py-1 rounded mr-2">
-                                    {scheduledInfo.date.toLocaleDateString()} at {scheduledInfo.timeSlot}
-                                  </span>
-                                  {scheduledInfo.panelMembers.length > 0 && (
-                                    <span className="text-xs text-gray-500">
-                                      Panel: {scheduledInfo.panelMembers.map(id => 
-                                        executives.find(e => e.id === id)?.name
-                                      ).join(', ')}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
                             </div>
+                            {isScheduled && scheduledInfo && (
+                              <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                                <div className="text-sm font-medium text-green-800">
+                                  Interview Scheduled:
+                                </div>
+                                <div className="text-sm text-green-700">
+                                  📅 {scheduledInfo.date.toLocaleDateString()} at {scheduledInfo.timeSlot}
+                                </div>
+                                {scheduledInfo.panelMembers.length > 0 && (
+                                  <div className="text-xs text-green-600 mt-1">
+                                    Panel: {scheduledInfo.panelMembers.map(id => 
+                                      executives.find(e => e.id === id)?.name
+                                    ).join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         
@@ -433,13 +590,105 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               </Button>
                             </>
                           ) : (
-                            <Button
-                              onClick={() => handleRemoveInterview(candidate)}
-                              size="sm"
-                              variant="destructive"
-                            >
-                              Remove Interview
-                            </Button>
+                            <div className="flex gap-2">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    onClick={() => startEditingInterview(candidate.id)}
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-md">
+                                  <DialogHeader>
+                                    <DialogTitle>Edit Interview</DialogTitle>
+                                    <DialogDescription>
+                                      Update interview details for {candidate.userProfile?.fullName}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    {/* Date Selection */}
+                                    <div>
+                                      <h4 className="text-sm font-medium mb-2">Select Date</h4>
+                                      <Calendar
+                                        mode="single"
+                                        selected={editDate}
+                                        onSelect={setEditDate}
+                                        className="rounded-md border"
+                                        disabled={(date) => date < new Date() || !isWeekday(date)}
+                                      />
+                                    </div>
+
+                                    {/* Time Selection */}
+                                    {editDate && (
+                                      <div>
+                                        <h4 className="text-sm font-medium mb-2">Time Slot</h4>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          {timeSlots.map((time) => {
+                                            const isTaken = isTimeSlotTaken(time, editDate, candidate.id);
+                                            const isSelected = editTimeSlot === time;
+                                            
+                                            return (
+                                              <Button
+                                                key={time}
+                                                variant={isSelected ? "default" : "outline"}
+                                                size="sm"
+                                                disabled={isTaken}
+                                                onClick={() => setEditTimeSlot(isSelected ? '' : time)}
+                                                className={`text-xs ${isTaken ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                              >
+                                                {time}
+                                                {isTaken && <span className="ml-1">(Taken)</span>}
+                                              </Button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Panel Selection */}
+                                    <div>
+                                      <h4 className="text-sm font-medium mb-2">Panel Members (min 2)</h4>
+                                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                                        {executives.map((exec) => (
+                                          <div key={exec.id} className="flex items-center space-x-2">
+                                            <Button
+                                              variant={editPanelMembers.includes(exec.id) ? "default" : "outline"}
+                                              size="sm"
+                                              onClick={() => handleEditPanelMemberToggle(exec.id)}
+                                              className="w-full justify-start text-xs"
+                                            >
+                                              <User className="h-3 w-3 mr-2" />
+                                              {exec.name}
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    <Button
+                                      onClick={() => handleEditInterview(candidate)}
+                                      disabled={!editDate || !editTimeSlot || editPanelMembers.length < 2}
+                                      className="w-full"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Update Interview
+                                    </Button>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                              <Button
+                                onClick={() => handleRemoveInterview(candidate)}
+                                size="sm"
+                                variant="destructive"
+                              >
+                                Remove Interview
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>
