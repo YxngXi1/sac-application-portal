@@ -35,6 +35,7 @@ export interface ExecutiveGrade {
   totalScore: number;
   maxTotalScore: number;
   gradedAt: Date;
+  feedback?: string; // Overall feedback from the executive
 }
 
 export interface ApplicationGrades {
@@ -53,6 +54,7 @@ export interface ExecutiveGradeSubmission {
   totalScore: number;
   maxTotalScore: number;
   gradedAt: Date;
+  feedback?: string; // Overall feedback
 }
 
 export const saveApplicationProgress = async (
@@ -166,7 +168,8 @@ export const saveApplicationGrades = async (gradeSubmission: ExecutiveGradeSubmi
     grades: gradeSubmission.grades,
     totalScore: gradeSubmission.totalScore,
     maxTotalScore: gradeSubmission.maxTotalScore,
-    gradedAt: new Date()
+    gradedAt: new Date(),
+    feedback: gradeSubmission.feedback
   };
   
   if (existingGradeIndex >= 0) {

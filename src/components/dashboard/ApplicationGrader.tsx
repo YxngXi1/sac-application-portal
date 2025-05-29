@@ -8,6 +8,7 @@ import { ArrowLeft, Save, Star, User, GraduationCap, Hash, BookOpen, ChevronLeft
 import { ApplicationData, saveApplicationGrades, getApplicationGrades, getAllApplicationsByPosition } from '@/services/applicationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import ExecutiveGrades from './ExecutiveGrades';
 
 interface ApplicationGraderProps {
   application: ApplicationData;
@@ -23,6 +24,46 @@ interface Question {
   maxScore: number;
 }
 
+// Position-specific questions mapping
+const POSITION_QUESTIONS: Record<string, string[]> = {
+  'Secretary': [
+    'Why are you interested in the Secretary position?',
+    'How would you handle organizing and managing SAC communications?',
+    'Describe your experience with administrative tasks and organization.',
+    'How would you ensure meeting notes are accurate and comprehensive?'
+  ],
+  'Treasurer': [
+    'Why are you interested in the Treasurer position?',
+    'How would you handle SAC finances and budget management?',
+    'Describe your experience with money management or financial responsibility.',
+    'How would you track and report financial activities?'
+  ],
+  'Community Outreach': [
+    'Why are you interested in the Community Outreach position?',
+    'How would you coordinate with nonprofits and community organizations?',
+    'Describe a time you organized or participated in community service.',
+    'How would you promote community involvement among students?'
+  ],
+  'Athletics Liaison': [
+    'Why are you interested in the Athletics Liaison position?',
+    'How would you coordinate sports events and activities?',
+    'Describe your experience with athletics or sports coordination.',
+    'How would you bridge the gap between SAC and the Athletics Council?'
+  ],
+  'Promotions Officer': [
+    'Why are you interested in the Promotions Officer position?',
+    'How would you manage SAC social media and promotional content?',
+    'Describe your experience with design, marketing, or social media.',
+    'How would you increase student engagement through promotions?'
+  ],
+  'Photography Exec': [
+    'Why are you interested in the Photography Exec position?',
+    'How would you document SAC events and activities?',
+    'Describe your experience with photography or videography.',
+    'How would you manage and organize the SAC media library?'
+  ]
+};
+
 const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   application,
   positionName,
@@ -36,6 +77,8 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   const [allApplications, setAllApplications] = useState<ApplicationData[]>([]);
   const [currentApplicationIndex, setCurrentApplicationIndex] = useState(0);
   const [averageScore, setAverageScore] = useState(0);
+  const [applicationGrades, setApplicationGrades] = useState<any>(null);
+  const [feedback, setFeedback] = useState<string>('');
 
   useEffect(() => {
     const loadApplicationsAndGrades = async () => {
@@ -51,32 +94,44 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
         // Load existing grades for current executive
         const existingGrades = await getApplicationGrades(application.id);
+        setApplicationGrades(existingGrades);
         const myGrades = existingGrades?.executiveGrades?.find(eg => eg.executiveId === userProfile?.uid);
         
+        // Get position-specific questions
+        const positionQuestions = POSITION_QUESTIONS[positionName] || [
+          'Question 1', 'Question 2', 'Question 3', 'Question 4'
+        ];
+        
         // Convert application answers to questions format
-        const questionsList: Question[] = Object.entries(application.answers || {}).map(([key, answer], index) => {
-          const existingGrade = myGrades?.grades.find(g => g.questionId === key);
+        const questionsList: Question[] = [];
+        const answersArray = Object.entries(application.answers || {});
+        
+        positionQuestions.forEach((questionText, index) => {
+          const answerEntry = answersArray[index];
+          const questionKey = answerEntry ? answerEntry[0] : `question_${index + 1}`;
+          const answerText = answerEntry ? answerEntry[1] : 'No response provided';
           
-          return {
-            id: key,
-            question: `Question ${index + 1}`,
-            answer: answer as string,
+          const existingGrade = myGrades?.grades.find(g => g.questionId === questionKey);
+          
+          questionsList.push({
+            id: questionKey,
+            question: questionText,
+            answer: answerText,
             score: existingGrade?.score || 0,
-            maxScore: existingGrade?.maxScore || 10
-          };
+            maxScore: 10
+          });
         });
 
         setQuestions(questionsList);
         
-        // Load overall impression score
+        // Load overall impression score and feedback
         const overallImpressionGrade = myGrades?.grades.find(g => g.questionId === 'overall_impression');
         setOverallImpression(overallImpressionGrade?.score || 0);
+        setFeedback(myGrades?.feedback || '');
         
         // Calculate average score from all executives
         if (existingGrades?.executiveGrades && existingGrades.executiveGrades.length > 0) {
-          const totalScore = existingGrades.executiveGrades.reduce((sum, eg) => sum + eg.totalScore, 0);
-          const avgScore = totalScore / existingGrades.executiveGrades.length;
-          setAverageScore(avgScore);
+          setAverageScore(existingGrades.averageScore);
         } else {
           setAverageScore(0);
         }
@@ -142,14 +197,22 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         ],
         totalScore: myScore,
         maxTotalScore: 10,
-        gradedAt: new Date()
+        gradedAt: new Date(),
+        feedback: feedback
       };
 
       await saveApplicationGrades(gradesData);
       
+      // Reload grades to get updated data
+      const updatedGrades = await getApplicationGrades(application.id);
+      setApplicationGrades(updatedGrades);
+      if (updatedGrades) {
+        setAverageScore(updatedGrades.averageScore);
+      }
+      
       toast({
         title: "Grades Saved",
-        description: "Your grades have been saved successfully.",
+        description: "Your grades and feedback have been saved successfully.",
       });
     } catch (error) {
       console.error('Error saving grades:', error);
@@ -159,6 +222,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         variant: "destructive",
       });
     }
+  };
+
+  const handleSaveFeedback = async () => {
+    await handleSave(); // Save feedback along with grades
   };
 
   const navigateToApplication = (direction: 'next' | 'prev') => {
@@ -395,7 +462,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                   </CardHeader>
                   <CardContent>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-gray-800 leading-relaxed">
+                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
                         {question.answer}
                       </p>
                     </div>
@@ -403,6 +470,15 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                 </Card>
               ))
             )}
+            
+            {/* Executive Grades Section */}
+            <ExecutiveGrades
+              applicationGrades={applicationGrades}
+              currentExecutiveId={userProfile?.uid || ''}
+              feedback={feedback}
+              onFeedbackChange={setFeedback}
+              onSaveFeedback={handleSaveFeedback}
+            />
           </div>
 
           {/* Scoring Panel */}
