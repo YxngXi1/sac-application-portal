@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,8 @@ import { ArrowLeft, Clock, User, CheckCircle, XCircle, Calendar as CalendarIcon,
 import { ApplicationData, updateInterviewStatus } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface InterviewSchedulerProps {
   position: string;
@@ -44,17 +45,39 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   const { toast } = useToast();
   const { userProfile } = useAuth();
 
-  // Mock executives data - in a real app, this would come from your user service
+  // Fetch superadmin users from Firebase
   useEffect(() => {
-    const mockExecutives: Executive[] = [
-      { id: '1', name: 'John Smith', email: 'john@school.edu' },
-      { id: '2', name: 'Sarah Johnson', email: 'sarah@school.edu' },
-      { id: '3', name: 'Mike Chen', email: 'mike@school.edu' },
-      { id: '4', name: 'Emily Davis', email: 'emily@school.edu' },
-      { id: '5', name: 'Alex Rodriguez', email: 'alex@school.edu' }
-    ];
-    setExecutives(mockExecutives);
-  }, []);
+    const fetchSuperAdminUsers = async () => {
+      try {
+        console.log('Fetching superadmin users...');
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'superadmin'));
+        const querySnapshot = await getDocs(q);
+        
+        const superAdminUsers: Executive[] = [];
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          superAdminUsers.push({
+            id: doc.id,
+            name: userData.name || userData.fullName || 'Unnamed User',
+            email: userData.email || ''
+          });
+        });
+        
+        console.log('Found superadmin users:', superAdminUsers);
+        setExecutives(superAdminUsers);
+      } catch (error) {
+        console.error('Error fetching superadmin users:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load panel members",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchSuperAdminUsers();
+  }, [toast]);
 
   const isTimeSlotTaken = (timeSlot: string, date: Date) => {
     return scheduledInterviews.some(interview => 
@@ -255,21 +278,29 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                   <Users className="h-4 w-4" />
                   Select Panel Members (minimum 2)
                 </h3>
-                <div className="space-y-2">
-                  {executives.map((exec) => (
-                    <div key={exec.id} className="flex items-center space-x-2">
-                      <Button
-                        variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePanelMemberToggle(exec.id)}
-                        className="w-full justify-start"
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        {exec.name}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                {executives.length === 0 ? (
+                  <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-yellow-800">
+                      No superadmin users found. Contact your system administrator.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {executives.map((exec) => (
+                      <div key={exec.id} className="flex items-center space-x-2">
+                        <Button
+                          variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePanelMemberToggle(exec.id)}
+                          className="w-full justify-start"
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          {exec.name}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 
                 {selectedPanelMembers.length > 0 && (
                   <div className="mt-2 p-2 bg-blue-50 rounded border">
