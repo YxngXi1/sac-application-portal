@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, Users, CheckCircle, XCircle, User } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, XCircle, User, Edit } from 'lucide-react';
 import { getAllApplicationsByPosition, updateInterviewStatus, type ApplicationData } from '@/services/applicationService';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -29,6 +29,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
   const [loading, setLoading] = useState(true);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [isSchedulingDialogOpen, setIsSchedulingDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<ApplicationData | null>(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
@@ -147,6 +148,52 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
     }
   };
 
+  const handleUpdateInterview = async () => {
+    if (!selectedApplication || !selectedDate || !selectedTimeSlot) {
+      toast({
+        title: "Error",
+        description: "Please fill in all interview details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsScheduling(true);
+    try {
+      await updateInterviewStatus(
+        selectedApplication.id,
+        true,
+        selectedDate,
+        selectedTimeSlot,
+        selectedPanelMembers
+      );
+
+      // Optimistically update the UI
+      setApplications(apps =>
+        apps.map(app =>
+          app.id === selectedApplication.id
+            ? { ...app, interviewScheduled: true, interviewDate: selectedDate, interviewTimeSlot: selectedTimeSlot, interviewPanelMembers: selectedPanelMembers }
+            : app
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: "Interview updated successfully!",
+      });
+    } catch (error) {
+      console.error('Error updating interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update interview. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScheduling(false);
+      setIsEditDialogOpen(false);
+    }
+  };
+
   const handleRemoveInterview = async (applicationId: string) => {
     if (!window.confirm('Are you sure you want to remove the interview?')) {
       return;
@@ -179,6 +226,22 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
     } finally {
       setIsScheduling(false);
     }
+  };
+
+  const handleEditInterview = (app: ApplicationData) => {
+    setSelectedApplication(app);
+    setSelectedDate(app.interviewDate || '');
+    setSelectedTimeSlot(app.interviewTimeSlot || '');
+    setSelectedPanelMembers(app.interviewPanelMembers || []);
+    setIsEditDialogOpen(true);
+  };
+
+  const handlePanelMemberToggle = (executiveId: string) => {
+    setSelectedPanelMembers(prev => 
+      prev.includes(executiveId)
+        ? prev.filter(id => id !== executiveId)
+        : [...prev, executiveId]
+    );
   };
 
   const formatStatus = (status: string) => {
@@ -302,7 +365,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
                         View
                       </Button>
                       
-                      {app.status === 'submitted' && (
+                      {app.status === 'submitted' && !app.interviewScheduled && (
                         <Dialog open={isSchedulingDialogOpen} onOpenChange={setIsSchedulingDialogOpen}>
                           <DialogTrigger asChild>
                             <Button
@@ -356,21 +419,22 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
                                 <Label htmlFor="panel" className="text-right">
                                   Panel Members
                                 </Label>
-                                <Select
-                                  multiple
-                                  onValueChange={(values) => setSelectedPanelMembers(values as string[])}
-                                >
-                                  <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select panel members" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {executives.map((executive) => (
-                                      <SelectItem key={executive.id} value={executive.id}>
+                                <div className="col-span-3 space-y-2">
+                                  {executives.map((executive) => (
+                                    <div key={executive.id} className="flex items-center space-x-2">
+                                      <input
+                                        type="checkbox"
+                                        id={`panel-${executive.id}`}
+                                        checked={selectedPanelMembers.includes(executive.id)}
+                                        onChange={() => handlePanelMemberToggle(executive.id)}
+                                        className="rounded border-gray-300"
+                                      />
+                                      <label htmlFor={`panel-${executive.id}`} className="text-sm">
                                         {executive.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             </div>
                             <DialogFooter>
@@ -390,15 +454,25 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
                       )}
 
                       {app.interviewScheduled && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveInterview(app.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Remove
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditInterview(app)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveInterview(app.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        </>
                       )}
                     </div>
                   </TableCell>
@@ -407,6 +481,78 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({ position })
             </TableBody>
           </Table>
         )}
+
+        {/* Edit Interview Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Interview</DialogTitle>
+              <DialogDescription>
+                Update interview details for {selectedApplication?.userProfile?.fullName}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-date" className="text-right">
+                  Date
+                </Label>
+                <Input
+                  type="date"
+                  id="edit-date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-time" className="text-right">
+                  Time Slot
+                </Label>
+                <Input
+                  type="time"
+                  id="edit-time"
+                  value={selectedTimeSlot}
+                  onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="edit-panel" className="text-right">
+                  Panel Members
+                </Label>
+                <div className="col-span-3 space-y-2">
+                  {executives.map((executive) => (
+                    <div key={executive.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`edit-panel-${executive.id}`}
+                        checked={selectedPanelMembers.includes(executive.id)}
+                        onChange={() => handlePanelMemberToggle(executive.id)}
+                        className="rounded border-gray-300"
+                      />
+                      <label htmlFor={`edit-panel-${executive.id}`} className="text-sm">
+                        {executive.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={handleUpdateInterview} disabled={isScheduling}>
+                {isScheduling ? (
+                  <>
+                    <Clock className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Interview"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
