@@ -1,12 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft, Clock, User, CheckCircle, XCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Clock, User, CheckCircle, XCircle, Calendar as CalendarIcon, Users } from 'lucide-react';
 import { ApplicationData, updateInterviewStatus } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface InterviewSchedulerProps {
   position: string;
@@ -18,6 +20,13 @@ interface ScheduledInterview {
   candidateId: string;
   date: Date;
   timeSlot: string;
+  panelMembers: string[];
+}
+
+interface Executive {
+  id: string;
+  name: string;
+  email: string;
 }
 
 const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({ 
@@ -29,8 +38,23 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedCandidate, setSelectedCandidate] = useState<string>('');
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
+  const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
+  const [executives, setExecutives] = useState<Executive[]>([]);
   const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM'];
   const { toast } = useToast();
+  const { userProfile } = useAuth();
+
+  // Mock executives data - in a real app, this would come from your user service
+  useEffect(() => {
+    const mockExecutives: Executive[] = [
+      { id: '1', name: 'John Smith', email: 'john@school.edu' },
+      { id: '2', name: 'Sarah Johnson', email: 'sarah@school.edu' },
+      { id: '3', name: 'Mike Chen', email: 'mike@school.edu' },
+      { id: '4', name: 'Emily Davis', email: 'emily@school.edu' },
+      { id: '5', name: 'Alex Rodriguez', email: 'alex@school.edu' }
+    ];
+    setExecutives(mockExecutives);
+  }, []);
 
   const isTimeSlotTaken = (timeSlot: string, date: Date) => {
     return scheduledInterviews.some(interview => 
@@ -43,11 +67,28 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     return scheduledInterviews.find(interview => interview.candidateId === candidateId);
   };
 
+  const handlePanelMemberToggle = (executiveId: string) => {
+    setSelectedPanelMembers(prev => 
+      prev.includes(executiveId)
+        ? prev.filter(id => id !== executiveId)
+        : [...prev, executiveId]
+    );
+  };
+
   const handleScheduleInterview = async (candidate: ApplicationData) => {
     if (!selectedDate || !selectedTimeSlot) {
       toast({
         title: "Missing Information",
         description: "Please select both a date and time slot",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedPanelMembers.length < 2) {
+      toast({
+        title: "Panel Members Required",
+        description: "Please select at least 2 panel members for the interview",
         variant: "destructive",
       });
       return;
@@ -68,16 +109,22 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       const newInterview: ScheduledInterview = {
         candidateId: candidate.id,
         date: selectedDate,
-        timeSlot: selectedTimeSlot
+        timeSlot: selectedTimeSlot,
+        panelMembers: selectedPanelMembers
       };
       
       setScheduledInterviews(prev => [...prev, newInterview]);
       setSelectedTimeSlot('');
       setSelectedCandidate('');
+      setSelectedPanelMembers([]);
+      
+      const panelMemberNames = selectedPanelMembers.map(id => 
+        executives.find(exec => exec.id === id)?.name
+      ).join(', ');
       
       toast({
         title: "Interview Scheduled",
-        description: `Interview scheduled for ${candidate.userProfile?.fullName} on ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot}`,
+        description: `Interview scheduled for ${candidate.userProfile?.fullName} on ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot} with panel: ${panelMemberNames}`,
       });
     } catch (error) {
       console.error('Error scheduling interview:', error);
@@ -149,62 +196,110 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
       <div className="max-w-7xl mx-auto p-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar and Time Selection */}
+          {/* Calendar, Time Selection, and Panel Assignment */}
           <Card className="border shadow-sm bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5 text-blue-600" />
-                Select Interview Date & Time
+                Schedule Interview
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                className="rounded-md border mb-4"
-                disabled={(date) => date < new Date()}
-              />
+            <CardContent className="space-y-6">
+              {/* Calendar */}
+              <div>
+                <h3 className="font-semibold mb-2 text-gray-900">Select Date</h3>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="rounded-md border"
+                  disabled={(date) => date < new Date()}
+                />
+              </div>
               
+              {/* Time Slots */}
               {selectedDate && (
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-2 text-gray-900">
-                      Available Times - {selectedDate.toLocaleDateString()}
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {timeSlots.map((time) => {
-                        const isTaken = isTimeSlotTaken(time, selectedDate);
-                        const isSelected = selectedTimeSlot === time;
-                        
+                <div>
+                  <h3 className="font-semibold mb-2 text-gray-900">
+                    Available Times - {selectedDate.toLocaleDateString()}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {timeSlots.map((time) => {
+                      const isTaken = isTimeSlotTaken(time, selectedDate);
+                      const isSelected = selectedTimeSlot === time;
+                      
+                      return (
+                        <Button
+                          key={time}
+                          variant={isSelected ? "default" : "outline"}
+                          size="sm"
+                          disabled={isTaken}
+                          onClick={() => setSelectedTimeSlot(isSelected ? '' : time)}
+                          className={`
+                            ${isTaken ? 'opacity-50 cursor-not-allowed' : ''}
+                            ${isSelected ? 'bg-blue-600 text-white' : ''}
+                          `}
+                        >
+                          {time}
+                          {isTaken && <span className="ml-1 text-xs">(Taken)</span>}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Panel Member Selection */}
+              <div>
+                <h3 className="font-semibold mb-2 text-gray-900 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Select Panel Members (minimum 2)
+                </h3>
+                <div className="space-y-2">
+                  {executives.map((exec) => (
+                    <div key={exec.id} className="flex items-center space-x-2">
+                      <Button
+                        variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePanelMemberToggle(exec.id)}
+                        className="w-full justify-start"
+                      >
+                        <User className="h-4 w-4 mr-2" />
+                        {exec.name}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                
+                {selectedPanelMembers.length > 0 && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded border">
+                    <p className="text-sm text-blue-800 font-medium">
+                      Selected Panel ({selectedPanelMembers.length}):
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedPanelMembers.map(id => {
+                        const exec = executives.find(e => e.id === id);
                         return (
-                          <Button
-                            key={time}
-                            variant={isSelected ? "default" : "outline"}
-                            size="sm"
-                            disabled={isTaken}
-                            onClick={() => setSelectedTimeSlot(isSelected ? '' : time)}
-                            className={`
-                              ${isTaken ? 'opacity-50 cursor-not-allowed' : ''}
-                              ${isSelected ? 'bg-blue-600 text-white' : ''}
-                            `}
-                          >
-                            {time}
-                            {isTaken && <span className="ml-1 text-xs">(Taken)</span>}
-                          </Button>
+                          <Badge key={id} variant="secondary" className="text-xs">
+                            {exec?.name}
+                          </Badge>
                         );
                       })}
                     </div>
                   </div>
-                  
-                  {selectedTimeSlot && (
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm text-blue-800">
-                        <Clock className="h-4 w-4 inline mr-1" />
-                        Selected: {selectedDate.toLocaleDateString()} at {selectedTimeSlot}
-                      </p>
-                    </div>
-                  )}
+                )}
+              </div>
+              
+              {/* Selection Summary */}
+              {selectedDate && selectedTimeSlot && selectedPanelMembers.length >= 2 && (
+                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-800 font-medium">
+                    <Clock className="h-4 w-4 inline mr-1" />
+                    Ready to schedule: {selectedDate.toLocaleDateString()} at {selectedTimeSlot}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Panel: {selectedPanelMembers.map(id => executives.find(e => e.id === id)?.name).join(', ')}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -248,16 +343,17 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               <span className="text-sm font-medium text-blue-600">
                                 Score: {candidate.score || 0}/100
                               </span>
-                              {isScheduled && (
+                              {isScheduled && scheduledInfo && (
                                 <div className="text-xs text-gray-600">
-                                  {scheduledInfo ? (
-                                    <span className="bg-gray-200 px-2 py-1 rounded">
-                                      {scheduledInfo.date.toLocaleDateString()} at {scheduledInfo.timeSlot}
+                                  <span className="bg-gray-200 px-2 py-1 rounded mr-2">
+                                    {scheduledInfo.date.toLocaleDateString()} at {scheduledInfo.timeSlot}
+                                  </span>
+                                  {scheduledInfo.panelMembers.length > 0 && (
+                                    <span className="text-xs text-gray-500">
+                                      Panel: {scheduledInfo.panelMembers.map(id => 
+                                        executives.find(e => e.id === id)?.name
+                                      ).join(', ')}
                                     </span>
-                                  ) : (
-                                    <Badge className="bg-gray-200 text-gray-800 text-xs">
-                                      Interview Scheduled
-                                    </Badge>
                                   )}
                                 </div>
                               )}
@@ -272,7 +368,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                                 onClick={() => handleScheduleInterview(candidate)}
                                 size="sm"
                                 className="bg-gray-800 hover:bg-gray-900 text-white"
-                                disabled={!selectedDate || !selectedTimeSlot}
+                                disabled={!selectedDate || !selectedTimeSlot || selectedPanelMembers.length < 2}
                               >
                                 <CheckCircle className="h-4 w-4 mr-1" />
                                 Schedule Interview
