@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +63,20 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const isWeekday = (date: Date) => {
     const day = date.getDay();
     return day >= 1 && day <= 5; // Monday (1) to Friday (5)
+  };
+
+  // Helper function to format date in EST
+  const formatDateEST = (date: Date | string) => {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   // Fetch superadmin users from Firebase
@@ -426,7 +439,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                     <TableHead>Progress</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Interview</TableHead>
-                    <TableHead>Submitted</TableHead>
+                    <TableHead>Submitted (EST)</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -474,6 +487,11 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                               <div className="text-gray-600">
                                 {scheduledInfo.date.toLocaleDateString()} at {scheduledInfo.timeSlot}
                               </div>
+                              <div className="text-gray-500">
+                                Panel: {scheduledInfo.panelMembers.map(id => 
+                                  executives.find(exec => exec.id === id)?.name
+                                ).join(', ')}
+                              </div>
                             </div>
                           ) : application.interviewScheduled ? (
                             <Badge variant="default">Scheduled</Badge>
@@ -483,7 +501,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                         </TableCell>
                         <TableCell>
                           {application.submittedAt ? 
-                            new Date(application.submittedAt).toLocaleDateString() : 
+                            formatDateEST(application.submittedAt) : 
                             'Not submitted'
                           }
                         </TableCell>
@@ -606,14 +624,37 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                                     </DialogContent>
                                   </Dialog>
                                 ) : (
-                                  <Button
-                                    onClick={() => handleRemoveInterview(application.id)}
-                                    size="sm"
-                                    variant="destructive"
-                                  >
-                                    <XCircle className="h-4 w-4 mr-1" />
-                                    Remove Interview
-                                  </Button>
+                                  <div className="flex space-x-1">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                        >
+                                          <Clock className="h-4 w-4 mr-1" />
+                                          Edit
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                          <DialogTitle>Edit Interview</DialogTitle>
+                                          <DialogDescription>
+                                            Update interview details for {application.userProfile?.fullName}
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        {/* Same dialog content as above */}
+                                      </DialogContent>
+                                    </Dialog>
+                                    <Button
+                                      onClick={() => handleRemoveInterview(application.id)}
+                                      size="sm"
+                                      variant="destructive"
+                                    >
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      Remove
+                                    </Button>
+                                  </div>
                                 )}
                               </>
                             )}

@@ -99,10 +99,14 @@ export const loadApplicationProgress = async (userId: string): Promise<Applicati
 export const submitApplication = async (userId: string): Promise<void> => {
   const applicationRef = doc(db, 'applications', userId);
   
+  // Create submission time in EST
+  const now = new Date();
+  const submissionTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  
   await updateDoc(applicationRef, {
     status: 'submitted',
-    submittedAt: new Date(),
-    updatedAt: new Date(),
+    submittedAt: submissionTime,
+    updatedAt: submissionTime,
     progress: 100,
   });
 };

@@ -8,6 +8,7 @@ import { getAllApplications, ApplicationData } from '@/services/applicationServi
 import InterviewScheduler from './InterviewScheduler';
 import InterviewGrader from './InterviewGrader';
 import InterviewResults from './InterviewResults';
+import InterviewCalendarView from './InterviewCalendarView';
 
 interface InterviewViewProps {
   onBack: () => void;
@@ -19,6 +20,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showGrader, setShowGrader] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -90,6 +92,14 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     );
   }
 
+  if (showCalendar) {
+    return (
+      <InterviewCalendarView
+        onBack={() => setShowCalendar(false)}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -114,13 +124,24 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               Back to Executive Dashboard
             </Button>
             
-            <Button
-              onClick={() => setShowResults(true)}
-              variant="outline"
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              View Interview Results
-            </Button>
+            <div className="flex space-x-3">
+              <Button
+                onClick={() => setShowCalendar(true)}
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Calendar View
+              </Button>
+              
+              <Button
+                onClick={() => setShowResults(true)}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                View Interview Results
+              </Button>
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Interview Management
