@@ -4,16 +4,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Eye, Star, MessageSquare } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ArrowLeft, Eye, Star, MessageSquare, Calendar as CalendarIcon, Clock, Users, CheckCircle, XCircle } from 'lucide-react';
 import { getAllApplicationsByPosition, updateInterviewStatus } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
+import { useToast } from '@/hooks/use-toast';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import ApplicationGrader from './ApplicationGrader';
 
 interface PositionApplicationsProps {
   positionId: string;
   positionName: string;
   onBack: () => void;
+}
+
+interface Executive {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface ScheduledInterview {
+  candidateId: string;
+  date: Date;
+  timeSlot: string;
+  panelMembers: string[];
 }
 
 const PositionApplications: React.FC<PositionApplicationsProps> = ({
@@ -26,6 +45,53 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const [viewMode, setViewMode] = useState(false);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [executives, setExecutives] = useState<Executive[]>([]);
+  const [schedulingCandidate, setSchedulingCandidate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
+  const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
+
+  const { toast } = useToast();
+
+  // Time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
+  const timeSlots = [
+    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
+    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
+  ];
+
+  // Function to check if a date is a weekday
+  const isWeekday = (date: Date) => {
+    const day = date.getDay();
+    return day >= 1 && day <= 5; // Monday (1) to Friday (5)
+  };
+
+  // Fetch superadmin users from Firebase
+  useEffect(() => {
+    const fetchSuperAdminUsers = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'superadmin'));
+        const querySnapshot = await getDocs(q);
+        
+        const superAdminUsers: Executive[] = [];
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          superAdminUsers.push({
+            id: doc.id,
+            name: userData.name || userData.fullName || 'Unnamed User',
+            email: userData.email || ''
+          });
+        });
+        
+        setExecutives(superAdminUsers);
+      } catch (error) {
+        console.error('Error fetching superadmin users:', error);
+      }
+    };
+
+    fetchSuperAdminUsers();
+  }, []);
 
   useEffect(() => {
     const loadApplications = async () => {
@@ -42,24 +108,122 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     loadApplications();
   }, [positionName]);
 
-  const handleInterviewToggle = async (applicationId: string) => {
-    try {
-      const application = applications.find(app => app.id === applicationId);
-      if (!application) return;
+  const isTimeSlotTaken = (timeSlot: string, date: Date) => {
+    return scheduledInterviews.some(interview => 
+      interview.timeSlot === timeSlot && 
+      interview.date.toDateString() === date.toDateString()
+    );
+  };
 
-      const newStatus = !application.interviewScheduled;
-      await updateInterviewStatus(applicationId, newStatus);
+  const getCandidateScheduledInfo = (candidateId: string) => {
+    return scheduledInterviews.find(interview => interview.candidateId === candidateId);
+  };
+
+  const handlePanelMemberToggle = (executiveId: string) => {
+    setSelectedPanelMembers(prev => 
+      prev.includes(executiveId)
+        ? prev.filter(id => id !== executiveId)
+        : [...prev, executiveId]
+    );
+  };
+
+  const handleScheduleInterview = async (candidate: ApplicationData) => {
+    if (!selectedDate || !selectedTimeSlot) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both a date and time slot",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedPanelMembers.length < 2) {
+      toast({
+        title: "Panel Members Required",
+        description: "Please select at least 2 panel members for the interview",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isTimeSlotTaken(selectedTimeSlot, selectedDate)) {
+      toast({
+        title: "Time Slot Unavailable",
+        description: "This time slot is already booked. Please select another time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await updateInterviewStatus(candidate.id, true);
+      
+      const newInterview: ScheduledInterview = {
+        candidateId: candidate.id,
+        date: selectedDate,
+        timeSlot: selectedTimeSlot,
+        panelMembers: selectedPanelMembers
+      };
+      
+      setScheduledInterviews(prev => [...prev, newInterview]);
+      
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === candidate.id 
+            ? { ...app, interviewScheduled: true }
+            : app
+        )
+      );
+      
+      // Reset scheduling state
+      setSchedulingCandidate(null);
+      setSelectedTimeSlot('');
+      setSelectedPanelMembers([]);
+      
+      const panelMemberNames = selectedPanelMembers.map(id => 
+        executives.find(exec => exec.id === id)?.name
+      ).join(', ');
+      
+      toast({
+        title: "Interview Scheduled",
+        description: `Interview scheduled for ${candidate.userProfile?.fullName} on ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot} with panel: ${panelMemberNames}`,
+      });
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule interview",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveInterview = async (applicationId: string) => {
+    try {
+      await updateInterviewStatus(applicationId, false);
+      setScheduledInterviews(prev => prev.filter(interview => interview.candidateId !== applicationId));
       
       // Update local state
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
-            ? { ...app, interviewScheduled: newStatus }
+            ? { ...app, interviewScheduled: false }
             : app
         )
       );
+      
+      toast({
+        title: "Interview Removed",
+        description: "Interview has been removed successfully",
+      });
     } catch (error) {
-      console.error('Error updating interview status:', error);
+      console.error('Error removing interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove interview",
+        variant: "destructive",
+      });
     }
   };
 
@@ -267,86 +431,197 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {applications.map((application) => (
-                    <TableRow key={application.id}>
-                      <TableCell className="font-medium">
-                        {application.userProfile?.fullName || 'Unknown'}
-                      </TableCell>
-                      <TableCell>{application.userProfile?.grade || 'N/A'}</TableCell>
-                      <TableCell>{application.userProfile?.studentNumber || 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge variant={application.status === 'submitted' ? "default" : "secondary"}>
-                          {application.status === 'submitted' ? 'Submitted' : 'Draft'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
-                              style={{ width: `${application.progress}%` }}
-                            ></div>
+                  {applications.map((application) => {
+                    const scheduledInfo = getCandidateScheduledInfo(application.id);
+                    
+                    return (
+                      <TableRow key={application.id}>
+                        <TableCell className="font-medium">
+                          {application.userProfile?.fullName || 'Unknown'}
+                        </TableCell>
+                        <TableCell>{application.userProfile?.grade || 'N/A'}</TableCell>
+                        <TableCell>{application.userProfile?.studentNumber || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant={application.status === 'submitted' ? "default" : "secondary"}>
+                            {application.status === 'submitted' ? 'Submitted' : 'Draft'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-16 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full" 
+                                style={{ width: `${application.progress}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm text-gray-600">{application.progress}%</span>
                           </div>
-                          <span className="text-sm text-gray-600">{application.progress}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {application.score ? (
-                          <div className="flex items-center space-x-1">
-                            <Star className="h-4 w-4 text-gray-600" />
-                            <span className="font-medium">{application.score.toFixed(1)}/10</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400">Not graded</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={application.interviewScheduled ? "default" : "secondary"}>
-                          {application.interviewScheduled ? "Scheduled" : "Pending"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {application.submittedAt ? 
-                          new Date(application.submittedAt).toLocaleDateString() : 
-                          'Not submitted'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          {application.status === 'submitted' && (
+                        </TableCell>
+                        <TableCell>
+                          {application.score ? (
+                            <div className="flex items-center space-x-1">
+                              <Star className="h-4 w-4 text-gray-600" />
+                              <span className="font-medium">{application.score.toFixed(1)}/10</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">Not graded</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {application.interviewScheduled && scheduledInfo ? (
+                            <div className="text-xs">
+                              <Badge variant="default" className="mb-1">Scheduled</Badge>
+                              <div className="text-gray-600">
+                                {scheduledInfo.date.toLocaleDateString()} at {scheduledInfo.timeSlot}
+                              </div>
+                            </div>
+                          ) : application.interviewScheduled ? (
+                            <Badge variant="default">Scheduled</Badge>
+                          ) : (
+                            <Badge variant="secondary">Pending</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {application.submittedAt ? 
+                            new Date(application.submittedAt).toLocaleDateString() : 
+                            'Not submitted'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {application.status === 'submitted' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedApplicant(application);
+                                  setGradeMode(true);
+                                }}
+                              >
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                Grade
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setSelectedApplicant(application);
-                                setGradeMode(true);
-                              }}
+                              onClick={() => handleViewApplication(application)}
                             >
-                              <MessageSquare className="h-4 w-4 mr-1" />
-                              Grade
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewApplication(application)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                          {application.status === 'submitted' && (
-                            <Button
-                              variant={application.interviewScheduled ? "destructive" : "default"}
-                              size="sm"
-                              onClick={() => handleInterviewToggle(application.id)}
-                            >
-                              {application.interviewScheduled ? "Remove Interview" : "Mark Interviewed"}
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {application.status === 'submitted' && (
+                              <>
+                                {!application.interviewScheduled ? (
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => setSchedulingCandidate(application.id)}
+                                        className="bg-gray-800 hover:bg-gray-900 text-white"
+                                      >
+                                        <CalendarIcon className="h-4 w-4 mr-1" />
+                                        Schedule Interview
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-md">
+                                      <DialogHeader>
+                                        <DialogTitle>Schedule Interview</DialogTitle>
+                                        <DialogDescription>
+                                          Schedule interview for {application.userProfile?.fullName}
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-4">
+                                        {/* Date Selection */}
+                                        <div>
+                                          <Label className="text-sm font-medium">Select Date</Label>
+                                          <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={setSelectedDate}
+                                            className="rounded-md border"
+                                            disabled={(date) => date < new Date() || !isWeekday(date)}
+                                          />
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            Weekdays only
+                                          </p>
+                                        </div>
+
+                                        {/* Time Selection */}
+                                        {selectedDate && (
+                                          <div>
+                                            <Label className="text-sm font-medium">Time Slot</Label>
+                                            <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Select time" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {timeSlots.map((time) => {
+                                                  const isTaken = isTimeSlotTaken(time, selectedDate);
+                                                  return (
+                                                    <SelectItem 
+                                                      key={time} 
+                                                      value={time}
+                                                      disabled={isTaken}
+                                                    >
+                                                      {time} {isTaken && '(Taken)'}
+                                                    </SelectItem>
+                                                  );
+                                                })}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        )}
+
+                                        {/* Panel Selection */}
+                                        <div>
+                                          <Label className="text-sm font-medium">Panel Members (min 2)</Label>
+                                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                                            {executives.map((exec) => (
+                                              <div key={exec.id} className="flex items-center space-x-2">
+                                                <Button
+                                                  variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
+                                                  size="sm"
+                                                  onClick={() => handlePanelMemberToggle(exec.id)}
+                                                  className="w-full justify-start"
+                                                >
+                                                  <Users className="h-4 w-4 mr-2" />
+                                                  {exec.name}
+                                                </Button>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+
+                                        <Button
+                                          onClick={() => handleScheduleInterview(application)}
+                                          disabled={!selectedDate || !selectedTimeSlot || selectedPanelMembers.length < 2}
+                                          className="w-full"
+                                        >
+                                          <CheckCircle className="h-4 w-4 mr-2" />
+                                          Schedule Interview
+                                        </Button>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                ) : (
+                                  <Button
+                                    onClick={() => handleRemoveInterview(application.id)}
+                                    size="sm"
+                                    variant="destructive"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Remove Interview
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
