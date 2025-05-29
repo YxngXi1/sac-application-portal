@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, FileText, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress } from '@/services/applicationService';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface ScheduledInterview {
@@ -27,6 +27,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = React.useState(true);
   const [scheduledInterviews, setScheduledInterviews] = React.useState<ScheduledInterview[]>([]);
   const [executives, setExecutives] = React.useState<Executive[]>([]);
+  const [userInterviewData, setUserInterviewData] = React.useState<any>(null);
 
   // Fetch superadmin users for panel member names
   React.useEffect(() => {
@@ -55,6 +56,31 @@ const StudentDashboard = () => {
     fetchSuperAdminUsers();
   }, []);
 
+  // Load user's interview data
+  React.useEffect(() => {
+    const loadUserInterviewData = async () => {
+      if (!userProfile?.uid) return;
+      
+      try {
+        const interviewDoc = await getDoc(doc(db, 'interviews', userProfile.uid));
+        if (interviewDoc.exists()) {
+          const data = interviewDoc.data();
+          if (!data.removed && data.date && data.timeSlot) {
+            setUserInterviewData({
+              date: data.date.toDate(),
+              timeSlot: data.timeSlot,
+              panelMembers: data.panelMembers || []
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user interview data:', error);
+      }
+    };
+
+    loadUserInterviewData();
+  }, [userProfile]);
+
   React.useEffect(() => {
     const loadStudentApplication = async () => {
       if (!userProfile?.uid) return;
@@ -75,24 +101,26 @@ const StudentDashboard = () => {
   // Mock data - will be replaced with real Firebase data
   const applications = [
     {
-      id: '1',
-      position: 'President',
-      status: 'submitted',
-      submittedAt: '2024-01-15',
-      interviewDate: null,
-      interviewScheduled: false,
-    },
-    {
-      id: '2',
-      position: 'Vice President',
-      status: 'submitted',
-      submittedAt: '2024-01-10',
-      interviewDate: '2024-01-25T14:30:00',
-      interviewScheduled: true,
+      id: userProfile?.uid || '1',
+      position: applicationData?.position || 'President',
+      status: applicationData?.status || 'submitted',
+      submittedAt: applicationData?.submittedAt?.toISOString().split('T')[0] || '2024-01-15',
+      interviewDate: userInterviewData?.date,
+      interviewScheduled: !!userInterviewData,
+      timeSlot: userInterviewData?.timeSlot,
+      panelMembers: userInterviewData?.panelMembers || []
     }
   ];
 
   const getScheduledInterviewInfo = (candidateId: string) => {
+    if (candidateId === userProfile?.uid && userInterviewData) {
+      return {
+        candidateId,
+        date: userInterviewData.date,
+        timeSlot: userInterviewData.timeSlot,
+        panelMembers: userInterviewData.panelMembers
+      };
+    }
     return scheduledInterviews.find(interview => interview.candidateId === candidateId);
   };
 
@@ -121,8 +149,8 @@ const StudentDashboard = () => {
             text: 'Interview Scheduled!',
             color: 'bg-green-100 text-green-800',
             icon: CheckCircle,
-            details: `${new Date(app.interviewDate).toLocaleDateString()} at ${new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-            panelMembers: 'Panel members TBD'
+            details: `${new Date(app.interviewDate).toLocaleDateString()} at ${app.timeSlot || new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+            panelMembers: getPanelMemberNames(app.panelMembers) || 'Panel members TBD'
           };
         } else {
           return {

@@ -268,6 +268,19 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     try {
       await updateInterviewStatus(candidateId, false);
       
+      // Remove interview data from Firebase
+      try {
+        await setDoc(doc(db, 'interviews', candidateId), {
+          date: null,
+          timeSlot: null,
+          panelMembers: [],
+          removed: true,
+          updatedAt: new Date()
+        });
+      } catch (error) {
+        console.error('Error removing interview from Firebase:', error);
+      }
+      
       setScheduledInterviews(prev => prev.filter(interview => interview.candidateId !== candidateId));
       
       setQualifiedApplications(prev => 
@@ -282,7 +295,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       
       toast({
         title: "Interview Removed",
-        description: `Interview for ${candidateName} has been removed`,
+        description: `Interview for ${candidateName} has been removed and time slot freed up`,
       });
     } catch (error) {
       console.error('Error removing interview:', error);
