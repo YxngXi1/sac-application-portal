@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,12 +61,12 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   if (showScheduler && selectedPosition) {
     return (
       <InterviewScheduler
-        position={selectedPosition}
-        applications={getPositionApplications(selectedPosition)}
+        positionName={selectedPosition}
         onBack={() => {
           setShowScheduler(false);
           setSelectedPosition(null);
         }}
+        onGoToCalendar={() => setShowCalendar(true)}
       />
     );
   }
