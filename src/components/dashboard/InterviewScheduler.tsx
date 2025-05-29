@@ -41,9 +41,21 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
   const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
   const [executives, setExecutives] = useState<Executive[]>([]);
-  const timeSlots = ['9:00 AM', '9:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM', '2:00 PM', '2:30 PM', '3:00 PM', '3:30 PM'];
+  
+  // Updated time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
+  const timeSlots = [
+    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
+    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
+  ];
+  
   const { toast } = useToast();
   const { userProfile } = useAuth();
+
+  // Function to check if a date is a weekday
+  const isWeekday = (date: Date) => {
+    const day = date.getDay();
+    return day >= 1 && day <= 5; // Monday (1) to Friday (5)
+  };
 
   // Fetch superadmin users from Firebase
   useEffect(() => {
@@ -236,8 +248,11 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   className="rounded-md border"
-                  disabled={(date) => date < new Date()}
+                  disabled={(date) => date < new Date() || !isWeekday(date)}
                 />
+                <p className="text-xs text-gray-500 mt-2">
+                  Interviews are only available on weekdays
+                </p>
               </div>
               
               {/* Time Slots */}
@@ -246,6 +261,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                   <h3 className="font-semibold mb-2 text-gray-900">
                     Available Times - {selectedDate.toLocaleDateString()}
                   </h3>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Available: 11:00 AM - 12:00 PM & 3:00 PM - 4:45 PM (15-min slots)
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     {timeSlots.map((time) => {
                       const isTaken = isTimeSlotTaken(time, selectedDate);
