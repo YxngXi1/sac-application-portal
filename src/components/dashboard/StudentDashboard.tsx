@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,11 +5,55 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, FileText, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress } from '@/services/applicationService';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface ScheduledInterview {
+  candidateId: string;
+  date: Date;
+  timeSlot: string;
+  panelMembers: string[];
+}
+
+interface Executive {
+  id: string;
+  name: string;
+  email: string;
+}
 
 const StudentDashboard = () => {
   const { userProfile } = useAuth();
   const [applicationData, setApplicationData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [scheduledInterviews, setScheduledInterviews] = React.useState<ScheduledInterview[]>([]);
+  const [executives, setExecutives] = React.useState<Executive[]>([]);
+
+  // Fetch superadmin users for panel member names
+  React.useEffect(() => {
+    const fetchSuperAdminUsers = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'superadmin'));
+        const querySnapshot = await getDocs(q);
+        
+        const superAdminUsers: Executive[] = [];
+        querySnapshot.forEach((doc) => {
+          const userData = doc.data();
+          superAdminUsers.push({
+            id: doc.id,
+            name: userData.name || userData.fullName || 'Unnamed User',
+            email: userData.email || ''
+          });
+        });
+        
+        setExecutives(superAdminUsers);
+      } catch (error) {
+        console.error('Error fetching superadmin users:', error);
+      }
+    };
+
+    fetchSuperAdminUsers();
+  }, []);
 
   React.useEffect(() => {
     const loadStudentApplication = async () => {
@@ -49,15 +92,47 @@ const StudentDashboard = () => {
     }
   ];
 
+  const getScheduledInterviewInfo = (candidateId: string) => {
+    return scheduledInterviews.find(interview => interview.candidateId === candidateId);
+  };
+
+  const getPanelMemberNames = (panelMemberIds: string[]) => {
+    return panelMemberIds
+      .map(id => executives.find(exec => exec.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
+  };
+
   const getStatusDisplay = (app: any) => {
     if (app.status === 'submitted') {
-      if (app.interviewScheduled && app.interviewDate) {
-        return {
-          text: 'Interview Granted',
-          color: 'bg-green-100 text-green-800',
-          icon: CheckCircle,
-          details: `Interview: ${new Date(app.interviewDate).toLocaleDateString()} at ${new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-        };
+      if (app.interviewScheduled) {
+        const scheduledInfo = getScheduledInterviewInfo(app.id);
+        if (scheduledInfo) {
+          const panelNames = getPanelMemberNames(scheduledInfo.panelMembers);
+          return {
+            text: 'Interview Scheduled!',
+            color: 'bg-green-100 text-green-800',
+            icon: CheckCircle,
+            details: `${scheduledInfo.date.toLocaleDateString()} at ${scheduledInfo.timeSlot}`,
+            panelMembers: panelNames || 'Panel members TBD'
+          };
+        } else if (app.interviewDate) {
+          return {
+            text: 'Interview Scheduled!',
+            color: 'bg-green-100 text-green-800',
+            icon: CheckCircle,
+            details: `${new Date(app.interviewDate).toLocaleDateString()} at ${new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+            panelMembers: 'Panel members TBD'
+          };
+        } else {
+          return {
+            text: 'Interview Scheduled!',
+            color: 'bg-green-100 text-green-800',
+            icon: CheckCircle,
+            details: 'Time and date TBD',
+            panelMembers: 'Panel members TBD'
+          };
+        }
       } else {
         return {
           text: 'Application Pending',
@@ -160,10 +235,17 @@ const StudentDashboard = () => {
               <CardContent className="space-y-3">
                 <div className="flex items-center text-sm">
                   <StatusIcon className={`h-4 w-4 mr-2 ${
-                    statusInfo.text === 'Interview Granted' ? 'text-green-600' : 
+                    statusInfo.text === 'Interview Scheduled!' ? 'text-green-600' : 
                     statusInfo.text === 'Application Pending' ? 'text-yellow-600' : 'text-gray-600'
                   }`} />
-                  <span className="font-medium">{statusInfo.details}</span>
+                  <div className="flex-1">
+                    <div className="font-medium">{statusInfo.details}</div>
+                    {statusInfo.panelMembers && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        Panel: {statusInfo.panelMembers}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex space-x-2">
