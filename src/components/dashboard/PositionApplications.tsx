@@ -156,7 +156,13 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     }
 
     try {
-      await updateInterviewStatus(candidate.id, true);
+      await updateInterviewStatus(
+        candidate.id, 
+        true, 
+        selectedDate.toISOString(), 
+        selectedTimeSlot, 
+        selectedPanelMembers
+      );
       
       const newInterview: ScheduledInterview = {
         candidateId: candidate.id,
@@ -171,7 +177,13 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       setApplications(prev => 
         prev.map(app => 
           app.id === candidate.id 
-            ? { ...app, interviewScheduled: true }
+            ? { 
+                ...app, 
+                interviewScheduled: true,
+                interviewDate: selectedDate.toISOString(),
+                interviewTimeSlot: selectedTimeSlot,
+                interviewPanelMembers: selectedPanelMembers
+              }
             : app
         )
       );
@@ -208,7 +220,13 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       setApplications(prev => 
         prev.map(app => 
           app.id === applicationId 
-            ? { ...app, interviewScheduled: false }
+            ? { 
+                ...app, 
+                interviewScheduled: false,
+                interviewDate: undefined,
+                interviewTimeSlot: undefined,
+                interviewPanelMembers: undefined
+              }
             : app
         )
       );
