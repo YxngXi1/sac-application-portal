@@ -3,9 +3,32 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileText, Calendar, CheckCircle } from 'lucide-react';
+import { Plus, FileText, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { loadApplicationProgress } from '@/services/applicationService';
 
 const StudentDashboard = () => {
+  const { userProfile } = useAuth();
+  const [applicationData, setApplicationData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const loadStudentApplication = async () => {
+      if (!userProfile?.uid) return;
+      
+      try {
+        const savedApplication = await loadApplicationProgress(userProfile.uid);
+        setApplicationData(savedApplication);
+      } catch (error) {
+        console.error('Error loading application:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStudentApplication();
+  }, [userProfile]);
+
   // Mock data - will be replaced with real Firebase data
   const applications = [
     {
@@ -14,25 +37,74 @@ const StudentDashboard = () => {
       status: 'submitted',
       submittedAt: '2024-01-15',
       interviewDate: null,
+      interviewScheduled: false,
     },
     {
       id: '2',
       position: 'Vice President',
-      status: 'interview_scheduled',
+      status: 'submitted',
       submittedAt: '2024-01-10',
-      interviewDate: '2024-01-25',
+      interviewDate: '2024-01-25T14:30:00',
+      interviewScheduled: true,
     }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'submitted': return 'bg-blue-100 text-blue-800';
-      case 'under_review': return 'bg-yellow-100 text-yellow-800';
-      case 'interview_scheduled': return 'bg-purple-100 text-purple-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getStatusDisplay = (app: any) => {
+    if (app.status === 'submitted') {
+      if (app.interviewScheduled && app.interviewDate) {
+        return {
+          text: 'Interview Granted',
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle,
+          details: `Interview: ${new Date(app.interviewDate).toLocaleDateString()} at ${new Date(app.interviewDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        };
+      } else {
+        return {
+          text: 'Application Pending',
+          color: 'bg-yellow-100 text-yellow-800',
+          icon: Clock,
+          details: 'Awaiting review'
+        };
+      }
+    }
+    
+    // Handle other statuses
+    switch (app.status) {
+      case 'draft': 
+        return {
+          text: 'Draft',
+          color: 'bg-gray-100 text-gray-800',
+          icon: AlertCircle,
+          details: 'Application not submitted'
+        };
+      case 'under_review': 
+        return {
+          text: 'Under Review',
+          color: 'bg-blue-100 text-blue-800',
+          icon: Clock,
+          details: 'Being reviewed by executives'
+        };
+      case 'accepted': 
+        return {
+          text: 'Accepted',
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle,
+          details: 'Congratulations!'
+        };
+      case 'rejected': 
+        return {
+          text: 'Not Selected',
+          color: 'bg-red-100 text-red-800',
+          icon: AlertCircle,
+          details: 'Better luck next time'
+        };
+      default: 
+        return {
+          text: 'Unknown',
+          color: 'bg-gray-100 text-gray-800',
+          icon: AlertCircle,
+          details: ''
+        };
     }
   };
 
@@ -41,6 +113,17 @@ const StudentDashboard = () => {
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your applications...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -57,41 +140,47 @@ const StudentDashboard = () => {
 
       {/* Applications Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {applications.map((app) => (
-          <Card key={app.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg">{app.position}</CardTitle>
-                <Badge className={getStatusColor(app.status)}>
-                  {formatStatus(app.status)}
-                </Badge>
-              </div>
-              <CardDescription>
-                Submitted: {new Date(app.submittedAt).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {app.interviewDate && (
-                <div className="flex items-center text-sm text-green-600">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Interview: {new Date(app.interviewDate).toLocaleDateString()}
+        {applications.map((app) => {
+          const statusInfo = getStatusDisplay(app);
+          const StatusIcon = statusInfo.icon;
+          
+          return (
+            <Card key={app.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{app.position}</CardTitle>
+                  <Badge className={statusInfo.color}>
+                    {statusInfo.text}
+                  </Badge>
                 </div>
-              )}
-              
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <FileText className="h-4 w-4 mr-1" />
-                  View
-                </Button>
-                {app.status === 'draft' && (
-                  <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                    Continue
+                <CardDescription>
+                  Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center text-sm">
+                  <StatusIcon className={`h-4 w-4 mr-2 ${
+                    statusInfo.text === 'Interview Granted' ? 'text-green-600' : 
+                    statusInfo.text === 'Application Pending' ? 'text-yellow-600' : 'text-gray-600'
+                  }`} />
+                  <span className="font-medium">{statusInfo.details}</span>
+                </div>
+                
+                <div className="flex space-x-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <FileText className="h-4 w-4 mr-1" />
+                    View
                   </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  {app.status === 'draft' && (
+                    <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
+                      Continue
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Available Positions */}
