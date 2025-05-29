@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitApplication } from '@/services/applicationService';
@@ -27,11 +27,24 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Set the deadline to June 3rd, 2025 at 11:59 PM EST
+  const deadline = new Date(2025, 5, 3, 23, 59, 59); // Month is 0-indexed, so 5 = June
+  const isDeadlinePassed = new Date() > deadline;
+
   const handleSubmit = async () => {
     if (!user) {
       toast({
         title: "Error",
         description: "You must be logged in to submit an application.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isDeadlinePassed) {
+      toast({
+        title: "Deadline Passed",
+        description: "The application deadline has passed. No new applications can be submitted.",
         variant: "destructive",
       });
       return;
@@ -82,6 +95,19 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {isDeadlinePassed && (
+              <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+                  <span className="font-semibold text-red-800">Deadline Passed</span>
+                </div>
+                <p className="text-sm text-red-700">
+                  The application deadline was June 3rd, 2025 at 11:59 PM EST. 
+                  This application cannot be submitted at this time.
+                </p>
+              </div>
+            )}
+
             {/* Personal Details */}
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Personal Details</h3>
@@ -124,6 +150,19 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
               </div>
             </div>
 
+            {/* Deadline Warning */}
+            {!isDeadlinePassed && (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+                  <span className="font-semibold text-yellow-800">Deadline Reminder</span>
+                </div>
+                <p className="text-sm text-yellow-700">
+                  Applications must be submitted by June 3rd, 2025 at 11:59 PM EST.
+                </p>
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="flex gap-3 pt-4">
               {onBack && (
@@ -141,7 +180,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
               <Button 
                 onClick={handleSubmit}
                 className={`${onBack ? 'flex-1' : 'w-full'} bg-green-600 hover:bg-green-700`}
-                disabled={isSubmitting}
+                disabled={isSubmitting || isDeadlinePassed}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Application'}
               </Button>
