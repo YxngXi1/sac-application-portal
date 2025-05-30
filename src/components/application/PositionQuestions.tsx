@@ -174,8 +174,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'promotions_1',
             type: 'textarea',
-            question: 'For the position of the Promotions Officer, there is no written application. Instead, you will be given access to a Google Drive folder containing all the raw clips from our Charity Week Assembly opening video. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Note that the quality of your video will not be assessed as the clips are heavy.',
-            note: 'Please submit your video to the Google Drive folder and create a folder titled with your name and "Promotions Officer". Also share the file with 909957@pdsb.net. Please also share the link in this text box.',
+            question: 'For the position of the Promotions Officer, there is no written application. Instead, a folder containing all the raw clips from our Charity Week Assembly opening video is attached below.\n\nYour task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Note that the quality of your video will not be assessed as the clips are heavy.\n\nTO SUBMIT: Please create a Google Drive folder that has the video and poster that you have created. Share it with 909957@pdsb.net AND share the link to the folder in the box below. Note: applicants who and inaccessible folder, or applicants have not added their video or poster to their by the deadline will not be be considered.\n\nIf you need help, please view this google doc: https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?tab=t.0',
             referenceLink: 'https://youtu.be/w9lzT4P0MtQ',
             linkText: 'View Reference Video',
             secondaryLink: 'https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP?usp=sharing',
@@ -186,8 +185,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'promotions_2',
             type: 'textarea',
-            question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly.',
-            note: 'Please submit your poster to the Google Drive folder and confirm completion in this text box.',
+            question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly.\n\nPlease submit the link to your Google Drive folder with the promotional video and poster below.',
             referenceLink: 'https://drive.google.com/drive/folders/1eUBZnHcz-PZP1Hr1-uo90Xgld7wUgQ2x?usp=sharing',
             linkText: 'Google Drive Dropbox here'
           },
