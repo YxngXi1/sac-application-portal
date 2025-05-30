@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ArrowRight, Save, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Question {
@@ -13,6 +13,8 @@ interface Question {
   question: string;
   note?: string;
   requiredFiles?: number;
+  referenceLink?: string;
+  linkText?: string;
 }
 
 interface PositionQuestionsProps {
@@ -61,12 +63,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'secretary_2',
             type: 'textarea',
-            question: "Being SAC's secretary requires a great deal of knowledge and attention to detail about SAC's events. During an event like Charity Week, the Secretary has a lot of responsibilities and must get things done on time independently, with little guidance from other executives. Explain what duties you think would need to be done as Secretary during Charity Week, and create a timeline for these tasks to be completed."
+            question: 'What is one strength you have that you think will help you be a great secretary? Give a brief example of how you\'ve used that strength in the past.'
           },
           {
             id: 'secretary_3',
             type: 'textarea',
-            question: "What's one strength you have that you think will help you be a great secretary? Give a brief example of how you've used that strength in the past."
+            question: 'We want students to attend all SAC meetings. However, sometimes this does not happen. How can you help to keep members on track and what do you think is an acceptable way to provide consequences for absent members?'
           },
           universalQuestion
         ];
@@ -81,7 +83,25 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'treasurer_2',
             type: 'textarea',
-            question: "Imagine you're managing a budget for a school event, but the cost of something important is more than you expected. In a short paragraph, explain how you'd handle the situation to make sure the event still happens without overspending."
+            question: 'Imagine you are managing a budget for a school event, but the cost of something important is more than you expected. In a short paragraph, explain how you would handle the situation to make sure the event still happens without overspending.'
+          },
+          {
+            id: 'treasurer_3',
+            type: 'textarea',
+            question: 'Create a spreadsheet document that could be used for an event by members of the council to track finances. Share this document with 909957@pdsb.net and title it "your name, treasurer applicant"',
+            note: 'Please confirm that you have shared the document with 909957@pdsb.net'
+          },
+          {
+            id: 'treasurer_4',
+            type: 'textarea',
+            question: 'In April 2025, SAC released its first-ever Budget Transparency Report on the SAC website. What improvements would you make to this document, and how would you increase student engagement with it to strengthen SAC\'s financial transparency efforts?',
+            referenceLink: 'https://www.johnfrasersac.com/JFSS_SAC_Transparency_Report.pdf',
+            linkText: 'View Budget Transparency Report'
+          },
+          {
+            id: 'treasurer_5',
+            type: 'textarea',
+            question: 'SAC is hoping to find a treasurer that can not only complete all expected tasks but also help improve our financial processes including club funding. Give us some ideas on how we could utilize technology that SAC already has, or come up with a new solution to help streamline the club funding process.'
           },
           universalQuestion
         ];
@@ -101,7 +121,17 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'outreach_3',
             type: 'textarea',
-            question: 'Community outreach requires strong communication and relationship-building skills. Share an example of a time when you successfully worked with others to achieve a goal'
+            question: 'SAC runs over 10 major events annually—choose one past event where you believe a local community partnership could have added value. What partnership would you have pursued, and how would it have enhanced the event?'
+          },
+          {
+            id: 'outreach_4',
+            type: 'textarea',
+            question: 'Over the years, John Fraser SAC has worked with several organizations, both locally and nationally. With all these organizations, why is it important to measure the success of these partnerships, and how would you evaluate whether an organization is worth partnering with again in the future?'
+          },
+          {
+            id: 'outreach_5',
+            type: 'textarea',
+            question: 'What is one creative idea you have for a community outreach project that could make a positive impact at John Fraser or in the surrounding community?'
           },
           universalQuestion
         ];
@@ -111,7 +141,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'athletics_1',
             type: 'textarea',
-            question: 'Being an athletics liaison requires knowledge of the athletics programs here at Fraser. What experience do you have with athletics at Fraser? This includes taking phys-ed classes, being a part of sports teams, and/or being on the Fraser Athletics Council (FAC). What experience, if any, do you have on SAC?'
+            question: 'Being an athletics liaison requires knowledge of the athletics programs here at Fraser. What experience do you have with athletics at Fraser? This includes taking phys-ed classes, being a part of sports teams, and/or being on the Fraser Athletics Council (FAC).'
           },
           {
             id: 'athletics_2',
@@ -121,7 +151,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'athletics_3',
             type: 'textarea',
-            question: "As the Athletics Liaison, you'll need to communicate between two councils. Describe a time when you successfully helped different groups work together toward a common goal."
+            question: 'As the Athletics Liaison, you\'ll need to communicate between two councils. Describe a time when you successfully helped different groups work together toward a common goal.'
+          },
+          {
+            id: 'athletics_4',
+            type: 'textarea',
+            question: 'Based on your personal perspective, how would you describe the current dynamic between FAC and SAC? What do you think is working well, what could be improved, and how would you work to improve the relationship between the councils?'
           },
           universalQuestion
         ];
@@ -130,22 +165,19 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         return [
           {
             id: 'promotions_1',
-            type: 'file',
-            question: 'Create a cohesive, engaging video promoting a SAC event using the provided clips',
-            note: 'Upload your edited video file',
-            requiredFiles: 1
+            type: 'textarea',
+            question: 'For the position of the Promotions Officer, there is no written application. Instead, you will be given access to a Google Drive folder containing all the raw clips from our Charity Week Assembly opening video. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Note that the quality of your video will not be assessed as the clips are heavy.',
+            note: 'Please submit your video to the Google Drive folder and create a folder titled with your name and "Promotions Officer". Also share the file with 909957@pdsb.net. Confirm completion in this text box.',
+            referenceLink: 'https://youtu.be/w9lzT4P0MtQ',
+            linkText: 'View Reference Video'
           },
           {
             id: 'promotions_2',
-            type: 'file',
-            question: 'Make a poster for carnival and upload to form',
-            note: 'Upload your carnival poster design',
-            requiredFiles: 1
-          },
-          {
-            id: 'promotions_3',
             type: 'textarea',
-            question: 'What access do you have to digital media and editing platforms?'
+            question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly.',
+            note: 'Please submit your poster to the Google Drive folder and confirm completion in this text box.',
+            referenceLink: 'https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP?usp=sharing',
+            linkText: 'Access Google Drive Folder'
           },
           universalQuestion
         ];
@@ -155,14 +187,64 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'photo_1',
             type: 'file',
-            question: 'Submit at least 5 good photos you\'ve taken',
+            question: 'Submit a portfolio of 5 images and videos that you have taken that best showcase your photography abilities.',
             note: 'Upload your best photography work (minimum 5 photos required)',
             requiredFiles: 5
           },
           {
             id: 'photo_2',
             type: 'textarea',
-            question: 'What camera and editing platform do you have access to?'
+            question: 'How would you contribute creatively to SAC\'s branding through photography on social media and promotions?'
+          },
+          {
+            id: 'photo_3',
+            type: 'textarea',
+            question: 'Suppose you are selecting photos to post after an SAC event. What is your process for organizing, selecting, and editing photos after the event?'
+          },
+          universalQuestion
+        ];
+
+      case 'Technology Executive':
+        return [
+          {
+            id: 'tech_1',
+            type: 'textarea',
+            question: 'A major role of the Technology Executive for the 2025/2026 is to continue the current success of SAC\'s 21st century modern technology, such as systems like Fraser Tickets, FraserPay, FraserVotes, and our brand-new coded website. What experience do you have with platforms like Google Firebase, Vercel, other programming languages, or any web development tools that could support SAC\'s technical needs?'
+          },
+          {
+            id: 'tech_2',
+            type: 'textarea',
+            question: 'Share a link to a portfolio, GitHub repo, or any digital project demonstrating your technical skills and problem-solving. Briefly explain its purpose and impact. Note: For a tech exec role, programming isn\'t required—we want to see your creativity and how you\'d tackle SAC\'s challenges.'
+          },
+          {
+            id: 'tech_3',
+            type: 'textarea',
+            question: 'This year at SAC, we\'ve driven innovation and creativity with platforms like FraserPay Digital Wallet, FraserVotes, and the SAC Application portal. What tool, platform, or system would you build or improve for SAC? This can be an enhancement to an existing system or a completely new platform. How would you ensure student privacy is prioritized during deployment?'
+          },
+          universalQuestion
+        ];
+
+      case 'Arts Liaison':
+        return [
+          {
+            id: 'arts_1',
+            type: 'textarea',
+            question: 'As the Arts Liaison, how will you ensure that all Art clubs (ie. Visual Arts Club, Studio 119, Fraser Dance Crew, Photography club, etc) are promoted equally throughout the school-year?'
+          },
+          {
+            id: 'arts_2',
+            type: 'textarea',
+            question: 'What plans do you have that will maintain effective communication between the executives and supervisors of both SAC and Arts Council? Explain.'
+          },
+          {
+            id: 'arts_3',
+            type: 'textarea',
+            question: 'What specific time-management strategies do you practice that will help you balance the business of being an Arts Liaison?'
+          },
+          {
+            id: 'arts_4',
+            type: 'textarea',
+            question: 'From your personal perspective, how would you describe the current dynamic between the Arts Council and SAC? What do you think is working well, what could be improved, and how would you personally work to improve the relationship between the two councils.'
           },
           universalQuestion
         ];
@@ -267,6 +349,17 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                   </Label>
                   {question.note && (
                     <p className="text-sm text-gray-500">{question.note}</p>
+                  )}
+                  {question.referenceLink && (
+                    <a 
+                      href={question.referenceLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {question.linkText || 'View Reference'}
+                    </a>
                   )}
                   
                   {question.type === 'textarea' ? (

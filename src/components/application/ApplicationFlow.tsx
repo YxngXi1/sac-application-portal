@@ -28,7 +28,9 @@ const ApplicationFlow = () => {
     'Community Outreach',
     'Athletics Liaison',
     'Promotions Officer',
-    'Photography Exec'
+    'Photography Exec',
+    'Technology Executive',
+    'Arts Liaison'
   ];
 
   useEffect(() => {
@@ -154,13 +156,15 @@ const ApplicationFlow = () => {
 
   const getQuestionCount = (position: string) => {
     switch (position) {
-      case 'Secretary': return 3;
-      case 'Treasurer': return 2;
-      case 'Community Outreach': return 3;
-      case 'Athletics Liaison': return 3;
+      case 'Secretary': return 4;
+      case 'Treasurer': return 6;
+      case 'Community Outreach': return 6;
+      case 'Athletics Liaison': return 5;
       case 'Promotions Officer': return 3;
-      case 'Photography Exec': return 1;
-      default: return 0;
+      case 'Photography Exec': return 4;
+      case 'Technology Executive': return 4;
+      case 'Arts Liaison': return 5;
+      default: return 1;
     }
   };
 
