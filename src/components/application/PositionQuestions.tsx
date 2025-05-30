@@ -167,7 +167,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'promotions_1',
             type: 'textarea',
             question: 'For the position of the Promotions Officer, there is no written application. Instead, you will be given access to a Google Drive folder containing all the raw clips from our Charity Week Assembly opening video. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Note that the quality of your video will not be assessed as the clips are heavy.',
-            note: 'Please submit your video to the Google Drive folder and create a folder titled with your name and "Promotions Officer". Also share the file with 909957@pdsb.net. Confirm completion in this text box.',
+            note: 'Please submit your video to the Google Drive folder and create a folder titled with your name and "Promotions Officer". Also share the file with 909957@pdsb.net. Please also share the link in this text box.',
             referenceLink: 'https://youtu.be/w9lzT4P0MtQ',
             linkText: 'View Reference Video'
           },
