@@ -198,10 +198,10 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         return [
           {
             id: 'photo_1',
-            type: 'file',
-            question: 'Submit a portfolio of 5 images and videos that you have taken that best showcase your photography abilities.',
-            note: 'Upload your best photography work (minimum 5 photos required)',
-            requiredFiles: 5
+            type: 'textarea',
+            question: 'Please create a Google Drive folder that showcases 5 images and videos that you have taken that best showcase your photography abilities. Share it with 909957@pdsb.net the link in the box below. Please note applicants who have submitted inaccessible folders or folders with fewer than 5 images/videos will not be considered.',
+            referenceLink: 'https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?usp=sharing',
+            linkText: 'Need help creating a folder? follow these instructions:'
           },
           {
             id: 'photo_2',
