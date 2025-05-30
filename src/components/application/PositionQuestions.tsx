@@ -6,6 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, ArrowRight, Save, AlertTriangle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Question {
   id: string;
@@ -43,6 +46,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   onSave
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const getWordCount = (text: string): number => {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -264,6 +268,26 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
 
   const questions = getQuestions();
 
+  const uploadFilesToFirebase = async (questionId: string, files: File[]): Promise<string[]> => {
+    if (!user) return [];
+    
+    const uploadPromises = files.map(async (file, index) => {
+      const fileName = `${user.uid}/${questionId}/${Date.now()}_${index}_${file.name}`;
+      const storageRef = ref(storage, `applications/${fileName}`);
+      
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+      } catch (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+      }
+    });
+
+    return Promise.all(uploadPromises);
+  };
+
   const isQuestionComplete = (question: Question): boolean => {
     if (question.type === 'textarea') {
       return !!answers[question.id] && answers[question.id].trim().length > 0;
@@ -292,13 +316,38 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
     return null;
   };
 
-  const handleFileInputChange = (questionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = async (questionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    onFileChange(questionId, files);
     
-    // Update answer to show file names
     if (files.length > 0) {
-      onAnswerChange(questionId, files.map(f => f.name).join(', '));
+      try {
+        // Show loading state
+        toast({
+          title: "Uploading files...",
+          description: "Please wait while your files are being uploaded.",
+        });
+
+        // Upload files to Firebase Storage
+        const fileUrls = await uploadFilesToFirebase(questionId, files);
+        
+        // Update the answer with the file URLs instead of file names
+        onAnswerChange(questionId, fileUrls.join(', '));
+        
+        // Keep the files for local reference
+        onFileChange(questionId, files);
+
+        toast({
+          title: "Files uploaded successfully",
+          description: "Your files have been uploaded and saved.",
+        });
+      } catch (error) {
+        console.error('Error uploading files:', error);
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload files. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

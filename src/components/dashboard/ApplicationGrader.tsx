@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Star, User, GraduationCap, Hash, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Save, Star, User, GraduationCap, Hash, BookOpen, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { ApplicationData, saveApplicationGrades, getApplicationGrades, getAllApplicationsByPosition } from '@/services/applicationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +58,7 @@ const POSITION_QUESTIONS: Record<string, string[]> = {
   ],
   'Photography Exec': [
     'Why are you interested in the Photography Exec position?',
-    'How would you document SAC events and activities?',
+    'How would you coordinate sports events and activities?',
     'Describe your experience with photography or videography.',
     'How would you manage and organize the SAC media library?'
   ]
@@ -292,6 +292,71 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     }
   };
 
+  const renderPhotographyPortfolio = (answer: string) => {
+    // Check if the answer contains Firebase Storage URLs
+    const urls = answer.split(', ').filter(url => url.includes('firebasestorage.googleapis.com'));
+    
+    if (urls.length === 0) {
+      return (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+            {answer}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <p className="text-gray-800 leading-relaxed whitespace-pre-wrap mb-4">
+            Portfolio submitted with {urls.length} file(s)
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {urls.map((url, index) => (
+              <div key={index} className="border rounded-lg overflow-hidden bg-white">
+                <div className="aspect-square relative bg-gray-100 flex items-center justify-center">
+                  <img
+                    src={url}
+                    alt={`Portfolio item ${index + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      // If image fails to load, show a file icon
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                            <svg class="h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span class="text-xs">File ${index + 1}</span>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
+                </div>
+                <div className="p-2">
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+                  >
+                    <ImageIcon className="h-3 w-3" />
+                    View full size
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -461,11 +526,14 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-                        {question.answer}
-                      </p>
-                    </div>
+                    {positionName === 'Photography Exec' && question.id === 'photo_1' ? 
+                      renderPhotographyPortfolio(question.answer) :
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+                          {question.answer}
+                        </p>
+                      </div>
+                    }
                   </CardContent>
                 </Card>
               ))
