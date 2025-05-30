@@ -15,6 +15,8 @@ interface Question {
   requiredFiles?: number;
   referenceLink?: string;
   linkText?: string;
+  secondaryLink?: string;
+  secondaryLinkText?: string;
 }
 
 interface PositionQuestionsProps {
@@ -169,7 +171,9 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             question: 'For the position of the Promotions Officer, there is no written application. Instead, you will be given access to a Google Drive folder containing all the raw clips from our Charity Week Assembly opening video. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Note that the quality of your video will not be assessed as the clips are heavy.',
             note: 'Please submit your video to the Google Drive folder and create a folder titled with your name and "Promotions Officer". Also share the file with 909957@pdsb.net. Please also share the link in this text box.',
             referenceLink: 'https://youtu.be/w9lzT4P0MtQ',
-            linkText: 'View Reference Video'
+            linkText: 'View Reference Video',
+            secondaryLink: 'https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP?usp=sharing',
+            secondaryLinkText: 'Access Google Drive Folder'
           },
           {
             id: 'promotions_2',
@@ -350,16 +354,31 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                   {question.note && (
                     <p className="text-sm text-gray-500">{question.note}</p>
                   )}
-                  {question.referenceLink && (
-                    <a 
-                      href={question.referenceLink} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {question.linkText || 'View Reference'}
-                    </a>
+                  {(question.referenceLink || question.secondaryLink) && (
+                    <div className="flex flex-wrap gap-4">
+                      {question.referenceLink && (
+                        <a 
+                          href={question.referenceLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {question.linkText || 'View Reference'}
+                        </a>
+                      )}
+                      {question.secondaryLink && (
+                        <a 
+                          href={question.secondaryLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {question.secondaryLinkText || 'View Secondary Reference'}
+                        </a>
+                      )}
+                    </div>
                   )}
                   
                   {question.type === 'textarea' ? (
