@@ -326,7 +326,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         title: "Progress Saved",
         description: "Your application progress has been saved.",
       });
-      onBack();
+      // Navigate to dashboard instead of previous step
+      window.location.href = '/';
     } catch (error) {
       console.error('Error saving progress:', error);
       toast({
