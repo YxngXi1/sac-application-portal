@@ -83,6 +83,10 @@ const ApplicationDashboard = () => {
       description: "Plan sports events (Terry Fox, Fraser Games), act as a bridge between SAC and FAC."
     },
     {
+      title: "Technology Executive",
+      description: "Runs all technology used by SAC."
+    },
+    {
       title: "Arts Liaison",
       description: "Make banners, run art events, coordinate between SAC and Arts Council."
     }
