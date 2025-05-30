@@ -179,15 +179,15 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             linkText: 'View Reference Video',
             secondaryLink: 'https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP?usp=sharing',
             secondaryLinkText: 'Clips for your video',
-            tertiaryLink: 'https://drive.google.com/drive/folders/1eUBZnHcz-PZP1Hr1-uo90Xgld7wUgQ2x?usp=sharing',
-            tertiaryLinkText: 'Google Drive Dropbox here'
+            tertiaryLink: 'https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?tab=t.0',
+            tertiaryLinkText: 'Need help creating a folder? follow these instructions:'
           },
           {
             id: 'promotions_2',
             type: 'textarea',
             question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly.\n\nPlease submit the link to your Google Drive folder with the promotional video and poster below.',
-            referenceLink: 'https://drive.google.com/drive/folders/1eUBZnHcz-PZP1Hr1-uo90Xgld7wUgQ2x?usp=sharing',
-            linkText: 'Google Drive Dropbox here'
+            referenceLink: 'https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?tab=t.0',
+            linkText: 'Need help creating a folder? follow these instructions:'
           },
           universalQuestion
         ];
