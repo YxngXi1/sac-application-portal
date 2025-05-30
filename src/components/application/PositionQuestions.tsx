@@ -199,7 +199,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'photo_1',
             type: 'textarea',
-            question: 'Please create a Google Drive folder that showcases 5 images and videos that you have taken that best showcase your photography abilities. Share it with 909957@pdsb.net the link in the box below. Please note applicants who have submitted inaccessible folders or folders with fewer than 5 images/videos will not be considered.',
+            question: 'Please create a Google Drive folder that showcases 5 images and videos that you have taken that best showcase your photography abilities. Share it with 909957@pdsb.net and share the link to the folder in the box below. Please note applicants who have submitted inaccessible folders or folders with fewer than 5 images/videos will not be considered.',
             referenceLink: 'https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?usp=sharing',
             linkText: 'Need help creating a folder? follow these instructions:'
           },
