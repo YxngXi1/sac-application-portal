@@ -17,6 +17,8 @@ interface Question {
   linkText?: string;
   secondaryLink?: string;
   secondaryLinkText?: string;
+  tertiaryLink?: string;
+  tertiaryLinkText?: string;
 }
 
 interface PositionQuestionsProps {
@@ -173,15 +175,17 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             referenceLink: 'https://youtu.be/w9lzT4P0MtQ',
             linkText: 'View Reference Video',
             secondaryLink: 'https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP?usp=sharing',
-            secondaryLinkText: 'Access Google Drive Folder'
+            secondaryLinkText: 'Clips for your video',
+            tertiaryLink: 'https://drive.google.com/drive/folders/1eUBZnHcz-PZP1Hr1-uo90Xgld7wUgQ2x?usp=sharing',
+            tertiaryLinkText: 'Google Drive Dropbox here'
           },
           {
             id: 'promotions_2',
             type: 'textarea',
             question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly.',
             note: 'Please submit your poster to the Google Drive folder and confirm completion in this text box.',
-            referenceLink: 'https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP?usp=sharing',
-            linkText: 'Access Google Drive Folder'
+            referenceLink: 'https://drive.google.com/drive/folders/1eUBZnHcz-PZP1Hr1-uo90Xgld7wUgQ2x?usp=sharing',
+            linkText: 'Google Drive Dropbox here'
           },
           universalQuestion
         ];
@@ -354,7 +358,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                   {question.note && (
                     <p className="text-sm text-gray-500">{question.note}</p>
                   )}
-                  {(question.referenceLink || question.secondaryLink) && (
+                  {(question.referenceLink || question.secondaryLink || question.tertiaryLink) && (
                     <div className="flex flex-wrap gap-4">
                       {question.referenceLink && (
                         <a 
@@ -376,6 +380,17 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                         >
                           <ExternalLink className="h-3 w-3" />
                           {question.secondaryLinkText || 'View Secondary Reference'}
+                        </a>
+                      )}
+                      {question.tertiaryLink && (
+                        <a 
+                          href={question.tertiaryLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          {question.tertiaryLinkText || 'View Tertiary Reference'}
                         </a>
                       )}
                     </div>
