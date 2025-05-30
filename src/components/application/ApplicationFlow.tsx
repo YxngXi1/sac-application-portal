@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ const ApplicationFlow = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [hasExistingApplication, setHasExistingApplication] = useState(false);
+  const [forceStartFromBeginning, setForceStartFromBeginning] = useState(false);
 
   const positions = [
     'Secretary',
@@ -39,7 +41,7 @@ const ApplicationFlow = () => {
       
       try {
         const savedApplication = await loadApplicationProgress(user.uid);
-        if (savedApplication) {
+        if (savedApplication && !forceStartFromBeginning) {
           setHasExistingApplication(true);
           setCurrentStep(2); // Go directly to questions if application exists
           setSelectedPosition(savedApplication.position);
@@ -48,6 +50,13 @@ const ApplicationFlow = () => {
           if (savedApplication.status === 'submitted') {
             setCurrentStep(3); // Go to confirmation if already submitted
           }
+        } else {
+          // Start from the beginning
+          setCurrentStep(0);
+          setSelectedPosition('');
+          setAnswers({});
+          setUploadedFiles({});
+          setHasExistingApplication(false);
         }
       } catch (error) {
         console.error('Error loading application progress:', error);
@@ -62,7 +71,16 @@ const ApplicationFlow = () => {
     };
 
     loadProgress();
-  }, [user, toast]);
+  }, [user, toast, forceStartFromBeginning]);
+
+  // Check for reset flag from localStorage
+  useEffect(() => {
+    const resetFlag = localStorage.getItem('applicationReset');
+    if (resetFlag === 'true') {
+      setForceStartFromBeginning(true);
+      localStorage.removeItem('applicationReset');
+    }
+  }, []);
 
   const handleGetStarted = () => {
     setCurrentStep(1);
@@ -246,7 +264,7 @@ const ApplicationFlow = () => {
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl">Choose Your Position</CardTitle>
             <p className="text-gray-600 text-sm sm:text-base">Select the SAC position you'd like to apply for. You can only apply to one position.</p>
-            {hasExistingApplication && (
+            {hasExistingApplication && !forceStartFromBeginning && (
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm">
                 <div className="flex items-center space-x-2">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -270,7 +288,7 @@ const ApplicationFlow = () => {
             <Select 
               value={selectedPosition} 
               onValueChange={setSelectedPosition}
-              disabled={hasExistingApplication}
+              disabled={hasExistingApplication && !forceStartFromBeginning}
             >
               <SelectTrigger className="text-sm sm:text-base">
                 <SelectValue placeholder="Select a position" />
@@ -295,10 +313,10 @@ const ApplicationFlow = () => {
               </Button>
               <Button 
                 onClick={handlePositionSelect}
-                disabled={!selectedPosition || hasExistingApplication}
+                disabled={!selectedPosition || (hasExistingApplication && !forceStartFromBeginning)}
                 className="flex-1 text-sm sm:text-base"
               >
-                {hasExistingApplication ? 'Continue Application' : 'Next'}
+                {hasExistingApplication && !forceStartFromBeginning ? 'Continue Application' : 'Next'}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>

@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,9 +11,14 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, userProfile, logout } = useAuth();
+  const navigate = useNavigate();
 
   // Display "exec" for both exec and superadmin roles
   const displayRole = userProfile?.role === 'superadmin' ? 'exec' : userProfile?.role;
+
+  const handleLogoClick = () => {
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -21,7 +27,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             {/* Logo and title */}
-            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+            <div 
+              className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={handleLogoClick}
+            >
               <img 
                 src="/lovable-uploads/7008452c-9db1-439b-9d94-d68146b0c93b.png" 
                 alt="SAC John Fraser" 

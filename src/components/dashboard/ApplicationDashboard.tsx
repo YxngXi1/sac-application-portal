@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -91,6 +92,8 @@ const ApplicationDashboard = () => {
   const isApplicationSubmitted = applicationStatus === 'submitted';
 
   const handleStartApplication = () => {
+    // Set flag to start from beginning
+    localStorage.setItem('applicationReset', 'true');
     window.location.href = '/apply';
   };
 
@@ -114,6 +117,9 @@ const ApplicationDashboard = () => {
       setApplicationProgress(0);
       setSelectedPosition('');
       setApplicationStatus('draft');
+      
+      // Set flag to start from beginning
+      localStorage.setItem('applicationReset', 'true');
       
       toast({
         title: "Application Reset",
