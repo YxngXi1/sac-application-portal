@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 interface ConfirmationPageProps {
   position: string;
   answers: Record<string, string>;
+  uploadedFiles: Record<string, File[]>;
   onBack?: () => void;
   onSubmissionComplete: () => void;
 }
@@ -19,6 +20,7 @@ interface ConfirmationPageProps {
 const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   position,
   answers,
+  uploadedFiles,
   onBack,
   onSubmissionComplete
 }) => {
@@ -27,8 +29,8 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Application deadline - January 31, 2025 at 11:59 PM EST
-  const deadline = new Date('2025-01-31T23:59:59-05:00');
+  // Application deadline - June 5th, 2025 at 11:59 PM EST
+  const deadline = new Date('2025-06-05T23:59:59-04:00'); // EDT time in June
   const now = new Date();
   const isDeadlinePassed = now > deadline;
 
@@ -102,7 +104,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             </CardTitle>
             <p className="text-gray-600">
               {isDeadlinePassed 
-                ? 'The application deadline was January 31, 2025 at 11:59 PM EST'
+                ? 'The application deadline was Thursday, June 5th, 2025 at 11:59 PM EDT'
                 : 'Please confirm your details before submitting'
               }
             </p>
@@ -156,11 +158,23 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             {/* Application Summary */}
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Application Summary</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <p className="text-sm text-gray-600">
                   You have completed {Object.keys(answers).length} questions for the {position} position.
                   Your responses have been saved and will be reviewed by the SAC selection committee.
                 </p>
+                
+                {/* File Upload Summary */}
+                {Object.keys(uploadedFiles).length > 0 && (
+                  <div className="mt-3">
+                    <h4 className="font-medium text-sm mb-2">Uploaded Files:</h4>
+                    {Object.entries(uploadedFiles).map(([questionId, files]) => (
+                      <div key={questionId} className="text-xs text-gray-600">
+                        • {files.length} file{files.length > 1 ? 's' : ''} for {questionId}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

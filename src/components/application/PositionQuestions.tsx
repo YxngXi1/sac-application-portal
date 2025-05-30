@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Question {
@@ -12,12 +12,15 @@ interface Question {
   type: string;
   question: string;
   note?: string;
+  requiredFiles?: number;
 }
 
 interface PositionQuestionsProps {
   position: string;
   answers: Record<string, string>;
+  uploadedFiles: Record<string, File[]>;
   onAnswerChange: (questionId: string, answer: string) => void;
+  onFileChange: (questionId: string, files: File[]) => void;
   onNext: () => void;
   onBack: () => void;
   onSave: () => Promise<void>;
@@ -26,7 +29,9 @@ interface PositionQuestionsProps {
 const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   position,
   answers,
+  uploadedFiles,
   onAnswerChange,
+  onFileChange,
   onNext,
   onBack,
   onSave
@@ -127,13 +132,15 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'promotions_1',
             type: 'file',
             question: 'Create a cohesive, engaging video promoting a SAC event using the provided clips',
-            note: 'Upload your edited video file'
+            note: 'Upload your edited video file',
+            requiredFiles: 1
           },
           {
             id: 'promotions_2',
             type: 'file',
             question: 'Make a poster for carnival and upload to form',
-            note: 'Upload your carnival poster design'
+            note: 'Upload your carnival poster design',
+            requiredFiles: 1
           },
           {
             id: 'promotions_3',
@@ -149,7 +156,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'photo_1',
             type: 'file',
             question: 'Submit at least 5 good photos you\'ve taken',
-            note: 'Upload your best photography work (minimum 5 photos required)'
+            note: 'Upload your best photography work (minimum 5 photos required)',
+            requiredFiles: 5
           },
           {
             id: 'photo_2',
@@ -165,7 +173,44 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   };
 
   const questions = getQuestions();
-  const isComplete = questions.every(q => answers[q.id]);
+
+  const isQuestionComplete = (question: Question): boolean => {
+    if (question.type === 'textarea') {
+      return !!answers[question.id] && answers[question.id].trim().length > 0;
+    } else if (question.type === 'file') {
+      const files = uploadedFiles[question.id] || [];
+      const requiredCount = question.requiredFiles || 1;
+      return files.length >= requiredCount;
+    }
+    return false;
+  };
+
+  const isComplete = questions.every(q => isQuestionComplete(q));
+
+  const getFileValidationMessage = (question: Question): string | null => {
+    if (question.type !== 'file') return null;
+    
+    const files = uploadedFiles[question.id] || [];
+    const requiredCount = question.requiredFiles || 1;
+    
+    if (files.length === 0) {
+      return `Please upload ${requiredCount} file${requiredCount > 1 ? 's' : ''}`;
+    } else if (files.length < requiredCount) {
+      return `Please upload ${requiredCount - files.length} more file${requiredCount - files.length > 1 ? 's' : ''} (${files.length}/${requiredCount})`;
+    }
+    
+    return null;
+  };
+
+  const handleFileInputChange = (questionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    onFileChange(questionId, files);
+    
+    // Update answer to show file names
+    if (files.length > 0) {
+      onAnswerChange(questionId, files.map(f => f.name).join(', '));
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -211,51 +256,65 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             <p className="text-gray-600">Please answer all questions below. Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.</p>
           </CardHeader>
           <CardContent className="space-y-6">
-            {questions.map((question, index) => (
-              <div key={question.id} className="space-y-2">
-                <Label className="text-base font-medium">
-                  {index + 1}. {question.question}
-                </Label>
-                {question.note && (
-                  <p className="text-sm text-gray-500">{question.note}</p>
-                )}
-                
-                {question.type === 'textarea' ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={answers[question.id] || ''}
-                      onChange={(e) => onAnswerChange(question.id, e.target.value)}
-                      placeholder="Enter your answer here..."
-                      className="min-h-[120px]"
-                    />
-                    <div className="flex justify-between items-center text-sm">
-                      <div className={`${getWordCount(answers[question.id] || '') > 200 ? 'text-red-500' : 'text-gray-500'}`}>
-                        {getWordCount(answers[question.id] || '')} / 200 words
+            {questions.map((question, index) => {
+              const validationMessage = getFileValidationMessage(question);
+              const isQuestionValid = isQuestionComplete(question);
+              
+              return (
+                <div key={question.id} className="space-y-2">
+                  <Label className="text-base font-medium">
+                    {index + 1}. {question.question}
+                  </Label>
+                  {question.note && (
+                    <p className="text-sm text-gray-500">{question.note}</p>
+                  )}
+                  
+                  {question.type === 'textarea' ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={answers[question.id] || ''}
+                        onChange={(e) => onAnswerChange(question.id, e.target.value)}
+                        placeholder="Enter your answer here..."
+                        className="min-h-[120px]"
+                      />
+                      <div className="flex justify-between items-center text-sm">
+                        <div className={`${getWordCount(answers[question.id] || '') > 200 ? 'text-red-500' : 'text-gray-500'}`}>
+                          {getWordCount(answers[question.id] || '')} / 200 words
+                        </div>
+                        {getWordCount(answers[question.id] || '') > 200 && (
+                          <div className="text-red-500 text-xs">
+                            Exceeds word limit
+                          </div>
+                        )}
                       </div>
-                      {getWordCount(answers[question.id] || '') > 200 && (
-                        <div className="text-red-500 text-xs">
-                          Exceeds word limit
+                    </div>
+                  ) : question.type === 'file' ? (
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        onChange={(e) => handleFileInputChange(question.id, e)}
+                        accept={question.id.includes('video') ? 'video/*' : 
+                               question.id.includes('poster') ? 'image/*' : 
+                               question.id.includes('photo') ? 'image/*' : '*'}
+                        multiple={question.requiredFiles && question.requiredFiles > 1}
+                        className={!isQuestionValid ? 'border-red-300' : ''}
+                      />
+                      {validationMessage && (
+                        <div className="flex items-center space-x-2 text-sm text-red-600">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span>{validationMessage}</span>
+                        </div>
+                      )}
+                      {isQuestionValid && (
+                        <div className="text-sm text-green-600">
+                          ✓ Files uploaded successfully
                         </div>
                       )}
                     </div>
-                  </div>
-                ) : question.type === 'file' ? (
-                  <Input
-                    type="file"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        onAnswerChange(question.id, file.name);
-                      }
-                    }}
-                    accept={question.id.includes('video') ? 'video/*' : 
-                           question.id.includes('poster') ? 'image/*' : 
-                           question.id.includes('photo') ? 'image/*' : '*'}
-                    multiple={question.id === 'photo_1'}
-                  />
-                ) : null}
-              </div>
-            ))}
+                  ) : null}
+                </div>
+              );
+            })}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-4">
               <Button 

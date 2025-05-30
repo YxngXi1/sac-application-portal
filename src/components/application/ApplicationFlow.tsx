@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveApplicationProgress, loadApplicationProgress } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import PositionQuestions from './PositionQuestions';
 import ConfirmationPage from './ConfirmationPage';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const ApplicationFlow = () => {
   const { user, userProfile } = useAuth();
@@ -16,8 +17,10 @@ const ApplicationFlow = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedPosition, setSelectedPosition] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [hasExistingApplication, setHasExistingApplication] = useState(false);
 
   const positions = [
     'Secretary',
@@ -35,6 +38,7 @@ const ApplicationFlow = () => {
       try {
         const savedApplication = await loadApplicationProgress(user.uid);
         if (savedApplication) {
+          setHasExistingApplication(true);
           setCurrentStep(2); // Go directly to questions if application exists
           setSelectedPosition(savedApplication.position);
           setAnswers(savedApplication.answers || {});
@@ -77,6 +81,7 @@ const ApplicationFlow = () => {
           }
         });
         
+        setHasExistingApplication(true);
         setCurrentStep(2);
         toast({
           title: "Progress Saved",
@@ -93,10 +98,46 @@ const ApplicationFlow = () => {
     }
   };
 
+  const handleResetApplication = async () => {
+    if (!user) return;
+    
+    try {
+      // Delete the application document
+      const applicationRef = doc(db, 'applications', user.uid);
+      await deleteDoc(applicationRef);
+      
+      // Reset all state
+      setSelectedPosition('');
+      setAnswers({});
+      setUploadedFiles({});
+      setHasExistingApplication(false);
+      setCurrentStep(0);
+      
+      toast({
+        title: "Application Reset",
+        description: "Your application has been deleted. You can now start fresh.",
+      });
+    } catch (error) {
+      console.error('Error resetting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset your application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAnswerChange = (questionId: string, answer: string) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
+    }));
+  };
+
+  const handleFileChange = (questionId: string, files: File[]) => {
+    setUploadedFiles(prev => ({
+      ...prev,
+      [questionId]: files
     }));
   };
 
@@ -201,9 +242,32 @@ const ApplicationFlow = () => {
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl">Choose Your Position</CardTitle>
             <p className="text-gray-600 text-sm sm:text-base">Select the SAC position you'd like to apply for. You can only apply to one position.</p>
+            {hasExistingApplication && (
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm">
+                <div className="flex items-center space-x-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <span className="text-amber-800 font-medium">Position Already Selected</span>
+                </div>
+                <p className="text-amber-700 mt-1">
+                  You've already selected {selectedPosition}. To change positions, you must reset your entire application.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleResetApplication}
+                  className="mt-2 text-amber-700 border-amber-300 hover:bg-amber-100"
+                >
+                  Reset Application
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4 p-4 sm:p-6">
-            <Select value={selectedPosition} onValueChange={setSelectedPosition}>
+            <Select 
+              value={selectedPosition} 
+              onValueChange={setSelectedPosition}
+              disabled={hasExistingApplication}
+            >
               <SelectTrigger className="text-sm sm:text-base">
                 <SelectValue placeholder="Select a position" />
               </SelectTrigger>
@@ -227,10 +291,10 @@ const ApplicationFlow = () => {
               </Button>
               <Button 
                 onClick={handlePositionSelect}
-                disabled={!selectedPosition}
+                disabled={!selectedPosition || hasExistingApplication}
                 className="flex-1 text-sm sm:text-base"
               >
-                Next
+                {hasExistingApplication ? 'Continue Application' : 'Next'}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -246,7 +310,9 @@ const ApplicationFlow = () => {
       <PositionQuestions
         position={selectedPosition}
         answers={answers}
+        uploadedFiles={uploadedFiles}
         onAnswerChange={handleAnswerChange}
+        onFileChange={handleFileChange}
         onNext={handleNext}
         onBack={handleBack}
         onSave={saveProgress}
@@ -260,6 +326,7 @@ const ApplicationFlow = () => {
       <ConfirmationPage
         position={selectedPosition}
         answers={answers}
+        uploadedFiles={uploadedFiles}
         onBack={isSubmitted ? undefined : handleBack}
         onSubmissionComplete={handleSubmissionComplete}
       />
