@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,9 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     { id: 'Community Outreach', name: 'Community Outreach' },
     { id: 'Athletics Liaison', name: 'Athletics Liaison' },
     { id: 'Promotions Officer', name: 'Promotions Officer' },
-    { id: 'Photography Exec', name: 'Photography Exec' }
+    { id: 'Photography Exec', name: 'Photography Exec' },
+    { id: 'Technology Executive', name: 'Technology Executive' },
+    { id: 'Arts Liaison', name: 'Arts Liaison' }
   ];
 
   useEffect(() => {
