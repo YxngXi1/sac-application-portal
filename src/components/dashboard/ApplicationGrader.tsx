@@ -24,43 +24,56 @@ interface Question {
   maxScore: number;
 }
 
-// Position-specific questions mapping
-const POSITION_QUESTIONS: Record<string, string[]> = {
+// Position-specific questions with their corresponding answer keys
+const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>> = {
   'Secretary': [
-    'Why are you interested in the Secretary position?',
-    'How would you handle organizing and managing SAC communications?',
-    'Describe your experience with administrative tasks and organization.',
-    'How would you ensure meeting notes are accurate and comprehensive?'
+    { question: 'Why are you interested in the Secretary position?', key: 'secretary_1' },
+    { question: 'How would you handle organizing and managing SAC communications?', key: 'secretary_2' },
+    { question: 'Describe your experience with administrative tasks and organization.', key: 'secretary_3' },
+    { question: 'How would you ensure meeting notes are accurate and comprehensive?', key: 'secretary_4' }
   ],
   'Treasurer': [
-    'Why are you interested in the Treasurer position?',
-    'How would you handle SAC finances and budget management?',
-    'Describe your experience with money management or financial responsibility.',
-    'How would you track and report financial activities?'
+    { question: 'Why are you interested in the Treasurer position?', key: 'treasurer_1' },
+    { question: 'How would you handle SAC finances and budget management?', key: 'treasurer_2' },
+    { question: 'Describe your experience with money management or financial responsibility.', key: 'treasurer_3' },
+    { question: 'How would you track and report financial activities?', key: 'treasurer_4' },
+    { question: 'What commitments do you have for next year? Please be specific about the time you will be dedicating to each commitment.', key: 'treasurer_commitment' }
   ],
   'Community Outreach': [
-    'Why are you interested in the Community Outreach position?',
-    'How would you coordinate with nonprofits and community organizations?',
-    'Describe a time you organized or participated in community service.',
-    'How would you promote community involvement among students?'
+    { question: 'Why are you interested in the Community Outreach position?', key: 'community_1' },
+    { question: 'How would you coordinate with nonprofits and community organizations?', key: 'community_2' },
+    { question: 'Describe a time you organized or participated in community service.', key: 'community_3' },
+    { question: 'How would you promote community involvement among students?', key: 'community_4' }
   ],
   'Athletics Liaison': [
-    'Why are you interested in the Athletics Liaison position?',
-    'How would you coordinate sports events and activities?',
-    'Describe your experience with athletics or sports coordination.',
-    'How would you bridge the gap between SAC and the Athletics Council?'
+    { question: 'Why are you interested in the Athletics Liaison position?', key: 'athletics_1' },
+    { question: 'How would you coordinate sports events and activities?', key: 'athletics_2' },
+    { question: 'Describe your experience with athletics or sports coordination.', key: 'athletics_3' },
+    { question: 'How would you bridge the gap between SAC and the Athletics Council?', key: 'athletics_4' }
   ],
   'Promotions Officer': [
-    'Why are you interested in the Promotions Officer position?',
-    'How would you manage SAC social media and promotional content?',
-    'Describe your experience with design, marketing, or social media.',
-    'How would you increase student engagement through promotions?'
+    { question: 'Why are you interested in the Promotions Officer position?', key: 'promotions_1' },
+    { question: 'How would you manage SAC social media and promotional content?', key: 'promotions_2' },
+    { question: 'Describe your experience with design, marketing, or social media.', key: 'promotions_3' },
+    { question: 'How would you increase student engagement through promotions?', key: 'promotions_4' }
   ],
   'Photography Exec': [
-    'Why are you interested in the Photography Exec position?',
-    'How would you coordinate sports events and activities?',
-    'Describe your experience with photography or videography.',
-    'How would you manage and organize the SAC media library?'
+    { question: 'Why are you interested in the Photography Exec position?', key: 'photo_1' },
+    { question: 'How would you coordinate sports events and activities?', key: 'photo_2' },
+    { question: 'Describe your experience with photography or videography.', key: 'photo_3' },
+    { question: 'How would you manage and organize the SAC media library?', key: 'photo_4' }
+  ],
+  'Technology Executive': [
+    { question: 'Why are you interested in the Technology Executive position?', key: 'tech_1' },
+    { question: 'How would you manage SAC technology initiatives?', key: 'tech_2' },
+    { question: 'Describe your experience with technology and software.', key: 'tech_3' },
+    { question: 'How would you support other SAC members with technology needs?', key: 'tech_4' }
+  ],
+  'Arts Liaison': [
+    { question: 'Why are you interested in the Arts Liaison position?', key: 'arts_1' },
+    { question: 'How would you coordinate arts events and activities?', key: 'arts_2' },
+    { question: 'Describe your experience with arts or creative projects.', key: 'arts_3' },
+    { question: 'How would you promote arts involvement among students?', key: 'arts_4' }
   ]
 };
 
@@ -97,25 +110,24 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         setApplicationGrades(existingGrades);
         const myGrades = existingGrades?.executiveGrades?.find(eg => eg.executiveId === userProfile?.uid);
         
-        // Get position-specific questions
+        // Get position-specific questions with proper mapping
         const positionQuestions = POSITION_QUESTIONS[positionName] || [
-          'Question 1', 'Question 2', 'Question 3', 'Question 4'
+          { question: 'Question 1', key: 'question_1' },
+          { question: 'Question 2', key: 'question_2' },
+          { question: 'Question 3', key: 'question_3' },
+          { question: 'Question 4', key: 'question_4' }
         ];
         
-        // Convert application answers to questions format
+        // Convert application answers to questions format with proper key mapping
         const questionsList: Question[] = [];
-        const answersArray = Object.entries(application.answers || {});
         
-        positionQuestions.forEach((questionText, index) => {
-          const answerEntry = answersArray[index];
-          const questionKey = answerEntry ? answerEntry[0] : `question_${index + 1}`;
-          const answerText = answerEntry ? answerEntry[1] : 'No response provided';
-          
-          const existingGrade = myGrades?.grades.find(g => g.questionId === questionKey);
+        positionQuestions.forEach((questionData, index) => {
+          const answerText = application.answers?.[questionData.key] || 'No response provided';
+          const existingGrade = myGrades?.grades.find(g => g.questionId === questionData.key);
           
           questionsList.push({
-            id: questionKey,
-            question: questionText,
+            id: questionData.key,
+            question: questionData.question,
             answer: answerText,
             score: existingGrade?.score || 0,
             maxScore: 10
