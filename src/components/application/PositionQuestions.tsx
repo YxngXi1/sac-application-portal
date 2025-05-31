@@ -96,8 +96,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {
             id: 'treasurer_3',
             type: 'textarea',
-            question: 'Create a spreadsheet document that could be used for an event by members of the council to track finances. Share this document with 909957@pdsb.net and title it "your name, treasurer applicant"',
-            note: 'Please confirm that you have shared the document with 909957@pdsb.net'
+            question: 'Create a spreadsheet document that could be used for an event by members of the council to track finances. Share this document with 909957@pdsb.net AND drop the link into the box below and title it "your name, treasurer applicant"'
           },
           {
             id: 'treasurer_4',
