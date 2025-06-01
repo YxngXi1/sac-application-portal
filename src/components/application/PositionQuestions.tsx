@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,6 @@ import { ArrowLeft, ArrowRight, Save, Upload, X, FileText, Image as ImageIcon } 
 import { useAuth } from '@/contexts/AuthContext';
 import { saveApplicationProgress } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
-import { uploadFiles } from '@/lib/storage';
 
 interface PositionQuestionsProps {
   position: string;
@@ -108,8 +108,6 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState<Record<string, boolean>>({});
-  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const questions = getQuestions(position);
@@ -161,78 +159,6 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   const handleAnswerChange = (questionId: string, answer: string) => {
     onAnswerChange(questionId, answer);
   };
-
-  const handleFileUpload = async (questionId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    onFileChange(questionId, files);
-  
-    if (files.length > 0) {
-      setIsUploading(prev => ({ ...prev, [questionId]: true }));
-  
-      try {
-        const uploadedUrls = await uploadFiles(files, `applications/${user?.uid}/${position}/${questionId}`);
-        
-        // Save the uploaded URLs to the answers state
-        onAnswerChange(questionId, uploadedUrls.join(', '));
-  
-        toast({
-          title: "Files Uploaded",
-          description: "Your files have been uploaded successfully.",
-        });
-      } catch (error) {
-        console.error('File upload error:', error);
-        toast({
-          title: "Upload Error",
-          description: "There was an error uploading your files. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsUploading(prev => ({ ...prev, [questionId]: false }));
-      }
-    }
-  };
-
-  const handleFileRemove = (questionId: string, fileIndex: number) => {
-    const updatedFiles = [...(uploadedFiles[questionId] || [])];
-    updatedFiles.splice(fileIndex, 1);
-    onFileChange(questionId, updatedFiles);
-  };
-
-  const renderFileInput = (questionId: string) => (
-    <div>
-      <Label htmlFor={`file-upload-${questionId}`} className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-md inline-flex items-center">
-        <Upload className="h-4 w-4 mr-2" />
-        <span>{isUploading[questionId] ? 'Uploading...' : 'Upload Files'}</span>
-        <Input
-          id={`file-upload-${questionId}`}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => handleFileUpload(questionId, e)}
-          ref={el => fileInputRefs.current[questionId] = el}
-        />
-      </Label>
-      
-      {uploadedFiles[questionId] && uploadedFiles[questionId].length > 0 && (
-        <div className="mt-4">
-          <p className="text-sm text-gray-600">Uploaded Files:</p>
-          <ul className="mt-2 space-y-2">
-            {uploadedFiles[questionId].map((file, index) => (
-              <li key={index} className="flex items-center justify-between bg-gray-50 py-2 px-3 rounded-md text-sm text-gray-800">
-                <div className="flex items-center">
-                  <FileText className="h-4 w-4 mr-2" />
-                  <span>{file.name}</span>
-                </div>
-                <Button type="button" variant="ghost" size="icon" onClick={() => handleFileRemove(questionId, index)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -292,17 +218,13 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                 </p>
               </CardHeader>
               <CardContent>
-                {question.type === 'file' ? (
-                  renderFileInput(question.id)
-                ) : (
-                  <Textarea
-                    placeholder="Enter your response here..."
-                    value={answers[question.id] || ''}
-                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    className="min-h-[120px] text-sm sm:text-base"
-                    required
-                  />
-                )}
+                <Textarea
+                  placeholder="Enter your response here..."
+                  value={answers[question.id] || ''}
+                  onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                  className="min-h-[120px] text-sm sm:text-base"
+                  required
+                />
               </CardContent>
             </Card>
           ))}
