@@ -53,16 +53,25 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   };
 
   const getQuestions = (): Question[] => {
-    // Universal question for all positions
-    const universalQuestion: Question = {
-      id: 'commitments',
-      type: 'textarea',
-      question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.'
-    };
+    // Universal questions for all positions
+    const universalQuestions: Question[] = [
+      {
+        id: 'commitments',
+        type: 'textarea',
+        question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.'
+      },
+      {
+        id: 'sac_connections',
+        type: 'textarea',
+        question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.'
+      }
+    ];
+
+    let positionSpecificQuestions: Question[] = [];
 
     switch (position) {
       case 'Secretary':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'secretary_1',
             type: 'textarea',
@@ -77,12 +86,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'secretary_3',
             type: 'textarea',
             question: 'We want students to attend all SAC meetings. However, sometimes this does not happen. How can you help to keep members on track and what do you think is an acceptable way to provide consequences for absent members?'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Treasurer':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'treasurer_1',
             type: 'textarea',
@@ -109,12 +118,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'treasurer_5',
             type: 'textarea',
             question: 'SAC is hoping to find a treasurer that can not only complete all expected tasks but also help improve our financial processes including club funding. Give us some ideas on how we could utilize technology that SAC already has, or come up with a new solution to help streamline the club funding process.'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Community Outreach':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'outreach_1',
             type: 'textarea',
@@ -139,12 +148,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'outreach_5',
             type: 'textarea',
             question: 'What is one creative idea you have for a community outreach project that could make a positive impact at John Fraser or in the surrounding community?'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Athletics Liaison':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'athletics_1',
             type: 'textarea',
@@ -164,12 +173,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'athletics_4',
             type: 'textarea',
             question: 'Based on your personal perspective, how would you describe the current dynamic between FAC and SAC? What do you think is working well, what could be improved, and how would you work to improve the relationship between the councils?'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Promotions Officer':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'promotions_1',
             type: 'textarea',
@@ -188,12 +197,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly.\n\nPlease submit the link to your Google Drive folder with the promotional video and poster below.',
             referenceLink: 'https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?tab=t.0',
             linkText: 'Need help creating a folder? follow these instructions:'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Photography Exec':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'photo_1',
             type: 'textarea',
@@ -210,12 +219,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'photo_3',
             type: 'textarea',
             question: 'Suppose you are selecting photos to post after an SAC event. What is your process for organizing, selecting, and editing photos after the event?'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Technology Executive':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'tech_1',
             type: 'textarea',
@@ -230,12 +239,12 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'tech_3',
             type: 'textarea',
             question: 'This year at SAC, we\'ve driven innovation and creativity with platforms like FraserPay Digital Wallet, FraserVotes, and the SAC Application portal. What tool, platform, or system would you build or improve for SAC? This can be an enhancement to an existing system or a completely new platform. How would you ensure student privacy is prioritized during deployment?'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       case 'Arts Liaison':
-        return [
+        positionSpecificQuestions = [
           {
             id: 'arts_1',
             type: 'textarea',
@@ -255,13 +264,16 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             id: 'arts_4',
             type: 'textarea',
             question: 'From your personal perspective, how would you describe the current dynamic between the Arts Council and SAC? What do you think is working well, what could be improved, and how would you personally work to improve the relationship between the two councils.'
-          },
-          universalQuestion
+          }
         ];
+        break;
 
       default:
-        return [universalQuestion];
+        positionSpecificQuestions = [];
+        break;
     }
+
+    return [...positionSpecificQuestions, ...universalQuestions];
   };
 
   const questions = getQuestions();
