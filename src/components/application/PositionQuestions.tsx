@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +24,7 @@ interface Question {
   id: string;
   question: string;
   type: 'text' | 'file';
+  subtext?: string;
 }
 
 const getQuestions = (position: string): Question[] => {
@@ -64,7 +64,12 @@ const getQuestions = (position: string): Question[] => {
       ];
     case 'Promotions Officer':
       return [
-        { id: 'promotions_1', question: 'For the position of the Promotions Officer, there is no written application. Instead, a folder containing all the raw clips from our Charity Week Assembly opening video is attached below. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Try your best to use as many clips in this Google Drive folder as possible in your video.', type: 'text' },
+        { 
+          id: 'promotions_1', 
+          question: 'For the position of the Promotions Officer, there is no written application. Instead, a folder containing all the raw clips from our Charity Week Assembly opening video is attached below. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Try your best to use as many clips in this Google Drive folder as possible in your video.', 
+          type: 'text',
+          subtext: 'Reference video: https://www.youtube.com/watch?v=w9lzT4P0MtQ\nClips for your video: https://drive.google.com/drive/folders/1qZx2OVl4SdZVbdQwLjxQWHJmdVLY3XPP\nNeed help creating a folder: https://docs.google.com/document/d/1Gdt7NefO6nEWTbYdgPxtyv0LpnfD5reM_99acyZPc4I/edit?tab=t.0'
+        },
         { id: 'promotions_2', question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly. Please submit the link to your Google Drive folder with the promotional video and poster below.', type: 'text' },
         { id: 'commitments', question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', type: 'text' }
       ];
@@ -216,6 +221,31 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                 <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
                   {question.question}
                 </p>
+                {question.subtext && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm text-blue-800 space-y-1">
+                      {question.subtext.split('\n').map((line, idx) => (
+                        <div key={idx}>
+                          {line.includes('http') ? (
+                            <>
+                              {line.split(': ')[0]}:{' '}
+                              <a 
+                                href={line.split(': ')[1]} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline"
+                              >
+                                {line.split(': ')[1]}
+                              </a>
+                            </>
+                          ) : (
+                            line
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <Textarea
