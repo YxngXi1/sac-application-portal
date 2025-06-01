@@ -30,7 +30,8 @@ const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>>
     { question: 'Share an example of a time when you had to manage multiple commitments or deadlines. How did you organize yourself, and what tools or strategies did you use to stay on track?', key: 'secretary_1' },
     { question: 'What is one strength you have that you think will help you be a great secretary? Give a brief example of how you\'ve used that strength in the past.', key: 'secretary_2' },
     { question: 'We want students to attend all SAC meetings. However, sometimes this does not happen. How can you help to keep members on track and what do you think is an acceptable way to provide consequences for absent members?', key: 'secretary_3' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Treasurer': [
     { question: 'Describe a time when you managed money or helped organize a budget, even if it was for something small like a club, a fundraiser, or a family project. How did you keep track of what was coming in and going out?', key: 'treasurer_1' },
@@ -38,7 +39,8 @@ const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>>
     { question: 'Create a spreadsheet document that could be used for an event by members of the council to track finances. Share this document with 909957@pdsb.net AND drop the link into the box below and title it "your name, treasurer applicant"', key: 'treasurer_3' },
     { question: 'In April 2025, SAC released its first-ever Budget Transparency Report on the SAC website. What improvements would you make to this document, and how would you increase student engagement with it to strengthen SAC\'s financial transparency efforts?', key: 'treasurer_4' },
     { question: 'SAC is hoping to find a treasurer that can not only complete all expected tasks but also help improve our financial processes including club funding. Give us some ideas on how we could utilize technology that SAC already has, or come up with a new solution to help streamline the club funding process.', key: 'treasurer_5' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Community Outreach': [
     { question: 'Describe any volunteer work or community service activities you have participated in. What did you enjoy about these experiences?', key: 'outreach_1' },
@@ -46,38 +48,44 @@ const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>>
     { question: 'SAC runs over 10 major events annually—choose one past event where you believe a local community partnership could have added value. What partnership would you have pursued, and how would it have enhanced the event?', key: 'outreach_3' },
     { question: 'Over the years, John Fraser SAC has worked with several organizations, both locally and nationally. With all these organizations, why is it important to measure the success of these partnerships, and how would you evaluate whether an organization is worth partnering with again in the future?', key: 'outreach_4' },
     { question: 'What is one creative idea you have for a community outreach project that could make a positive impact at John Fraser or in the surrounding community?', key: 'outreach_5' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Athletics Liaison': [
     { question: 'Being an athletics liaison requires knowledge of the athletics programs here at Fraser. What experience do you have with athletics at Fraser? This includes taking phys-ed classes, being a part of sports teams, and/or being on the Fraser Athletics Council (FAC).', key: 'athletics_1' },
     { question: 'Being the Athletics Liaison involves liaison between both FAC and SAC. Explain a time where you led or were part of a sports-related event, either at school or outside. Clearly detail your role, and how you contributed to the success of your event.', key: 'athletics_2' },
     { question: 'As the Athletics Liaison, you\'ll need to communicate between two councils. Describe a time when you successfully helped different groups work together toward a common goal.', key: 'athletics_3' },
     { question: 'Based on your personal perspective, how would you describe the current dynamic between FAC and SAC? What do you think is working well, what could be improved, and how would you work to improve the relationship between the councils?', key: 'athletics_4' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Promotions Officer': [
     { question: 'For the position of the Promotions Officer, there is no written application. Instead, a folder containing all the raw clips from our Charity Week Assembly opening video is attached below. Your task is to create a unique reel or hype video using these clips. You can draw inspiration from the original opening video, but you may not copy it directly. We encourage you that your video clips must be unique and have your own creative take. Try your best to use as many clips in this Google Drive folder as possible in your video. You may use other Charity Week clips that you have or you may film new clips suitable for the video.', key: 'promotions_1' },
     { question: 'Along with the Charity Week Assembly opening video, design an engaging poster that will be posted around the school for Charity Week itself. Again, you may draw inspiration from SAC\'s original post, but you may not copy it directly. Please submit the link to your Google Drive folder with the promotional video and poster below.', key: 'promotions_2' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Photography Exec': [
     { question: 'Please create a Google Drive folder that showcases 5 images and videos that you have taken that best showcase your photography abilities. Share it with 909957@pdsb.net and share the link to the folder in the box below. Please note applicants who have submitted inaccessible folders or folders with fewer than 5 images/videos will not be considered.', key: 'photo_1' },
     { question: 'How would you contribute creatively to SAC\'s branding through photography on social media and promotions?', key: 'photo_2' },
     { question: 'Suppose you are selecting photos to post after an SAC event. What is your process for organizing, selecting, and editing photos after the event?', key: 'photo_3' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Technology Executive': [
     { question: 'A major role of the Technology Executive for the 2025/2026 is to continue the current success of SAC\'s 21st century modern technology, such as systems like Fraser Tickets, FraserPay, FraserVotes, and our brand-new coded website. What experience do you have with platforms like Google Firebase, Vercel, other programming languages, or any web development tools that could support SAC\'s technical needs?', key: 'tech_1' },
     { question: 'Share a link to a portfolio, GitHub repo, or any digital project demonstrating your technical skills and problem-solving. Briefly explain its purpose and impact. Note: For a tech exec role, programming isn\'t required—we want to see your creativity and how you\'d tackle SAC\'s challenges.', key: 'tech_2' },
     { question: 'This year at SAC, we\'ve driven innovation and creativity with platforms like FraserPay Digital Wallet, FraserVotes, and the SAC Application portal. What tool, platform, or system would you build or improve for SAC? This can be an enhancement to an existing system or a completely new platform. How would you ensure student privacy is prioritized during deployment?', key: 'tech_3' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ],
   'Arts Liaison': [
     { question: 'As the Arts Liaison, how will you ensure that all Art clubs (ie. Visual Arts Club, Studio 119, Fraser Dance Crew, Photography club, etc) are promoted equally throughout the school-year?', key: 'arts_1' },
     { question: 'What plans do you have that will maintain effective communication between the executives and supervisors of both SAC and Arts Council? Explain.', key: 'arts_2' },
     { question: 'What specific time-management strategies do you practice that will help you balance the business of being an Arts Liaison?', key: 'arts_3' },
     { question: 'From your personal perspective, how would you describe the current dynamic between the Arts Council and SAC? What do you think is working well, what could be improved, and how would you personally work to improve the relationship between the two councils.', key: 'arts_4' },
-    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' }
+    { question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', key: 'commitments' },
+    { question: 'As part of our efforts to make SAC applications a fair process, we\'d like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.', key: 'sac_connections' }
   ]
 };
 
