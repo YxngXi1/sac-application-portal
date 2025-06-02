@@ -117,6 +117,21 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
 
   const questions = getQuestions(position);
 
+  // Function to count words in a text
+  const countWords = (text: string): number => {
+    if (!text || text.trim() === '') return 0;
+    return text.trim().split(/\s+/).length;
+  };
+
+  // Function to check if any answer exceeds word limit
+  const hasExceededWordLimit = (): boolean => {
+    const allQuestionIds = [...questions.map(q => q.id), 'sac_connections'];
+    return allQuestionIds.some(questionId => {
+      const answer = answers[questionId] || '';
+      return countWords(answer) > 150;
+    });
+  };
+
   // Auto-save function with debouncing
   const autoSave = async () => {
     if (!user) return;
@@ -188,10 +203,20 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   const isComplete = () => {
     const requiredAnswers = questions.every(q => answers[q.id]?.trim());
     const sacConnectionsAnswer = answers['sac_connections']?.trim();
-    return requiredAnswers && sacConnectionsAnswer !== undefined;
+    const noWordLimitExceeded = !hasExceededWordLimit();
+    return requiredAnswers && sacConnectionsAnswer !== undefined && noWordLimitExceeded;
   };
 
   const handleNext = async () => {
+    if (hasExceededWordLimit()) {
+      toast({
+        title: "Word Limit Exceeded",
+        description: "Please ensure all answers are within the 150-word limit before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Ensure final save before proceeding
     await autoSave();
     onNext();
@@ -206,79 +231,103 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             {position} Application
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Please answer all questions thoughtfully. Your responses will help us understand your qualifications and interest in this position.
+            Please answer all questions thoughtfully. Each answer must be within 150 words. Your responses will help us understand your qualifications and interest in this position.
           </p>
         </div>
 
         {/* Questions */}
         <div className="space-y-6">
-          {questions.map((question, index) => (
-            <Card key={question.id} className="border shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl">
-                  Question {index + 1}
-                </CardTitle>
-                <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                  {question.question}
-                </p>
-                {question.subtext && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-sm text-blue-800 space-y-1">
-                      {question.subtext.split('\n').map((line, idx) => (
-                        <div key={idx}>
-                          {line.includes('http') ? (
-                            <>
-                              {line.split(': ')[0]}:{' '}
-                              <a 
-                                href={line.split(': ')[1]} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 underline"
-                              >
-                                {line.split(': ')[1]}
-                              </a>
-                            </>
-                          ) : (
-                            line
-                          )}
-                        </div>
-                      ))}
+          {questions.map((question, index) => {
+            const wordCount = countWords(answers[question.id] || '');
+            const isOverLimit = wordCount > 150;
+            
+            return (
+              <Card key={question.id} className={`border shadow-sm ${isOverLimit ? 'border-red-300' : ''}`}>
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">
+                    Question {index + 1}
+                  </CardTitle>
+                  <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                    {question.question}
+                  </p>
+                  {question.subtext && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-sm text-blue-800 space-y-1">
+                        {question.subtext.split('\n').map((line, idx) => (
+                          <div key={idx}>
+                            {line.includes('http') ? (
+                              <>
+                                {line.split(': ')[0]}:{' '}
+                                <a 
+                                  href={line.split(': ')[1]} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  {line.split(': ')[1]}
+                                </a>
+                              </>
+                            ) : (
+                              line
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    placeholder="Enter your response here..."
+                    value={answers[question.id] || ''}
+                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                    className={`min-h-[120px] text-sm sm:text-base ${isOverLimit ? 'border-red-300 focus:border-red-500' : ''}`}
+                    required
+                  />
+                  <div className={`text-sm mt-2 ${isOverLimit ? 'text-red-600' : wordCount > 140 ? 'text-orange-600' : 'text-gray-500'}`}>
+                    {wordCount}/150 words
+                    {isOverLimit && (
+                      <span className="ml-2 font-medium">- Word limit exceeded!</span>
+                    )}
                   </div>
-                )}
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  placeholder="Enter your response here..."
-                  value={answers[question.id] || ''}
-                  onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                  className="min-h-[120px] text-sm sm:text-base"
-                  required
-                />
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
 
           {/* SAC Connections Question */}
-          <Card className="border shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">
-                Question {questions.length + 1}
-              </CardTitle>
-              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                As part of our efforts to make SAC applications a fair process, we'd like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                placeholder="Enter any SAC executive connections here, or write 'None' if you have no connections..."
-                value={answers['sac_connections'] || ''}
-                onChange={(e) => handleAnswerChange('sac_connections', e.target.value)}
-                className="min-h-[80px] text-sm sm:text-base"
-                required
-              />
-            </CardContent>
-          </Card>
+          {(() => {
+            const wordCount = countWords(answers['sac_connections'] || '');
+            const isOverLimit = wordCount > 150;
+            
+            return (
+              <Card className={`border shadow-sm ${isOverLimit ? 'border-red-300' : ''}`}>
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">
+                    Question {questions.length + 1}
+                  </CardTitle>
+                  <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                    As part of our efforts to make SAC applications a fair process, we'd like you to disclose if you have a relative, or a friend that is currently a SAC executive. If so, please add their name in the box below.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    placeholder="Enter any SAC executive connections here, or write 'None' if you have no connections..."
+                    value={answers['sac_connections'] || ''}
+                    onChange={(e) => handleAnswerChange('sac_connections', e.target.value)}
+                    className={`min-h-[80px] text-sm sm:text-base ${isOverLimit ? 'border-red-300 focus:border-red-500' : ''}`}
+                    required
+                  />
+                  <div className={`text-sm mt-2 ${isOverLimit ? 'text-red-600' : wordCount > 140 ? 'text-orange-600' : 'text-gray-500'}`}>
+                    {wordCount}/150 words
+                    {isOverLimit && (
+                      <span className="ml-2 font-medium">- Word limit exceeded!</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </div>
 
         {/* Navigation */}
@@ -317,6 +366,11 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         {/* Progress indicator */}
         <div className="mt-6 text-center text-sm text-gray-500">
           Progress automatically saved • {Math.round(calculateProgress())}% complete
+          {hasExceededWordLimit() && (
+            <div className="text-red-600 font-medium mt-1">
+              ⚠️ Some answers exceed the 150-word limit
+            </div>
+          )}
         </div>
       </div>
     </div>
