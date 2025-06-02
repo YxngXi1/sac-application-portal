@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, Printer } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
@@ -43,6 +43,79 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
 
     loadApplications();
   }, []);
+
+  const handlePrintApplications = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>SAC Applications Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #d1d5db; padding: 8px 12px; text-align: left; }
+            th { background-color: #f3f4f6; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .status-submitted { color: #059669; font-weight: bold; }
+            .status-draft { color: #6b7280; }
+            .status-under-review { color: #3b82f6; font-weight: bold; }
+            .grade { font-weight: bold; color: #7c3aed; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>SAC Applications Report</h1>
+          <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          <p><strong>Total Applications:</strong> ${applications.length}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Position</th>
+                <th>Grade</th>
+                <th>Student Number</th>
+                <th>Status</th>
+                <th>Application Score</th>
+                <th>Interview Scheduled</th>
+                <th>Submitted Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${applications.map(app => `
+                <tr>
+                  <td>${app.userProfile?.fullName || 'N/A'}</td>
+                  <td>${app.position || 'N/A'}</td>
+                  <td>${app.userProfile?.grade || 'N/A'}</td>
+                  <td>${app.userProfile?.studentNumber || 'N/A'}</td>
+                  <td class="status-${app.status}">${app.status.replace('_', ' ').toUpperCase()}</td>
+                  <td class="grade">${app.score !== undefined ? app.score.toFixed(1) + '/100' : 'Not graded'}</td>
+                  <td>${app.interviewScheduled ? 'Yes' : 'No'}</td>
+                  <td>${app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'N/A'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+  };
 
   const getPositionStats = (positionName: string) => {
     const positionApps = applications.filter(app => 
@@ -102,13 +175,24 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
               Back to Dashboard
             </Button>
             
-            <Button
-              onClick={() => setShowInterviewView(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Interview View
-            </Button>
+            <div className="flex space-x-3">
+              <Button
+                onClick={handlePrintApplications}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print Applications
+              </Button>
+              
+              <Button
+                onClick={() => setShowInterviewView(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Interview View
+              </Button>
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Executive Dashboard
