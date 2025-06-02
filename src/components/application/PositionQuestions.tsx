@@ -128,7 +128,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
     const allQuestionIds = [...questions.map(q => q.id), 'sac_connections'];
     return allQuestionIds.some(questionId => {
       const answer = answers[questionId] || '';
-      return countWords(answer) > 150;
+      return countWords(answer) > 200;
     });
   };
 
@@ -211,7 +211,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
     if (hasExceededWordLimit()) {
       toast({
         title: "Word Limit Exceeded",
-        description: "Please ensure all answers are within the 150-word limit before continuing.",
+        description: "Please ensure all answers are within the 200-word limit before continuing.",
         variant: "destructive",
       });
       return;
@@ -231,7 +231,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             {position} Application
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
-            Please answer all questions thoughtfully. Each answer must be within 150 words. Your responses will help us understand your qualifications and interest in this position.
+            Please answer all questions thoughtfully. Each answer must be within 200 words. Your responses will help us understand your qualifications and interest in this position.
           </p>
         </div>
 
@@ -239,7 +239,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
         <div className="space-y-6">
           {questions.map((question, index) => {
             const wordCount = countWords(answers[question.id] || '');
-            const isOverLimit = wordCount > 150;
+            const isOverLimit = wordCount > 200;
             
             return (
               <Card key={question.id} className={`border shadow-sm ${isOverLimit ? 'border-red-300' : ''}`}>
@@ -284,8 +284,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                     className={`min-h-[120px] text-sm sm:text-base ${isOverLimit ? 'border-red-300 focus:border-red-500' : ''}`}
                     required
                   />
-                  <div className={`text-sm mt-2 ${isOverLimit ? 'text-red-600' : wordCount > 140 ? 'text-orange-600' : 'text-gray-500'}`}>
-                    {wordCount}/150 words
+                  <div className={`text-sm mt-2 ${isOverLimit ? 'text-red-600' : wordCount > 190 ? 'text-orange-600' : 'text-gray-500'}`}>
+                    {wordCount}/200 words
                     {isOverLimit && (
                       <span className="ml-2 font-medium">- Word limit exceeded!</span>
                     )}
@@ -298,7 +298,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           {/* SAC Connections Question */}
           {(() => {
             const wordCount = countWords(answers['sac_connections'] || '');
-            const isOverLimit = wordCount > 150;
+            const isOverLimit = wordCount > 200;
             
             return (
               <Card className={`border shadow-sm ${isOverLimit ? 'border-red-300' : ''}`}>
@@ -318,8 +318,8 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
                     className={`min-h-[80px] text-sm sm:text-base ${isOverLimit ? 'border-red-300 focus:border-red-500' : ''}`}
                     required
                   />
-                  <div className={`text-sm mt-2 ${isOverLimit ? 'text-red-600' : wordCount > 140 ? 'text-orange-600' : 'text-gray-500'}`}>
-                    {wordCount}/150 words
+                  <div className={`text-sm mt-2 ${isOverLimit ? 'text-red-600' : wordCount > 190 ? 'text-orange-600' : 'text-gray-500'}`}>
+                    {wordCount}/200 words
                     {isOverLimit && (
                       <span className="ml-2 font-medium">- Word limit exceeded!</span>
                     )}
@@ -368,7 +368,7 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           Progress automatically saved • {Math.round(calculateProgress())}% complete
           {hasExceededWordLimit() && (
             <div className="text-red-600 font-medium mt-1">
-              ⚠️ Some answers exceed the 150-word limit
+              ⚠️ Some answers exceed the 200-word limit
             </div>
           )}
         </div>
