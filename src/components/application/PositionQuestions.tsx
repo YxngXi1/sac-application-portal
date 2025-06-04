@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ArrowRight, Save, Upload, X, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Upload, X, FileText, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveApplicationProgress } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
@@ -113,7 +113,11 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error' | 'idle'>('idle');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const questions = getQuestions(position);
 
@@ -132,11 +136,32 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
     });
   };
 
-  // Auto-save function with debouncing
-  const autoSave = async () => {
-    if (!user) return;
+  // Enhanced save function with retry logic and better error handling
+  const saveWithRetry = async (retryCount = 0): Promise<boolean> => {
+    if (!user) {
+      console.error('Save failed: No user authenticated');
+      return false;
+    }
+    
+    const maxRetries = 3;
+    setSaveStatus('saving');
     
     try {
+      console.log(`Attempting to save application data (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      console.log('Data being saved:', {
+        userId: user.uid,
+        position,
+        answersCount: Object.keys(answers).length,
+        answers: answers,
+        progress: calculateProgress(),
+        userProfile: {
+          fullName: userProfile?.fullName || '',
+          studentNumber: userProfile?.studentNumber || '',
+          grade: userProfile?.grade || '',
+          studentType: userProfile?.studentType || 'none',
+        }
+      });
+
       await saveApplicationProgress(user.uid, {
         position,
         answers,
@@ -148,8 +173,63 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           studentType: userProfile?.studentType || 'none',
         }
       });
+      
+      console.log('Save successful');
+      setLastSaveTime(new Date());
+      setSaveStatus('saved');
+      return true;
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      console.error(`Save failed (attempt ${retryCount + 1}):`, error);
+      
+      if (retryCount < maxRetries) {
+        console.log(`Retrying save in ${(retryCount + 1) * 2} seconds...`);
+        setSaveStatus('saving');
+        return new Promise((resolve) => {
+          retryTimeoutRef.current = setTimeout(async () => {
+            const result = await saveWithRetry(retryCount + 1);
+            resolve(result);
+          }, (retryCount + 1) * 2000);
+        });
+      } else {
+        console.error('Save failed after all retries');
+        setSaveStatus('error');
+        toast({
+          title: "Save Failed",
+          description: "Failed to save your progress after multiple attempts. Please try the recovery option.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
+  };
+
+  // Auto-save function with enhanced reliability
+  const autoSave = async () => {
+    return await saveWithRetry();
+  };
+
+  // Recovery function to reload progress
+  const handleRecovery = async () => {
+    setIsRecovering(true);
+    try {
+      console.log('Attempting to recover application data...');
+      // Force a manual save attempt first
+      const saveSuccess = await saveWithRetry();
+      if (saveSuccess) {
+        toast({
+          title: "Recovery Successful",
+          description: "Your application data has been saved successfully.",
+        });
+      }
+    } catch (error) {
+      console.error('Recovery failed:', error);
+      toast({
+        title: "Recovery Failed",
+        description: "Unable to recover your data. Please contact support if this issue persists.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRecovering(false);
     }
   };
 
@@ -159,6 +239,9 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
       clearTimeout(saveTimeoutRef.current);
     }
     
+    // Reset save status when user starts typing
+    setSaveStatus('idle');
+    
     saveTimeoutRef.current = setTimeout(() => {
       autoSave();
     }, 1000); // Auto-save after 1 second of inactivity
@@ -166,6 +249,9 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
     };
   }, [answers, position, user, userProfile]);
@@ -177,22 +263,27 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
   };
 
   const handleAnswerChange = (questionId: string, answer: string) => {
+    console.log(`Answer changed for question ${questionId}:`, answer.substring(0, 50) + (answer.length > 50 ? '...' : ''));
     onAnswerChange(questionId, answer);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSave();
-      toast({
-        title: "Progress Saved",
-        description: "Your application progress has been saved.",
-      });
+      console.log('Manual save triggered');
+      const success = await saveWithRetry();
+      if (success) {
+        await onSave();
+        toast({
+          title: "Progress Saved",
+          description: "Your application progress has been saved successfully.",
+        });
+      }
     } catch (error) {
-      console.error('Save failed:', error);
+      console.error('Manual save failed:', error);
       toast({
         title: "Save Error",
-        description: "Failed to save your progress. Please try again.",
+        description: "Failed to save your progress. Please try again or use the recovery option.",
         variant: "destructive",
       });
     } finally {
@@ -217,9 +308,46 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
       return;
     }
     
-    // Ensure final save before proceeding
-    await autoSave();
-    onNext();
+    console.log('Next button clicked - ensuring final save before proceeding');
+    // Ensure immediate save before proceeding
+    const saveSuccess = await saveWithRetry();
+    if (saveSuccess) {
+      console.log('Final save successful, proceeding to next step');
+      onNext();
+    } else {
+      toast({
+        title: "Save Required",
+        description: "Please ensure your progress is saved before continuing. Try the recovery option if needed.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Save status indicator
+  const getSaveStatusText = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return 'Saving...';
+      case 'saved':
+        return lastSaveTime ? `Last saved at ${lastSaveTime.toLocaleTimeString()}` : 'Saved';
+      case 'error':
+        return 'Save failed - use recovery option';
+      default:
+        return 'Progress automatically saved';
+    }
+  };
+
+  const getSaveStatusColor = () => {
+    switch (saveStatus) {
+      case 'saving':
+        return 'text-blue-600';
+      case 'saved':
+        return 'text-green-600';
+      case 'error':
+        return 'text-red-600';
+      default:
+        return 'text-gray-500';
+    }
   };
 
   return (
@@ -341,16 +469,27 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
             Back
           </Button>
           
-          <div className="flex-1 sm:flex-none">
+          <div className="flex gap-2 flex-1 sm:flex-none">
             <Button 
               onClick={handleSave}
               disabled={isSaving}
               variant="outline"
-              className="w-full"
+              className="flex-1"
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Saving...' : 'Save Progress'}
             </Button>
+            
+            {saveStatus === 'error' && (
+              <Button 
+                onClick={handleRecovery}
+                disabled={isRecovering}
+                variant="outline"
+                className="flex-shrink-0"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRecovering ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
           </div>
           
           <Button 
@@ -363,12 +502,19 @@ const PositionQuestions: React.FC<PositionQuestionsProps> = ({
           </Button>
         </div>
 
-        {/* Progress indicator */}
-        <div className="mt-6 text-center text-sm text-gray-500">
-          Progress automatically saved • {Math.round(calculateProgress())}% complete
+        {/* Enhanced progress indicator with save status */}
+        <div className="mt-6 text-center text-sm">
+          <div className={getSaveStatusColor()}>
+            {getSaveStatusText()} • {Math.round(calculateProgress())}% complete
+          </div>
           {hasExceededWordLimit() && (
             <div className="text-red-600 font-medium mt-1">
               ⚠️ Some answers exceed the 200-word limit
+            </div>
+          )}
+          {saveStatus === 'error' && (
+            <div className="text-red-600 font-medium mt-1">
+              ⚠️ Save failed - click the recovery button to retry
             </div>
           )}
         </div>

@@ -61,54 +61,129 @@ export const saveApplicationProgress = async (
   userId: string,
   applicationData: Partial<ApplicationData>
 ): Promise<void> => {
-  const applicationRef = doc(db, 'applications', userId);
+  console.log('saveApplicationProgress called with:', { userId, applicationData });
   
-  const dataToSave = {
-    ...applicationData,
-    userId,
-    updatedAt: new Date(),
-  };
+  try {
+    const applicationRef = doc(db, 'applications', userId);
+    
+    const dataToSave = {
+      ...applicationData,
+      userId,
+      updatedAt: new Date(),
+    };
 
-  // If this is the first save, set createdAt
-  if (!applicationData.id) {
-    dataToSave.createdAt = new Date();
-    dataToSave.id = userId;
-    dataToSave.status = 'draft';
+    // If this is the first save, set createdAt
+    if (!applicationData.id) {
+      dataToSave.createdAt = new Date();
+      dataToSave.id = userId;
+      dataToSave.status = 'draft';
+      console.log('First save detected, setting initial data');
+    }
+
+    console.log('Data being saved to Firestore:', dataToSave);
+    await setDoc(applicationRef, dataToSave, { merge: true });
+    console.log('Save to Firestore successful');
+    
+    // Verify the save by reading back the data
+    const verificationSnap = await getDoc(applicationRef);
+    if (verificationSnap.exists()) {
+      const savedData = verificationSnap.data();
+      console.log('Save verification successful, data exists:', {
+        hasAnswers: !!savedData.answers,
+        answersCount: savedData.answers ? Object.keys(savedData.answers).length : 0,
+        position: savedData.position,
+        status: savedData.status
+      });
+    } else {
+      console.error('Save verification failed - document does not exist after save');
+      throw new Error('Document was not saved properly');
+    }
+  } catch (error) {
+    console.error('Error in saveApplicationProgress:', error);
+    throw error;
   }
-
-  await setDoc(applicationRef, dataToSave, { merge: true });
 };
 
 export const loadApplicationProgress = async (userId: string): Promise<ApplicationData | null> => {
-  const applicationRef = doc(db, 'applications', userId);
-  const applicationSnap = await getDoc(applicationRef);
+  console.log('loadApplicationProgress called for userId:', userId);
   
-  if (applicationSnap.exists()) {
-    const data = applicationSnap.data() as ApplicationData;
-    return {
-      ...data,
-      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
-      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
-      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
-    };
+  try {
+    const applicationRef = doc(db, 'applications', userId);
+    const applicationSnap = await getDoc(applicationRef);
+    
+    if (applicationSnap.exists()) {
+      const data = applicationSnap.data() as ApplicationData;
+      console.log('Application data loaded successfully:', {
+        hasAnswers: !!data.answers,
+        answersCount: data.answers ? Object.keys(data.answers).length : 0,
+        position: data.position,
+        status: data.status
+      });
+      
+      return {
+        ...data,
+        createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
+        updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
+        submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
+      };
+    } else {
+      console.log('No application data found for user');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error in loadApplicationProgress:', error);
+    throw error;
   }
-  
-  return null;
 };
 
 export const submitApplication = async (userId: string): Promise<void> => {
-  const applicationRef = doc(db, 'applications', userId);
+  console.log('submitApplication called for userId:', userId);
   
-  // Create submission time in EST
-  const now = new Date();
-  const submissionTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-  
-  await updateDoc(applicationRef, {
-    status: 'submitted',
-    submittedAt: submissionTime,
-    updatedAt: submissionTime,
-    progress: 100,
-  });
+  try {
+    const applicationRef = doc(db, 'applications', userId);
+    
+    // Verify data exists before submitting
+    const existingSnap = await getDoc(applicationRef);
+    if (!existingSnap.exists()) {
+      console.error('Cannot submit - no application data found');
+      throw new Error('No application data found to submit');
+    }
+    
+    const existingData = existingSnap.data();
+    console.log('Pre-submission verification:', {
+      hasAnswers: !!existingData.answers,
+      answersCount: existingData.answers ? Object.keys(existingData.answers).length : 0,
+      position: existingData.position
+    });
+    
+    // Create submission time in EST
+    const now = new Date();
+    const submissionTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+    
+    await updateDoc(applicationRef, {
+      status: 'submitted',
+      submittedAt: submissionTime,
+      updatedAt: submissionTime,
+      progress: 100,
+    });
+    
+    console.log('Application submitted successfully at:', submissionTime);
+    
+    // Verify submission
+    const verificationSnap = await getDoc(applicationRef);
+    if (verificationSnap.exists()) {
+      const submittedData = verificationSnap.data();
+      console.log('Submission verification successful:', {
+        status: submittedData.status,
+        submittedAt: submittedData.submittedAt,
+        hasAnswers: !!submittedData.answers,
+        answersCount: submittedData.answers ? Object.keys(submittedData.answers).length : 0
+      });
+    }
+  } catch (error) {
+    console.error('Error in submitApplication:', error);
+    throw error;
+  }
 };
 
 export const getAllApplicationsByPosition = async (position: string): Promise<ApplicationData[]> => {
