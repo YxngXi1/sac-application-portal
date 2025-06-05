@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, Printer } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3 } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
 import InterviewView from './InterviewView';
+import SummaryView from './SummaryView';
 
 interface ExecDashboardProps {
   onBack: () => void;
@@ -15,6 +17,7 @@ interface ExecDashboardProps {
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [showInterviewView, setShowInterviewView] = useState(false);
+  const [showSummaryView, setShowSummaryView] = useState(false);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -153,6 +156,10 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     return <InterviewView onBack={() => setShowInterviewView(false)} />;
   }
 
+  if (showSummaryView) {
+    return <SummaryView onBack={() => setShowSummaryView(false)} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -177,12 +184,12 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             
             <div className="flex space-x-3">
               <Button
-                onClick={handlePrintApplications}
+                onClick={() => setShowSummaryView(true)}
                 variant="outline"
                 className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
-                <Printer className="h-4 w-4 mr-2" />
-                Print Applications
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Summary View
               </Button>
               
               <Button
