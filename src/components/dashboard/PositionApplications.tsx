@@ -245,6 +245,8 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     setViewMode(true);
   };
 
+  const gradingApplication = selectedApplicant && gradeMode;
+
   if (selectedApplicant && gradeMode) {
     return (
       <ApplicationGrader
@@ -254,6 +256,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
           setSelectedApplicant(null);
           setGradeMode(false);
         }}
+        onNavigateToApplication={(newApplication) => setGradingApplication(newApplication)}
       />
     );
   }

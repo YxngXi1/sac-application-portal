@@ -14,14 +14,7 @@ interface ApplicationGraderProps {
   application: ApplicationData;
   positionName: string;
   onBack: () => void;
-}
-
-interface Question {
-  id: string;
-  question: string;
-  answer: string;
-  score: number;
-  maxScore: number;
+  onNavigateToApplication?: (application: ApplicationData) => void;
 }
 
 // Position-specific questions with their corresponding answer keys - updated to match application questions
@@ -92,7 +85,8 @@ const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>>
 const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   application,
   positionName,
-  onBack
+  onBack,
+  onNavigateToApplication
 }) => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
@@ -261,10 +255,8 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     }
     
     const nextApp = allApplications[newIndex];
-    if (nextApp) {
-      // Navigate to the new application - this would trigger a re-render with new application data
-      window.location.hash = `#grade-${nextApp.id}`;
-      window.location.reload(); // Simple approach - you might want to implement this more elegantly
+    if (nextApp && onNavigateToApplication) {
+      onNavigateToApplication(nextApp);
     }
   };
 
@@ -292,9 +284,8 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
   const navigateToNextUngraded = async () => {
     const nextUngraded = await getNextUngradedApplication();
-    if (nextUngraded) {
-      window.location.hash = `#grade-${nextUngraded.app.id}`;
-      window.location.reload();
+    if (nextUngraded && onNavigateToApplication) {
+      onNavigateToApplication(nextUngraded.app);
     } else {
       toast({
         title: "All Done!",
