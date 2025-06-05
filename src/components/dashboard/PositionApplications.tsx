@@ -256,7 +256,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
           setSelectedApplicant(null);
           setGradeMode(false);
         }}
-        onNavigateToApplication={(newApplication) => setGradingApplication(newApplication)}
+        onNavigateToApplication={(newApplication) => setSelectedApplicant(newApplication)}
       />
     );
   }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,14 @@ interface ApplicationGraderProps {
   positionName: string;
   onBack: () => void;
   onNavigateToApplication?: (application: ApplicationData) => void;
+}
+
+interface Question {
+  id: string;
+  question: string;
+  answer: string;
+  score: number;
+  maxScore: number;
 }
 
 // Position-specific questions with their corresponding answer keys - updated to match application questions
