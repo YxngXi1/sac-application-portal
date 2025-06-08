@@ -11,7 +11,6 @@ import NotFound from "./pages/NotFound";
 import SignInPage from "./pages/SignInPage";
 import ApplicationPage from "./pages/ApplicationPage";
 import ThankYouPage from "./pages/ThankYouPage";
-import SettingsPage from "./pages/SettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -28,7 +27,6 @@ const App: React.FC = () => {
               <Route path="/sign-in" element={<SignInPage />} />
               <Route path="/apply" element={<ApplicationPage />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
