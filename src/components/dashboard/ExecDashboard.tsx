@@ -1,20 +1,23 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3 } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3, Settings } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
 import InterviewView from './InterviewView';
 import SummaryView from './SummaryView';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface ExecDashboardProps {
   onBack: () => void;
 }
 
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
+  const { userProfile } = useAuth();
+  const navigate = useNavigate();
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [showInterviewView, setShowInterviewView] = useState(false);
   const [showSummaryView, setShowSummaryView] = useState(false);
@@ -183,6 +186,17 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             </Button>
             
             <div className="flex space-x-3">
+              {userProfile?.role === 'superadmin' && (
+                <Button
+                  onClick={() => navigate('/settings')}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Button>
+              )}
+              
               <Button
                 onClick={() => setShowSummaryView(true)}
                 variant="outline"
