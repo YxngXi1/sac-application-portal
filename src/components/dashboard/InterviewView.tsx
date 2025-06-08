@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock, Users, Plus, CheckCircle, XCircle } from 'lucide-react';
-import { getAllApplications, ApplicationData } from '@/services/applicationService';
+import { getApplicationsForInterview, ApplicationData } from '@/services/applicationService';
 import InterviewScheduler from './InterviewScheduler';
 import InterviewGrader from './InterviewGrader';
 import InterviewResults from './InterviewResults';
@@ -31,14 +31,11 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   useEffect(() => {
     const loadApplications = async () => {
       try {
-        const allApplications = await getAllApplications();
-        // Only show submitted applications with scores
-        const submittedWithScores = allApplications.filter(app => 
-          app.status === 'submitted' && app.score !== undefined
-        );
-        setApplications(submittedWithScores);
+        // Get applications marked for interview instead of all applications
+        const interviewApplications = await getApplicationsForInterview();
+        setApplications(interviewApplications);
       } catch (error) {
-        console.error('Error loading applications:', error);
+        console.error('Error loading interview applications:', error);
       } finally {
         setLoading(false);
       }

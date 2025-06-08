@@ -7,13 +7,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Eye, Star, MessageSquare, Calendar as CalendarIcon, Clock, Users, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Eye, Star, MessageSquare, Calendar as CalendarIcon, Clock, Users, CheckCircle, XCircle, FileDown } from 'lucide-react';
 import { getAllApplicationsByPosition, updateInterviewStatus } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import ApplicationGrader from './ApplicationGrader';
+import ApplicationReports from './ApplicationReports';
 
 interface PositionApplicationsProps {
   positionId: string;
@@ -50,6 +51,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
+  const [showReports, setShowReports] = useState(false);
 
   const { toast } = useToast();
 
@@ -339,6 +341,27 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     );
   }
 
+  if (showReports) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b shadow-sm px-8 py-6">
+          <div className="max-w-7xl mx-auto">
+            <Button variant="ghost" onClick={() => setShowReports(false)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Applications
+            </Button>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Application Reports - {positionName}
+            </h1>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto p-8">
+          <ApplicationReports />
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -359,10 +382,18 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4 mb-2">
+          <div className="flex items-center justify-between mb-2">
             <Button variant="ghost" onClick={onBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
+            </Button>
+            <Button 
+              onClick={handleViewReports}
+              variant="outline"
+              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              View Reports
             </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
