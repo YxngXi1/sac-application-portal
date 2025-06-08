@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,13 +25,20 @@ interface Question {
   maxScore: number;
 }
 
+interface QuestionGrade {
+  questionId: string;
+  score: number;
+  maxScore: number;
+  feedback?: string;
+}
+
 const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   application,
   positionName,
   onBack,
   onNavigateToApplication
 }) => {
-  const [questionGrades, setQuestionGrades] = useState<{ questionId: string; score: number; feedback?: string; }[]>([]);
+  const [questionGrades, setQuestionGrades] = useState<QuestionGrade[]>([]);
   const [overallFeedback, setOverallFeedback] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [existingGrades, setExistingGrades] = useState<any>(null);
@@ -90,13 +98,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
     questionGrades.forEach(grade => {
       newTotalScore += grade.score;
-      const question = questions.find(q => q.id === grade.questionId);
-      newMaxTotalScore += question ? question.maxScore : 0;
+      newMaxTotalScore += grade.maxScore;
     });
 
     setTotalScore(newTotalScore);
     setMaxTotalScore(newMaxTotalScore);
-  }, [questionGrades, questions]);
+  }, [questionGrades]);
 
   const handleSaveGrades = async () => {
     if (!user) return;
@@ -373,10 +380,18 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                             const existingGradeIndex = prev.findIndex(grade => grade.questionId === question.id);
                             if (existingGradeIndex > -1) {
                               const updatedGrades = [...prev];
-                              updatedGrades[existingGradeIndex] = { ...updatedGrades[existingGradeIndex], score: score };
+                              updatedGrades[existingGradeIndex] = { 
+                                ...updatedGrades[existingGradeIndex], 
+                                score: score,
+                                maxScore: question.maxScore
+                              };
                               return updatedGrades;
                             } else {
-                              return [...prev, { questionId: question.id, score: score }];
+                              return [...prev, { 
+                                questionId: question.id, 
+                                score: score, 
+                                maxScore: question.maxScore 
+                              }];
                             }
                           });
                         }}
@@ -392,10 +407,18 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                           const existingGradeIndex = prev.findIndex(grade => grade.questionId === question.id);
                           if (existingGradeIndex > -1) {
                             const updatedGrades = [...prev];
-                            updatedGrades[existingGradeIndex] = { ...updatedGrades[existingGradeIndex], feedback: feedback };
+                            updatedGrades[existingGradeIndex] = { 
+                              ...updatedGrades[existingGradeIndex], 
+                              feedback: feedback 
+                            };
                             return updatedGrades;
                           } else {
-                            return [...prev, { questionId: question.id, score: 0, feedback: feedback }];
+                            return [...prev, { 
+                              questionId: question.id, 
+                              score: 0, 
+                              maxScore: question.maxScore, 
+                              feedback: feedback 
+                            }];
                           }
                         });
                       }}

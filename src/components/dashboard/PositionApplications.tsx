@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -245,6 +246,10 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const handleViewApplication = (application: ApplicationData) => {
     setSelectedApplicant(application);
     setViewMode(true);
+  };
+
+  const handleViewReports = () => {
+    setShowReports(true);
   };
 
   const gradingApplication = selectedApplicant && gradeMode;
