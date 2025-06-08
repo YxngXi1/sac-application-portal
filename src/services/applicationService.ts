@@ -13,7 +13,6 @@ export interface ApplicationData {
   submittedAt?: Date;
   score?: number;
   interviewScheduled?: boolean;
-  reviewStatus?: 'for_interview' | 'unsuccessful' | 'pending';
   userProfile?: {
     fullName: string;
     studentNumber: string;
@@ -185,30 +184,6 @@ export const submitApplication = async (userId: string): Promise<void> => {
     console.error('Error in submitApplication:', error);
     throw error;
   }
-};
-
-export const updateApplicationReviewStatus = async (applicationId: string, reviewStatus: 'for_interview' | 'unsuccessful' | 'pending'): Promise<void> => {
-  const applicationRef = doc(db, 'applications', applicationId);
-  await updateDoc(applicationRef, {
-    reviewStatus,
-    updatedAt: new Date(),
-  });
-};
-
-export const getApplicationsForInterview = async (): Promise<ApplicationData[]> => {
-  const applicationsRef = collection(db, 'applications');
-  const q = query(applicationsRef, where('reviewStatus', '==', 'for_interview'));
-  const querySnapshot = await getDocs(q);
-  
-  return querySnapshot.docs.map(doc => {
-    const data = doc.data() as ApplicationData;
-    return {
-      ...data,
-      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
-      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
-      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
-    };
-  });
 };
 
 export const getAllApplicationsByPosition = async (position: string): Promise<ApplicationData[]> => {
