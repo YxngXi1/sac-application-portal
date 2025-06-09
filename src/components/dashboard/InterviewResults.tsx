@@ -79,7 +79,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     
     // Calculate average score across all panel members
     const allScores = grades.panelGrades.map(panelGrade => {
-      const scores = Object.values(panelGrade.grades).filter(s => s > 0);
+      const scores = Object.values(panelGrade.grades).filter(s => typeof s === 'number' && s >= 0);
       return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
     });
     
@@ -88,19 +88,22 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
 
   const getCheckboxSummary = (candidateId: string) => {
     const grades = interviewGrades[candidateId];
-    if (!grades || !grades.panelGrades.length) return {};
+    if (!grades || !grades.panelGrades.length) return { total: 0, breakdown: {} };
     
     const checkboxKeys: (keyof InterviewCheckboxes)[] = [
       'pastExperience', 'roleKnowledge', 'leadershipSkills', 'creativeOutlook', 'timeManagement'
     ];
     
-    const summary: Record<string, number> = {};
+    const breakdown: Record<string, number> = {};
+    let totalChecked = 0;
+    
     checkboxKeys.forEach(key => {
       const checkedCount = grades.panelGrades.filter(pg => pg.checkboxes && pg.checkboxes[key]).length;
-      summary[key] = checkedCount;
+      breakdown[key] = checkedCount;
+      if (checkedCount > 0) totalChecked++;
     });
     
-    return summary;
+    return { total: totalChecked, breakdown };
   };
 
   const groupedByPosition = applications.reduce((acc, app) => {
@@ -170,6 +173,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                         <TableHead className="text-gray-700">Interview Score</TableHead>
                         <TableHead className="text-gray-700">Total Score</TableHead>
                         <TableHead className="text-gray-700">Assessment</TableHead>
+                        <TableHead className="text-gray-700">Criteria Met</TableHead>
                         <TableHead className="text-gray-700">Feedback</TableHead>
                         <TableHead className="text-gray-700">Status</TableHead>
                       </TableRow>
@@ -225,38 +229,46 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                       <div className="grid grid-cols-1 gap-3">
                                         <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                           <span className="text-sm">Past Experience or attendance at SAC events</span>
-                                          <Badge variant={checkboxSummary.pastExperience > 0 ? "default" : "secondary"}>
-                                            {checkboxSummary.pastExperience || 0} panel member(s)
+                                          <Badge variant={checkboxSummary.breakdown.pastExperience > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.breakdown.pastExperience || 0} panel member(s)
                                           </Badge>
                                         </div>
                                         <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                           <span className="text-sm">Good knowledge of tasks involved for the role</span>
-                                          <Badge variant={checkboxSummary.roleKnowledge > 0 ? "default" : "secondary"}>
-                                            {checkboxSummary.roleKnowledge || 0} panel member(s)
+                                          <Badge variant={checkboxSummary.breakdown.roleKnowledge > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.breakdown.roleKnowledge || 0} panel member(s)
                                           </Badge>
                                         </div>
                                         <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                           <span className="text-sm">Good leadership skills and leadership experience</span>
-                                          <Badge variant={checkboxSummary.leadershipSkills > 0 ? "default" : "secondary"}>
-                                            {checkboxSummary.leadershipSkills || 0} panel member(s)
+                                          <Badge variant={checkboxSummary.breakdown.leadershipSkills > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.breakdown.leadershipSkills || 0} panel member(s)
                                           </Badge>
                                         </div>
                                         <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                           <span className="text-sm">Creative and energetic outlook for the tasks required for this role</span>
-                                          <Badge variant={checkboxSummary.creativeOutlook > 0 ? "default" : "secondary"}>
-                                            {checkboxSummary.creativeOutlook || 0} panel member(s)
+                                          <Badge variant={checkboxSummary.breakdown.creativeOutlook > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.breakdown.creativeOutlook || 0} panel member(s)
                                           </Badge>
                                         </div>
                                         <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                           <span className="text-sm">Seems organized and manages time well</span>
-                                          <Badge variant={checkboxSummary.timeManagement > 0 ? "default" : "secondary"}>
-                                            {checkboxSummary.timeManagement || 0} panel member(s)
+                                          <Badge variant={checkboxSummary.breakdown.timeManagement > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.breakdown.timeManagement || 0} panel member(s)
                                           </Badge>
                                         </div>
                                       </div>
                                     </div>
                                   </DialogContent>
                                 </Dialog>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={checkboxSummary.total > 2 ? "default" : "secondary"}
+                                  className={checkboxSummary.total > 2 ? "bg-green-100 text-green-800" : ""}
+                                >
+                                  {checkboxSummary.total}/5
+                                </Badge>
                               </TableCell>
                               <TableCell>
                                 <Dialog>

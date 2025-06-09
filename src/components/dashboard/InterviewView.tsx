@@ -62,7 +62,6 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   };
 
   const getUpcomingInterviews = () => {
-    // Mock data for upcoming interviews with correct 8-minute time slots
     const scheduledApps = applications.filter(app => app.interviewScheduled);
     return scheduledApps.map((app, index) => ({
       ...app,
@@ -72,24 +71,28 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   };
 
   const getEndTime = (startTime: string) => {
-    // Convert start time to minutes and add 8 minutes
+    // Parse start time
     const [time, period] = startTime.split(' ');
     const [hours, minutes] = time.split(':').map(Number);
     
-    let totalMinutes = (hours % 12) * 60 + minutes;
-    if (period === 'PM' && hours !== 12) totalMinutes += 12 * 60;
-    if (period === 'AM' && hours === 12) totalMinutes -= 12 * 60;
+    // Convert to 24-hour format
+    let totalMinutes = hours * 60 + minutes;
+    if (period === 'PM' && hours !== 12) {
+      totalMinutes += 12 * 60;
+    } else if (period === 'AM' && hours === 12) {
+      totalMinutes -= 12 * 60;
+    }
     
     // Add 8 minutes
     totalMinutes += 8;
     
-    // Convert back to time format
-    const endHours = Math.floor(totalMinutes / 60);
+    // Convert back to 12-hour format
+    const endHours24 = Math.floor(totalMinutes / 60);
     const endMins = totalMinutes % 60;
-    const endPeriod = endHours >= 12 ? 'PM' : 'AM';
-    const displayHours = endHours > 12 ? endHours - 12 : endHours === 0 ? 12 : endHours;
+    const endPeriod = endHours24 >= 12 ? 'PM' : 'AM';
+    const endHours12 = endHours24 > 12 ? endHours24 - 12 : endHours24 === 0 ? 12 : endHours24;
     
-    return `${displayHours}:${endMins.toString().padStart(2, '0')} ${endPeriod}`;
+    return `${endHours12}:${endMins.toString().padStart(2, '0')} ${endPeriod}`;
   };
 
   if (showScheduler && selectedPosition) {
@@ -213,7 +216,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                       <p className="text-sm text-gray-600">
                         {candidate.position} • Grade {candidate.userProfile?.grade}
                       </p>
-                      <p className="text-sm text-blue-600">
+                      <p className="text-sm text-blue-600 font-medium">
                         Today {candidate.timeSlot} - {candidate.endTime}
                       </p>
                     </div>
