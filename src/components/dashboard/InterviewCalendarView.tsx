@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,10 +42,12 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
 
   const { toast } = useToast();
 
-  // Time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
+  // 8-minute intervals: 11:05 AM - 12:03 PM and 3:00 PM - 5:00 PM
   const timeSlots = [
-    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
-    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
+    // Morning slots: 11:05 - 12:03
+    '11:05 AM', '11:13 AM', '11:21 AM', '11:29 AM', '11:37 AM', '11:45 AM', '11:53 AM',
+    // Afternoon slots: 3:00 - 5:00
+    '3:00 PM', '3:08 PM', '3:16 PM', '3:24 PM', '3:32 PM', '3:40 PM', '3:48 PM', '3:56 PM', '4:04 PM', '4:12 PM', '4:20 PM', '4:28 PM', '4:36 PM', '4:44 PM', '4:52 PM'
   ];
 
   // Fetch executives
@@ -210,7 +211,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
             Interview Calendar
           </h1>
           <p className="text-gray-600">
-            View and manage all scheduled interviews
+            View and manage all scheduled interviews (8-minute slots)
           </p>
         </div>
       </div>
@@ -248,7 +249,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
                 Interviews for {selectedDate?.toLocaleDateString() || 'Select a date'}
               </CardTitle>
               <CardDescription>
-                Scheduled interviews for the selected date
+                Scheduled interviews for the selected date (8 minutes each)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -302,7 +303,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
                               </div>
 
                               <div>
-                                <Label>Time Slot</Label>
+                                <Label>Time Slot (8 minutes)</Label>
                                 <Select value={newTimeSlot} onValueChange={setNewTimeSlot}>
                                   <SelectTrigger>
                                     <SelectValue placeholder="Select time" />

@@ -47,9 +47,12 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
   const { toast } = useToast();
 
+  // 8-minute intervals: 11:05 AM - 12:03 PM and 3:00 PM - 5:00 PM
   const timeSlots = [
-    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
-    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
+    // Morning slots: 11:05 - 12:03
+    '11:05 AM', '11:13 AM', '11:21 AM', '11:29 AM', '11:37 AM', '11:45 AM', '11:53 AM',
+    // Afternoon slots: 3:00 - 5:00
+    '3:00 PM', '3:08 PM', '3:16 PM', '3:24 PM', '3:32 PM', '3:40 PM', '3:48 PM', '3:56 PM', '4:04 PM', '4:12 PM', '4:20 PM', '4:28 PM', '4:36 PM', '4:44 PM', '4:52 PM'
   ];
 
   const isWeekday = (date: Date) => {
@@ -348,7 +351,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
             <CardHeader>
               <CardTitle>Schedule Interview</CardTitle>
               <CardDescription>
-                Select date, time, and panel members for interviews
+                Select date, time, and panel members for interviews (8-minute slots)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -368,7 +371,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
               {selectedDate && (
                 <div>
-                  <Label className="text-sm font-medium">Time Slot</Label>
+                  <Label className="text-sm font-medium">Time Slot (8 minutes each)</Label>
                   <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select time" />
