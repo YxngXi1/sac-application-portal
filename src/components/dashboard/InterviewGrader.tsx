@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, User, Star, CheckCircle, Users } from 'lucide-react';
 import { ApplicationData } from '@/services/applicationService';
-import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -40,7 +40,7 @@ interface InterviewGrades {
 }
 
 const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) => {
-  const { currentUser } = useAuth();
+  const { user } = useAuth();
   const [grades, setGrades] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState('');
   const [checkboxes, setCheckboxes] = useState<InterviewCheckboxes>({
@@ -54,11 +54,59 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
   const [panelGrades, setPanelGrades] = useState<PanelMemberGrade[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const questions = [
-    "Tell us about yourself and why you are interested in this position.",
-    "The Fraser Games was brought back this year by our Athletics Liaison. Say you become the Athletics Liaison, and you have spent weeks planning this event, but the assigned SAC and FAC volunteers haven't shown up to a station. What would you do?",
-    "How would you handle a situation where the Athletics Council and SAC have different opinions about an event or project? How would you help both sides reach an agreement?"
-  ];
+  const getQuestionsForPosition = (position: string) => {
+    const questionSets: Record<string, string[]> = {
+      'Promotions Officer': [
+        "Explain the promotional material you created and why you feel it is beneficial for promoting the SAC event.",
+        "Can you give an example of a time when you had to plan something under tight deadlines? What steps did you take to ensure it was done well, and what did you learn from that experience? In other words, can you get work done quickly and efficiently?",
+        "What do you think is the biggest challenge in getting students excited about school events, and how would you approach solving it?",
+        "If you were to look back at the end of the year, what would success as a promotions officer look like for you? What would you want to be remembered for?"
+      ],
+      'Photography Exec': [
+        "Photography can involve a lot of behind-the-scenes work—like editing and sorting photos quickly. How do you manage your time and stay organized with these tasks?",
+        "Can you walk us through your experience with photography? What types of photos do you most enjoy taking, and why?",
+        "School events are often fast-paced and unpredictable. How would you ensure you're able to capture the most important and interesting moments?",
+        "Imagine you are at an SAC event and all your members are having fun, but your duty is to take photos for the event, how would you manage this?",
+        "Can you think of a new way that photos or photography could be more visible in the school other than on social media?"
+      ],
+      'Secretary': [
+        "Imagine you're faced with several tasks at once—taking minutes during a meeting, managing event sign-ups, and updating the council's calendar. How would you prioritize and manage these tasks to ensure they're all done well?",
+        "Tell me about a time you made a mistake in organizing or managing information. How did you address it and what did you learn from the experience?",
+        "Being detail-oriented is key for a secretary. Can you give me an example of a time when paying attention to the small details made a big difference?",
+        "The current role of the Secretary, outside of Council meetings, is to update the SAC website, publish meeting agendas, and draft up announcements for SAC. What other responsibilities as secretary do you want to take on and how can you put your head down, stay motivated, and work?",
+        "Sometimes the secretary's job can be slow depending on the time of year. How else can you play a big role in council when you aren't doing secretarial work?"
+      ],
+      'Treasurer': [
+        "What's one idea you have for using the treasurer role to make a positive impact on the student council and the school? Write a few sentences explaining your idea and how you'd make it happen.",
+        "With emerging technology developed by this year's Council, and the role of the Treasurer becoming more limited and with less responsibilities, what do you propose that the treasurer for the 2025/2026 year take on? These responsibilities can include the continuity of current responsibilities or new responsibilities.",
+        "Our members contribute cash in the fall for SAC snacks. How would you ensure this money would last the school year and be accounted for."
+      ],
+      'Community Outreach': [
+        "Community outreach often means connecting with many different people. How do you approach building relationships with people you don't know well?",
+        "Community outreach requires strong communication and relationship-building skills. Share an example of a time when you successfully worked with others to achieve a goal",
+        "Food drives are a common community outreach activity. If you were responsible for organizing a food drive at John Fraser, how would you plan it to make sure it's successful and engages as many students as possible?"
+      ],
+      'Athletics Liaison': [
+        "Being the Athletics Liaison is a very innovative position, and the Athletics Liaisons in the last couple of years have created new events that have had great turnouts. For example, one liaison created the Spring Dance, while the other created the Fraser Games. What ideas do you have for this role? If you would create an event, or improve an existing one, how would you do so?",
+        "The Fraser Games was brought back this year by our Athletics Liaison. Say you become the Athletics Liaison, and you have spent weeks planning this event, but the assigned SAC and FAC volunteers haven't shown up to a station. What would you do?",
+        "How would you handle a situation where the Athletics Council and SAC have different opinions about an event or project? How would you help both sides reach an agreement?"
+      ],
+      'Arts Liaison': [
+        "If you could only run one major event this year, how would you choose what it is, and what would you prioritize in planning it?",
+        "Tell us about a time you had to mediate between creative differences in a team. How did you approach it?",
+        "If you had to plan a collaborative event with the Music or Drama department, what would it look like?",
+        "If you could change how the school values or supports the arts, what would you do—and how would you make it happen?"
+      ]
+    };
+
+    return questionSets[position] || [
+      "Tell us about yourself and why you are interested in this position.",
+      "How would you handle challenges in this role?",
+      "What makes you a good fit for this position?"
+    ];
+  };
+
+  const questions = getQuestionsForPosition(candidate.position);
 
   useEffect(() => {
     const loadExistingGrades = async () => {
@@ -69,7 +117,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
           setPanelGrades(data.panelGrades || []);
           
           // Check if current user has already submitted
-          const existingGrade = data.panelGrades?.find(pg => pg.panelMemberId === currentUser?.uid);
+          const existingGrade = data.panelGrades?.find(pg => pg.panelMemberId === user?.uid);
           if (existingGrade) {
             setGrades(existingGrade.grades);
             setCheckboxes(existingGrade.checkboxes);
@@ -82,10 +130,10 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
       }
     };
 
-    if (currentUser) {
+    if (user) {
       loadExistingGrades();
     }
-  }, [candidate.id, currentUser]);
+  }, [candidate.id, user]);
 
   const handleGradeChange = (questionIndex: number, score: number) => {
     setGrades(prev => ({
@@ -102,13 +150,13 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
   };
 
   const handleSubmit = async () => {
-    if (!currentUser) return;
+    if (!user) return;
 
     setSubmitting(true);
     try {
       const newGrade: PanelMemberGrade = {
-        panelMemberId: currentUser.uid,
-        panelMemberName: currentUser.displayName || currentUser.email || 'Unknown',
+        panelMemberId: user.uid,
+        panelMemberName: user.displayName || user.email || 'Unknown',
         grades,
         checkboxes,
         feedback,
@@ -126,7 +174,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
         updatedPanelGrades = existingData.panelGrades || [];
         
         // Remove existing grade from this panel member if it exists
-        updatedPanelGrades = updatedPanelGrades.filter(pg => pg.panelMemberId !== currentUser.uid);
+        updatedPanelGrades = updatedPanelGrades.filter(pg => pg.panelMemberId !== user.uid);
         updatedPanelGrades.push(newGrade);
       } else {
         updatedPanelGrades = [newGrade];
@@ -146,7 +194,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
         averageScore
       };
 
-      await updateDoc(gradeDocRef, interviewGradeData);
+      await setDoc(gradeDocRef, interviewGradeData);
       
       setPanelGrades(updatedPanelGrades);
       setHasSubmitted(true);
@@ -172,7 +220,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
     const currentScore = grades[`question_${questionIndex}`] || 0;
     
     return (
-      <div className="grid grid-cols-6 gap-2 mt-4">
+      <div className="grid grid-cols-11 gap-2 mt-4">
         {[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((score) => (
           <Button
             key={score}
@@ -181,7 +229,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
             onClick={() => handleGradeChange(questionIndex, score)}
             className={`h-10 text-sm font-medium transition-all duration-200 ${
               currentScore === score 
-                ? 'bg-blue-600 text-white shadow-md scale-105' 
+                ? 'bg-blue-600 text-white shadow-md scale-105 border-blue-600' 
                 : 'hover:bg-blue-50 hover:border-blue-300 hover:scale-102'
             }`}
             disabled={hasSubmitted}
@@ -230,7 +278,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="max-w-7xl mx-auto p-8 pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
@@ -327,40 +375,6 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                 />
               </CardContent>
             </Card>
-
-            {/* Fixed Submit Button */}
-            <div className="sticky bottom-8 z-10">
-              <Card className="border shadow-lg bg-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      {isFormComplete() 
-                        ? hasSubmitted 
-                          ? "✅ Grades have been submitted successfully" 
-                          : "✅ All fields completed - ready to submit"
-                        : "⚠️ Please complete all questions and provide feedback"
-                      }
-                    </div>
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={!isFormComplete() || submitting || hasSubmitted}
-                      className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-3 font-medium shadow-md"
-                    >
-                      {submitting ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Submitting...
-                        </>
-                      ) : hasSubmitted ? (
-                        'Submitted'
-                      ) : (
-                        'Submit My Grades'
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
 
           {/* Sidebar */}
@@ -376,7 +390,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {panelGrades.map((grade) => {
-                    const isCurrentUser = grade.panelMemberId === currentUser?.uid;
+                    const isCurrentUser = grade.panelMemberId === user?.uid;
                     const avgScore = Object.values(grade.grades).length > 0 
                       ? (Object.values(grade.grades).reduce((sum, s) => sum + s, 0) / Object.values(grade.grades).length).toFixed(1)
                       : '0.0';
@@ -412,6 +426,38 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                 </CardContent>
               </Card>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Fixed Submit Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              {isFormComplete() 
+                ? hasSubmitted 
+                  ? "✅ Grades have been submitted successfully" 
+                  : "✅ All fields completed - ready to submit"
+                : "⚠️ Please complete all questions and provide feedback"
+              }
+            </div>
+            <Button
+              onClick={handleSubmit}
+              disabled={!isFormComplete() || submitting || hasSubmitted}
+              className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-3 font-medium shadow-md"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </>
+              ) : hasSubmitted ? (
+                'Submitted'
+              ) : (
+                'Submit My Grades'
+              )}
+            </Button>
           </div>
         </div>
       </div>
