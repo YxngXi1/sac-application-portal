@@ -28,6 +28,14 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     'Athletics Liaison', 'Promotions Officer', 'Photography Exec'
   ];
 
+  // 8-minute intervals: 11:05 AM - 12:03 PM and 3:00 PM - 5:00 PM
+  const timeSlots = [
+    // Morning slots: 11:05 - 12:03
+    '11:05 AM', '11:13 AM', '11:21 AM', '11:29 AM', '11:37 AM', '11:45 AM', '11:53 AM',
+    // Afternoon slots: 3:00 - 5:00
+    '3:00 PM', '3:08 PM', '3:16 PM', '3:24 PM', '3:32 PM', '3:40 PM', '3:48 PM', '3:56 PM', '4:04 PM', '4:12 PM', '4:20 PM', '4:28 PM', '4:36 PM', '4:44 PM', '4:52 PM'
+  ];
+
   useEffect(() => {
     const loadApplications = async () => {
       try {
@@ -54,8 +62,34 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   };
 
   const getUpcomingInterviews = () => {
-    // Mock data for upcoming interviews
-    return applications.filter(app => app.interviewScheduled);
+    // Mock data for upcoming interviews with correct 8-minute time slots
+    const scheduledApps = applications.filter(app => app.interviewScheduled);
+    return scheduledApps.map((app, index) => ({
+      ...app,
+      timeSlot: timeSlots[index % timeSlots.length],
+      endTime: getEndTime(timeSlots[index % timeSlots.length])
+    }));
+  };
+
+  const getEndTime = (startTime: string) => {
+    // Convert start time to minutes and add 8 minutes
+    const [time, period] = startTime.split(' ');
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    let totalMinutes = (hours % 12) * 60 + minutes;
+    if (period === 'PM' && hours !== 12) totalMinutes += 12 * 60;
+    if (period === 'AM' && hours === 12) totalMinutes -= 12 * 60;
+    
+    // Add 8 minutes
+    totalMinutes += 8;
+    
+    // Convert back to time format
+    const endHours = Math.floor(totalMinutes / 60);
+    const endMins = totalMinutes % 60;
+    const endPeriod = endHours >= 12 ? 'PM' : 'AM';
+    const displayHours = endHours > 12 ? endHours - 12 : endHours === 0 ? 12 : endHours;
+    
+    return `${displayHours}:${endMins.toString().padStart(2, '0')} ${endPeriod}`;
   };
 
   if (showScheduler && selectedPosition) {
@@ -146,7 +180,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             Interview Management
           </h1>
           <p className="text-gray-600">
-            Schedule and manage candidate interviews
+            Schedule and manage candidate interviews (8-minute slots)
           </p>
         </div>
       </div>
@@ -160,7 +194,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               Upcoming Interviews
             </CardTitle>
             <CardDescription>
-              Scheduled interviews for today and upcoming dates
+              Scheduled interviews for today and upcoming dates (8 minutes each)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -180,7 +214,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                         {candidate.position} • Grade {candidate.userProfile?.grade}
                       </p>
                       <p className="text-sm text-blue-600">
-                        Today 2:00 PM - 2:30 PM
+                        Today {candidate.timeSlot} - {candidate.endTime}
                       </p>
                     </div>
                     <Button
