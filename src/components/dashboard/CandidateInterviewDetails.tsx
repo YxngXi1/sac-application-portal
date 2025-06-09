@@ -133,6 +133,9 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
     timeManagement: 'Seems organized and manages time well'
   };
 
+  // Get application feedback safely
+  const applicationFeedback = (candidate as any).feedback || null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -179,10 +182,10 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                   {applicationScore.toFixed(1)}/10
                 </Badge>
               </div>
-              {candidate.feedback && (
+              {applicationFeedback && (
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-2">Executive Feedback</h4>
-                  <p className="text-gray-700">{candidate.feedback}</p>
+                  <p className="text-gray-700">{applicationFeedback}</p>
                 </div>
               )}
             </div>
