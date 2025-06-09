@@ -1,14 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Award, TrendingUp, MessageSquare, CheckSquare, User } from 'lucide-react';
+import { ArrowLeft, Award, TrendingUp, MessageSquare, CheckSquare, User, Eye } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import CandidateInterviewDetails from './CandidateInterviewDetails';
 
 interface InterviewResultsProps {
   onBack: () => void;
@@ -41,6 +41,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [interviewGrades, setInterviewGrades] = useState<Record<string, InterviewGrades>>({});
   const [loading, setLoading] = useState(true);
+  const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -114,6 +115,15 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     return acc;
   }, {} as Record<string, ApplicationData[]>);
 
+  if (selectedCandidate) {
+    return (
+      <CandidateInterviewDetails
+        candidate={selectedCandidate}
+        onBack={() => setSelectedCandidate(null)}
+      />
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -176,6 +186,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                         <TableHead className="text-gray-700">Criteria Met</TableHead>
                         <TableHead className="text-gray-700">Feedback</TableHead>
                         <TableHead className="text-gray-700">Status</TableHead>
+                        <TableHead className="text-gray-700">Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -198,7 +209,12 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                           return (
                             <TableRow key={candidate.id} className="border-gray-200">
                               <TableCell className="font-medium text-gray-900">
-                                {candidate.userProfile?.fullName || 'N/A'}
+                                <button
+                                  onClick={() => setSelectedCandidate(candidate)}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                                >
+                                  {candidate.userProfile?.fullName || 'N/A'}
+                                </button>
                               </TableCell>
                               <TableCell className="text-gray-700">
                                 {candidate.userProfile?.grade || 'N/A'}
@@ -316,6 +332,16 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                 >
                                   {index === 0 ? 'Recommended' : 'Interviewed'}
                                 </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedCandidate(candidate)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Details
+                                </Button>
                               </TableCell>
                             </TableRow>
                           );
