@@ -4,24 +4,65 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Award, TrendingUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ArrowLeft, Award, TrendingUp, MessageSquare, CheckSquare, User } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface InterviewResultsProps {
   onBack: () => void;
 }
 
+interface InterviewCheckboxes {
+  pastExperience: boolean;
+  roleKnowledge: boolean;
+  leadershipSkills: boolean;
+  creativeOutlook: boolean;
+  timeManagement: boolean;
+}
+
+interface PanelMemberGrade {
+  panelMemberId: string;
+  panelMemberName: string;
+  grades: Record<string, number>;
+  checkboxes: InterviewCheckboxes;
+  feedback: string;
+  submittedAt: Date;
+}
+
+interface InterviewGrades {
+  candidateId: string;
+  panelGrades: PanelMemberGrade[];
+  averageScore: number;
+}
+
 const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
   const [applications, setApplications] = useState<ApplicationData[]>([]);
+  const [interviewGrades, setInterviewGrades] = useState<Record<string, InterviewGrades>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadApplications = async () => {
+    const loadData = async () => {
       try {
         const allApplications = await getAllApplications();
         // Filter for interviewed candidates
         const interviewed = allApplications.filter(app => app.interviewScheduled);
         setApplications(interviewed);
+
+        // Load interview grades for each candidate
+        const gradesData: Record<string, InterviewGrades> = {};
+        for (const app of interviewed) {
+          try {
+            const gradeDoc = await getDoc(doc(db, 'interviewGrades', app.id));
+            if (gradeDoc.exists()) {
+              gradesData[app.id] = gradeDoc.data() as InterviewGrades;
+            }
+          } catch (error) {
+            console.error(`Error loading grades for ${app.id}:`, error);
+          }
+        }
+        setInterviewGrades(gradesData);
       } catch (error) {
         console.error('Error loading applications:', error);
       } finally {
@@ -29,8 +70,38 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
       }
     };
 
-    loadApplications();
+    loadData();
   }, []);
+
+  const getInterviewScore = (candidateId: string): number => {
+    const grades = interviewGrades[candidateId];
+    if (!grades || !grades.panelGrades.length) return 0;
+    
+    // Calculate average score across all panel members
+    const allScores = grades.panelGrades.map(panelGrade => {
+      const scores = Object.values(panelGrade.grades).filter(s => s > 0);
+      return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+    });
+    
+    return allScores.length > 0 ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length : 0;
+  };
+
+  const getCheckboxSummary = (candidateId: string) => {
+    const grades = interviewGrades[candidateId];
+    if (!grades || !grades.panelGrades.length) return {};
+    
+    const checkboxKeys: (keyof InterviewCheckboxes)[] = [
+      'pastExperience', 'roleKnowledge', 'leadershipSkills', 'creativeOutlook', 'timeManagement'
+    ];
+    
+    const summary: Record<string, number> = {};
+    checkboxKeys.forEach(key => {
+      const checkedCount = grades.panelGrades.filter(pg => pg.checkboxes && pg.checkboxes[key]).length;
+      summary[key] = checkedCount;
+    });
+    
+    return summary;
+  };
 
   const groupedByPosition = applications.reduce((acc, app) => {
     if (!acc[app.position]) {
@@ -95,24 +166,27 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                       <TableRow className="border-gray-200">
                         <TableHead className="text-gray-700">Candidate</TableHead>
                         <TableHead className="text-gray-700">Grade</TableHead>
-                        <TableHead className="text-gray-700">Student #</TableHead>
-                        <TableHead className="text-gray-700">Program</TableHead>
                         <TableHead className="text-gray-700">Application Score</TableHead>
                         <TableHead className="text-gray-700">Interview Score</TableHead>
                         <TableHead className="text-gray-700">Total Score</TableHead>
+                        <TableHead className="text-gray-700">Assessment</TableHead>
+                        <TableHead className="text-gray-700">Feedback</TableHead>
                         <TableHead className="text-gray-700">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {candidates
                         .sort((a, b) => {
-                          const aTotal = (a.score || 0) + 85; // Mock interview score
-                          const bTotal = (b.score || 0) + 85;
+                          const aInterview = getInterviewScore(a.id);
+                          const bInterview = getInterviewScore(b.id);
+                          const aTotal = (a.score || 0) + (aInterview * 20); // Scale interview to 100
+                          const bTotal = (b.score || 0) + (bInterview * 20);
                           return bTotal - aTotal;
                         })
                         .map((candidate, index) => {
-                          const interviewScore = 85; // Mock interview score
-                          const totalScore = (candidate.score || 0) + interviewScore;
+                          const interviewScore = getInterviewScore(candidate.id);
+                          const totalScore = (candidate.score || 0) + (interviewScore * 20); // Scale interview to 100
+                          const checkboxSummary = getCheckboxSummary(candidate.id);
                           
                           return (
                             <TableRow key={candidate.id} className="border-gray-200">
@@ -122,26 +196,100 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                               <TableCell className="text-gray-700">
                                 {candidate.userProfile?.grade || 'N/A'}
                               </TableCell>
-                              <TableCell className="text-gray-700">
-                                {candidate.userProfile?.studentNumber || 'N/A'}
-                              </TableCell>
-                              <TableCell>
-                                {candidate.userProfile?.studentType && candidate.userProfile.studentType !== 'none' ? (
-                                  <Badge variant="outline" className="border-gray-300 text-gray-700">
-                                    {candidate.userProfile.studentType}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-gray-500">None</span>
-                                )}
-                              </TableCell>
                               <TableCell className="text-blue-600 font-medium">
                                 {candidate.score || 0}/100
                               </TableCell>
                               <TableCell className="text-blue-600 font-medium">
-                                {interviewScore}/100
+                                {interviewScore.toFixed(1)}/5
                               </TableCell>
                               <TableCell className="font-bold text-gray-900">
-                                {totalScore}/200
+                                {totalScore.toFixed(1)}/200
+                              </TableCell>
+                              <TableCell>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      <CheckSquare className="h-4 w-4 mr-1" />
+                                      View
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-2xl">
+                                    <DialogHeader>
+                                      <DialogTitle>Assessment Summary - {candidate.userProfile?.fullName}</DialogTitle>
+                                      <DialogDescription>Panel assessment criteria results</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div className="grid grid-cols-1 gap-3">
+                                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                          <span className="text-sm">Past Experience or attendance at SAC events</span>
+                                          <Badge variant={checkboxSummary.pastExperience > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.pastExperience || 0} panel member(s)
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                          <span className="text-sm">Good knowledge of tasks involved for the role</span>
+                                          <Badge variant={checkboxSummary.roleKnowledge > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.roleKnowledge || 0} panel member(s)
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                          <span className="text-sm">Good leadership skills and leadership experience</span>
+                                          <Badge variant={checkboxSummary.leadershipSkills > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.leadershipSkills || 0} panel member(s)
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                          <span className="text-sm">Creative and energetic outlook for the tasks required for this role</span>
+                                          <Badge variant={checkboxSummary.creativeOutlook > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.creativeOutlook || 0} panel member(s)
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                          <span className="text-sm">Seems organized and manages time well</span>
+                                          <Badge variant={checkboxSummary.timeManagement > 0 ? "default" : "secondary"}>
+                                            {checkboxSummary.timeManagement || 0} panel member(s)
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </TableCell>
+                              <TableCell>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                      <MessageSquare className="h-4 w-4 mr-1" />
+                                      View
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-3xl">
+                                    <DialogHeader>
+                                      <DialogTitle>Panel Feedback - {candidate.userProfile?.fullName}</DialogTitle>
+                                      <DialogDescription>Feedback from all panel members</DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                                      {interviewGrades[candidate.id]?.panelGrades?.filter(pg => pg.feedback).length > 0 ? (
+                                        interviewGrades[candidate.id].panelGrades
+                                          .filter(pg => pg.feedback)
+                                          .map((grade) => (
+                                            <div key={grade.panelMemberId} className="p-4 border rounded-lg">
+                                              <div className="flex items-center gap-2 mb-2">
+                                                <User className="h-4 w-4 text-gray-600" />
+                                                <span className="font-medium">{grade.panelMemberName}</span>
+                                                <span className="text-xs text-gray-500">
+                                                  {new Date(grade.submittedAt).toLocaleDateString()}
+                                                </span>
+                                              </div>
+                                              <p className="text-sm text-gray-800">{grade.feedback}</p>
+                                            </div>
+                                          ))
+                                      ) : (
+                                        <p className="text-gray-500 text-center py-4">No feedback available</p>
+                                      )}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
                               </TableCell>
                               <TableCell>
                                 <Badge 
