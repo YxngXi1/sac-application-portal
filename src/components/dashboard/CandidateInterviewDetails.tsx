@@ -126,7 +126,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
   }
 
   const questions = getInterviewQuestions(candidate.position);
-  const applicationScore = candidate.score || 0; // Show normal score, not divided by 10
+  const applicationScore = ((candidate.score || 0) / 100) * 10; // Convert to score out of 10
   const interviewScore = interviewGrades?.panelGrades?.length > 0 
     ? interviewGrades.panelGrades.map(pg => {
         const scores = Object.values(pg.grades).filter(s => typeof s === 'number' && s >= 0);
@@ -164,9 +164,9 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
           </div>
           <div className="flex gap-6 text-sm text-gray-600">
             <span>Grade: {candidate.userProfile?.grade || 'N/A'}</span>
-            <span>Application Score: {applicationScore}/100</span>
+            <span>Application Score: {applicationScore.toFixed(1)}/10</span>
             <span>Interview Score: {interviewScore.toFixed(1)}/5</span>
-            <span className="font-semibold">Total: {(applicationScore + interviewScore).toFixed(1)}/105</span>
+            <span className="font-semibold">Total: {(applicationScore + interviewScore).toFixed(1)}/15</span>
           </div>
         </div>
       </div>
@@ -188,7 +188,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <span className="font-medium">Application Score</span>
                 <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {applicationScore}/100
+                  {applicationScore.toFixed(1)}/10
                 </Badge>
               </div>
               {applicationFeedback && (
@@ -250,8 +250,8 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                                 )}
                               </TableCell>
                               <TableCell className="text-sm text-gray-600">
-                                {panelGrade.submittedAt ? 
-                                  new Date(panelGrade.submittedAt).toLocaleDateString() : 
+                                {panelGrade.submittedAt && !isNaN(panelGrade.submittedAt.getTime()) ? 
+                                  panelGrade.submittedAt.toLocaleDateString() : 
                                   'Not submitted'
                                 }
                               </TableCell>
@@ -333,8 +333,8 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                         <User className="h-4 w-4 text-gray-600" />
                         <span className="font-medium">{panelGrade.panelMemberName}</span>
                         <span className="text-xs text-gray-500">
-                          {panelGrade.submittedAt ? 
-                            new Date(panelGrade.submittedAt).toLocaleDateString() : 
+                          {panelGrade.submittedAt && !isNaN(panelGrade.submittedAt.getTime()) ? 
+                            panelGrade.submittedAt.toLocaleDateString() : 
                             'Date not available'
                           }
                         </span>
