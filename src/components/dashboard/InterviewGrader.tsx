@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, User, Clock, Star, Users, MessageSquare, CheckSquare } from 'lucide-react';
+import { ArrowLeft, User, Clock, Star, Users, MessageSquare, CheckSquare, Award, Target } from 'lucide-react';
 import { ApplicationData } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -119,7 +119,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadInterviewData = async () => {
+    const loadData = async () => {
       try {
         // Load panel members (executives)
         const usersRef = collection(db, 'users');
@@ -147,7 +147,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
       }
     };
 
-    loadInterviewData();
+    loadData();
   }, [candidate.id]);
 
   const loadInterviewGrades = async () => {
@@ -263,103 +263,122 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading interview...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading interview...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Enhanced Header */}
+      <div className="bg-white border-b shadow-lg px-8 py-6">
         <div className="max-w-6xl mx-auto">
-          <Button variant="ghost" onClick={onBack} className="mb-4">
+          <Button 
+            variant="ghost" 
+            onClick={onBack} 
+            className="mb-6 hover:bg-gray-100 transition-colors duration-200"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Interview View
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Interview Grading
-          </h1>
-          <p className="text-gray-600">
-            Grade the candidate's interview responses (Scale: 0-5 with 0.5 increments)
-          </p>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <Award className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Interview Grading
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Grade the candidate's interview responses (Scale: 0-5 with 0.5 increments)
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto p-8">
-        {/* Candidate Info */}
-        <Card className="mb-8 border shadow-sm bg-white">
-          <CardContent className="p-6">
+        {/* Enhanced Candidate Info */}
+        <Card className="mb-8 border-2 shadow-lg bg-gradient-to-r from-white to-gray-50">
+          <CardContent className="p-8">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-gray-600" />
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center shadow-md">
+                  <User className="h-8 w-8 text-gray-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
                     {candidate.userProfile?.fullName || 'N/A'}
                   </h2>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>Position: {candidate.position}</span>
+                  <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4" />
+                      <span className="font-medium">Position: {candidate.position}</span>
+                    </div>
                     <span>Grade {candidate.userProfile?.grade}</span>
                     <span>Student #{candidate.userProfile?.studentNumber}</span>
                   </div>
-                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 mt-1">
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 px-3 py-1 text-sm font-semibold">
                     Application Score: {candidate.score || 0}/100
                   </Badge>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-gray-900">
+              <div className="text-right bg-white rounded-xl p-6 shadow-md border">
+                <div className="text-3xl font-bold text-blue-600 mb-1">
                   {getMyScore().toFixed(1)}/5
                 </div>
-                <div className="text-sm text-gray-600">My Interview Score</div>
+                <div className="text-sm text-gray-600 font-medium">My Interview Score</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Questions and Grading */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Enhanced Questions and Grading */}
+          <div className="lg:col-span-2 space-y-8">
             {interviewQuestions.map((question, index) => {
               const otherGrades = getOtherPanelMemberGrades(question.id);
               const myScore = myGrades[question.id] || 0;
               
               return (
-                <Card key={question.id} className="border shadow-sm bg-white">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="text-lg">Question {index + 1}</span>
-                      <Badge variant="outline" className="border-gray-300">
+                <Card key={question.id} className="border-2 shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center justify-between text-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                          {index + 1}
+                        </div>
+                        <span>Question {index + 1}</span>
+                      </div>
+                      <Badge variant="outline" className="border-blue-300 text-blue-700 px-3 py-1">
                         Max: {question.maxScore} points
                       </Badge>
                     </CardTitle>
-                    <CardDescription className="text-base">
+                    <CardDescription className="text-base leading-relaxed mt-3 pl-11">
                       {question.question}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* My Grading */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <CardContent className="pt-0">
+                    <div className="space-y-6">
+                      {/* Enhanced My Grading */}
+                      <div className="bg-gray-50 rounded-xl p-6">
+                        <label className="block text-sm font-semibold text-gray-700 mb-4">
                           Your Score (0-{question.maxScore})
                         </label>
-                        <div className="flex gap-1">
+                        <div className="flex flex-wrap gap-2">
                           {Array.from({ length: 11 }, (_, i) => i * 0.5).map((score) => (
                             <Button
                               key={score}
                               variant={myScore === score ? "default" : "outline"}
                               size="sm"
                               onClick={() => handleScoreChange(question.id, score)}
-                              className={`min-w-[40px] ${myScore === score 
-                                ? "bg-blue-600 hover:bg-blue-700 text-white" 
-                                : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                              className={`min-w-[50px] h-10 font-semibold transition-all duration-200 ${myScore === score 
+                                ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md transform scale-105" 
+                                : "border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300"
                               }`}
                             >
                               {score}
@@ -368,19 +387,20 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                         </div>
                       </div>
 
-                      {/* Other Panel Members' Grades */}
+                      {/* Enhanced Other Panel Members' Grades */}
                       {otherGrades.length > 0 && (
-                        <div className="border-t pt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="border-t-2 border-gray-100 pt-6">
+                          <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                            <Users className="h-4 w-4" />
                             Other Panel Members
                           </label>
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {otherGrades.map((grade) => (
-                              <div key={grade.name} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <span className="text-sm font-medium">{grade.name}</span>
-                                <div className="flex items-center gap-1">
+                              <div key={grade.name} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <span className="text-sm font-medium text-gray-800">{grade.name}</span>
+                                <div className="flex items-center gap-2">
                                   <Star className="h-4 w-4 text-yellow-500" />
-                                  <span className="font-semibold">{grade.score}/5</span>
+                                  <span className="font-bold text-blue-600">{grade.score}/5</span>
                                 </div>
                               </div>
                             ))}
@@ -393,93 +413,103 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
               );
             })}
 
-            {/* Assessment Checkboxes */}
-            <Card className="border shadow-sm bg-white">
+            {/* Enhanced Assessment Checkboxes */}
+            <Card className="border-2 shadow-lg bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckSquare className="h-5 w-5 text-blue-600" />
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckSquare className="h-5 w-5 text-green-600" />
+                  </div>
                   Assessment Criteria
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-base pl-11">
                   Check all that apply to this candidate
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="pastExperience"
-                      checked={myCheckboxes.pastExperience}
-                      onCheckedChange={(checked) => handleCheckboxChange('pastExperience', checked as boolean)}
-                    />
-                    <label htmlFor="pastExperience" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Past Experience or attendance at SAC events
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="roleKnowledge"
-                      checked={myCheckboxes.roleKnowledge}
-                      onCheckedChange={(checked) => handleCheckboxChange('roleKnowledge', checked as boolean)}
-                    />
-                    <label htmlFor="roleKnowledge" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Good knowledge of tasks involved for the role
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="leadershipSkills"
-                      checked={myCheckboxes.leadershipSkills}
-                      onCheckedChange={(checked) => handleCheckboxChange('leadershipSkills', checked as boolean)}
-                    />
-                    <label htmlFor="leadershipSkills" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Good leadership skills and leadership experience
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="creativeOutlook"
-                      checked={myCheckboxes.creativeOutlook}
-                      onCheckedChange={(checked) => handleCheckboxChange('creativeOutlook', checked as boolean)}
-                    />
-                    <label htmlFor="creativeOutlook" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Creative and energetic outlook for the tasks required for this role
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="timeManagement"
-                      checked={myCheckboxes.timeManagement}
-                      onCheckedChange={(checked) => handleCheckboxChange('timeManagement', checked as boolean)}
-                    />
-                    <label htmlFor="timeManagement" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Seems organized and manages time well
-                    </label>
+              <CardContent className="space-y-6">
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                      <Checkbox 
+                        id="pastExperience"
+                        checked={myCheckboxes.pastExperience}
+                        onCheckedChange={(checked) => handleCheckboxChange('pastExperience', checked as boolean)}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="pastExperience" className="text-sm font-medium leading-relaxed cursor-pointer">
+                        Past Experience or attendance at SAC events
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                      <Checkbox 
+                        id="roleKnowledge"
+                        checked={myCheckboxes.roleKnowledge}
+                        onCheckedChange={(checked) => handleCheckboxChange('roleKnowledge', checked as boolean)}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="roleKnowledge" className="text-sm font-medium leading-relaxed cursor-pointer">
+                        Good knowledge of tasks involved for the role
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                      <Checkbox 
+                        id="leadershipSkills"
+                        checked={myCheckboxes.leadershipSkills}
+                        onCheckedChange={(checked) => handleCheckboxChange('leadershipSkills', checked as boolean)}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="leadershipSkills" className="text-sm font-medium leading-relaxed cursor-pointer">
+                        Good leadership skills and leadership experience
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                      <Checkbox 
+                        id="creativeOutlook"
+                        checked={myCheckboxes.creativeOutlook}
+                        onCheckedChange={(checked) => handleCheckboxChange('creativeOutlook', checked as boolean)}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="creativeOutlook" className="text-sm font-medium leading-relaxed cursor-pointer">
+                        Creative and energetic outlook for the tasks required for this role
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                      <Checkbox 
+                        id="timeManagement"
+                        checked={myCheckboxes.timeManagement}
+                        onCheckedChange={(checked) => handleCheckboxChange('timeManagement', checked as boolean)}
+                        className="w-5 h-5"
+                      />
+                      <label htmlFor="timeManagement" className="text-sm font-medium leading-relaxed cursor-pointer">
+                        Seems organized and manages time well
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Other Panel Members' Checkboxes */}
+                {/* Enhanced Other Panel Members' Checkboxes */}
                 {allPanelGrades.filter(g => g.panelMemberId !== userProfile?.uid && g.checkboxes).length > 0 && (
-                  <div className="border-t pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <div className="border-t-2 border-gray-100 pt-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
                       Other Panel Members' Assessments
                     </label>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {allPanelGrades
                         .filter(g => g.panelMemberId !== userProfile?.uid && g.checkboxes)
                         .map((grade) => (
-                          <div key={grade.panelMemberId} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="font-medium text-sm mb-2">{grade.panelMemberName}</div>
-                            <div className="grid grid-cols-1 gap-1 text-xs">
-                              {grade.checkboxes.pastExperience && <div>✓ Past Experience or attendance at SAC events</div>}
-                              {grade.checkboxes.roleKnowledge && <div>✓ Good knowledge of tasks involved for the role</div>}
-                              {grade.checkboxes.leadershipSkills && <div>✓ Good leadership skills and leadership experience</div>}
-                              {grade.checkboxes.creativeOutlook && <div>✓ Creative and energetic outlook for the tasks required for this role</div>}
-                              {grade.checkboxes.timeManagement && <div>✓ Seems organized and manages time well</div>}
+                          <div key={grade.panelMemberId} className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                            <div className="font-semibold text-sm mb-3 text-blue-800">{grade.panelMemberName}</div>
+                            <div className="grid grid-cols-1 gap-2 text-sm">
+                              {grade.checkboxes.pastExperience && <div className="flex items-center gap-2"><span className="text-green-600">✓</span> Past Experience or attendance at SAC events</div>}
+                              {grade.checkboxes.roleKnowledge && <div className="flex items-center gap-2"><span className="text-green-600">✓</span> Good knowledge of tasks involved for the role</div>}
+                              {grade.checkboxes.leadershipSkills && <div className="flex items-center gap-2"><span className="text-green-600">✓</span> Good leadership skills and leadership experience</div>}
+                              {grade.checkboxes.creativeOutlook && <div className="flex items-center gap-2"><span className="text-green-600">✓</span> Creative and energetic outlook for the tasks required for this role</div>}
+                              {grade.checkboxes.timeManagement && <div className="flex items-center gap-2"><span className="text-green-600">✓</span> Seems organized and manages time well</div>}
                             </div>
                           </div>
                         ))}
@@ -489,47 +519,50 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
               </CardContent>
             </Card>
 
-            {/* Panel Feedback Section */}
-            <Card className="border shadow-sm bg-white">
+            {/* Enhanced Panel Feedback Section */}
+            <Card className="border-2 shadow-lg bg-white">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-blue-600" />
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <MessageSquare className="h-5 w-5 text-purple-600" />
+                  </div>
                   Panel Feedback
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {/* My Feedback */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Your Feedback
                   </label>
                   <Textarea
                     value={myFeedback}
                     onChange={(e) => setMyFeedback(e.target.value)}
-                    className="w-full"
-                    rows={3}
+                    className="w-full border-2 border-gray-200 focus:border-blue-400 rounded-lg"
+                    rows={4}
                     placeholder="Enter your feedback about the candidate's interview performance..."
                   />
                 </div>
 
                 {/* Other Panel Members' Feedback */}
                 {allPanelGrades.filter(g => g.panelMemberId !== userProfile?.uid && g.feedback).length > 0 && (
-                  <div className="border-t pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <div className="border-t-2 border-gray-100 pt-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
                       Other Panel Members' Feedback
                     </label>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {allPanelGrades
                         .filter(g => g.panelMemberId !== userProfile?.uid && g.feedback)
                         .map((grade) => (
-                          <div key={grade.panelMemberId} className="p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-sm">{grade.panelMemberName}</span>
-                              <span className="text-xs text-gray-500">
+                          <div key={grade.panelMemberId} className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="font-semibold text-sm text-purple-800">{grade.panelMemberName}</span>
+                              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
                                 {new Date(grade.submittedAt).toLocaleString()}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-800">{grade.feedback}</p>
+                            <p className="text-sm text-gray-800 leading-relaxed">{grade.feedback}</p>
                           </div>
                         ))}
                     </div>
@@ -539,12 +572,14 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
             </Card>
           </div>
 
-          {/* Summary Panel */}
+          {/* Enhanced Summary Panel */}
           <div className="space-y-6">
-            <Card className="sticky top-8 border shadow-sm bg-white">
+            <Card className="sticky top-8 border-2 shadow-xl bg-gradient-to-br from-white to-gray-50">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-blue-600" />
+                <CardTitle className="flex items-center gap-3 text-xl">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Users className="h-5 w-5 text-blue-600" />
+                  </div>
                   Interview Panel
                 </CardTitle>
               </CardHeader>
@@ -563,21 +598,27 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                   }
                   
                   return (
-                    <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-600" />
+                    <div key={member.id} className={`flex items-center justify-between p-4 border-2 rounded-xl transition-all duration-200 ${
+                      isMe ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200 hover:border-gray-300'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          isMe ? 'bg-blue-200' : 'bg-gray-200'
+                        }`}>
+                          <User className="h-4 w-4 text-gray-600" />
+                        </div>
                         <span className="font-medium text-sm">
-                          {member.name} {isMe && '(You)'}
+                          {member.name} {isMe && <span className="text-blue-600 font-semibold">(You)</span>}
                         </span>
                       </div>
                       <div className="text-right">
                         {hasGraded ? (
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2">
                             <Star className="h-4 w-4 text-yellow-500" />
-                            <span className="font-semibold">{avgScore.toFixed(1)}/5</span>
+                            <span className="font-bold text-lg">{avgScore.toFixed(1)}/5</span>
                           </div>
                         ) : (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">
                             Pending
                           </Badge>
                         )}
@@ -588,14 +629,18 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
               </CardContent>
             </Card>
 
-            {/* Submit Button */}
+            {/* Enhanced Submit Button */}
             <Button
               onClick={handleSubmitGrades}
               size="lg"
-              className="w-full bg-gray-800 hover:bg-gray-900 text-white"
+              className={`w-full h-14 text-lg font-semibold transition-all duration-300 ${
+                Object.keys(myGrades).length === 0 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-gray-800 hover:to-gray-950 shadow-lg hover:shadow-xl transform hover:scale-105'
+              }`}
               disabled={Object.keys(myGrades).length === 0}
             >
-              Submit My Grades
+              {Object.keys(myGrades).length === 0 ? 'Complete Grading to Submit' : 'Submit My Grades'}
             </Button>
           </div>
         </div>
