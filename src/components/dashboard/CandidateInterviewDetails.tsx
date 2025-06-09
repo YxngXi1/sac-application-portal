@@ -93,7 +93,16 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
       try {
         const gradeDoc = await getDoc(doc(db, 'interviewGrades', candidate.id));
         if (gradeDoc.exists()) {
-          setInterviewGrades(gradeDoc.data() as InterviewGrades);
+          const data = gradeDoc.data() as InterviewGrades;
+          // Ensure proper date conversion
+          const processedData = {
+            ...data,
+            panelGrades: data.panelGrades.map(pg => ({
+              ...pg,
+              submittedAt: pg.submittedAt instanceof Date ? pg.submittedAt : new Date(pg.submittedAt)
+            }))
+          };
+          setInterviewGrades(processedData);
         }
       } catch (error) {
         console.error('Error loading interview grades:', error);
@@ -221,14 +230,18 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                       </TableHeader>
                       <TableBody>
                         {interviewGrades.panelGrades.map((panelGrade) => {
-                          const grade = panelGrade.grades[`question${index + 1}`];
+                          const questionKey = `question${index + 1}`;
+                          const grade = panelGrade.grades && panelGrade.grades[questionKey] !== undefined 
+                            ? panelGrade.grades[questionKey] 
+                            : null;
+                          
                           return (
                             <TableRow key={panelGrade.panelMemberId}>
                               <TableCell className="font-medium">
                                 {panelGrade.panelMemberName}
                               </TableCell>
                               <TableCell>
-                                {grade !== undefined ? (
+                                {grade !== null && grade !== undefined ? (
                                   <Badge variant="secondary" className="font-medium">
                                     {grade}/5
                                   </Badge>
@@ -237,7 +250,10 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                                 )}
                               </TableCell>
                               <TableCell className="text-sm text-gray-600">
-                                {new Date(panelGrade.submittedAt).toLocaleDateString()}
+                                {panelGrade.submittedAt ? 
+                                  new Date(panelGrade.submittedAt).toLocaleDateString() : 
+                                  'Not submitted'
+                                }
                               </TableCell>
                             </TableRow>
                           );
@@ -317,7 +333,10 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                         <User className="h-4 w-4 text-gray-600" />
                         <span className="font-medium">{panelGrade.panelMemberName}</span>
                         <span className="text-xs text-gray-500">
-                          {new Date(panelGrade.submittedAt).toLocaleDateString()}
+                          {panelGrade.submittedAt ? 
+                            new Date(panelGrade.submittedAt).toLocaleDateString() : 
+                            'Date not available'
+                          }
                         </span>
                       </div>
                       <p className="text-sm text-gray-800">{panelGrade.feedback}</p>
