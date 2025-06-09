@@ -179,13 +179,16 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                         .sort((a, b) => {
                           const aInterview = getInterviewScore(a.id);
                           const bInterview = getInterviewScore(b.id);
-                          const aTotal = (a.score || 0) + (aInterview * 20); // Scale interview to 100
-                          const bTotal = (b.score || 0) + (bInterview * 20);
+                          const aAppScore = ((a.score || 0) / 100) * 10; // Convert to /10
+                          const bAppScore = ((b.score || 0) / 100) * 10; // Convert to /10
+                          const aTotal = aAppScore + aInterview; // Total out of 15
+                          const bTotal = bAppScore + bInterview; // Total out of 15
                           return bTotal - aTotal;
                         })
                         .map((candidate, index) => {
                           const interviewScore = getInterviewScore(candidate.id);
-                          const totalScore = (candidate.score || 0) + (interviewScore * 20); // Scale interview to 100
+                          const applicationScore = ((candidate.score || 0) / 100) * 10; // Convert to /10
+                          const totalScore = applicationScore + interviewScore; // Total out of 15
                           const checkboxSummary = getCheckboxSummary(candidate.id);
                           
                           return (
@@ -197,13 +200,13 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                 {candidate.userProfile?.grade || 'N/A'}
                               </TableCell>
                               <TableCell className="text-blue-600 font-medium">
-                                {candidate.score || 0}/100
+                                {applicationScore.toFixed(1)}/10
                               </TableCell>
                               <TableCell className="text-blue-600 font-medium">
                                 {interviewScore.toFixed(1)}/5
                               </TableCell>
                               <TableCell className="font-bold text-gray-900">
-                                {totalScore.toFixed(1)}/200
+                                {totalScore.toFixed(1)}/15
                               </TableCell>
                               <TableCell>
                                 <Dialog>
