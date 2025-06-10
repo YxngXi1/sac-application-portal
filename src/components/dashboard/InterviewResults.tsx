@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Award, TrendingUp, MessageSquare, CheckSquare, User, Eye } from 'lucide-react';
+import { ArrowLeft, Award, TrendingUp, MessageSquare, CheckSquare, User, Eye, Printer } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -115,6 +115,257 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     return acc;
   }, {} as Record<string, ApplicationData[]>);
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = generatePrintContent();
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Interview Results Report</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #000;
+              background: white;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            .position-section { 
+              margin-bottom: 40px; 
+              page-break-inside: avoid;
+            }
+            .position-title { 
+              background: #f3f4f6; 
+              padding: 15px; 
+              margin-bottom: 20px;
+              border-left: 4px solid #2563eb;
+              font-size: 18px;
+              font-weight: bold;
+            }
+            .candidate { 
+              margin-bottom: 30px; 
+              border: 1px solid #e5e7eb;
+              padding: 20px;
+              page-break-inside: avoid;
+            }
+            .candidate-header { 
+              background: #f9fafb; 
+              padding: 15px; 
+              margin: -20px -20px 20px -20px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .grades-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+            }
+            .grades-table th, .grades-table td { 
+              border: 1px solid #d1d5db; 
+              padding: 8px; 
+              text-align: left;
+            }
+            .grades-table th { 
+              background: #f3f4f6; 
+              font-weight: bold;
+            }
+            .feedback-section { 
+              margin-top: 20px;
+            }
+            .feedback-item { 
+              background: #f8fafc; 
+              padding: 15px; 
+              margin: 10px 0;
+              border-left: 3px solid #3b82f6;
+            }
+            .criteria-grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 10px; 
+              margin: 15px 0;
+            }
+            .criteria-item { 
+              padding: 8px; 
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              font-size: 12px;
+            }
+            .score-summary { 
+              background: #eff6ff; 
+              padding: 15px; 
+              border: 1px solid #bfdbfe;
+              margin: 15px 0;
+            }
+            @media print {
+              body { margin: 0; }
+              .position-section { page-break-before: always; }
+              .candidate { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const generatePrintContent = () => {
+    const now = new Date();
+    let content = `
+      <div class="header">
+        <h1>Student Advisory Council - Interview Results Report</h1>
+        <p>Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}</p>
+      </div>
+    `;
+
+    Object.entries(groupedByPosition).forEach(([position, candidates]) => {
+      content += `
+        <div class="position-section">
+          <div class="position-title">${position}</div>
+      `;
+
+      const sortedCandidates = candidates.sort((a, b) => {
+        const aInterview = getInterviewScore(a.id);
+        const bInterview = getInterviewScore(b.id);
+        const aAppScore = ((a.score || 0) / 100) * 10;
+        const bAppScore = ((b.score || 0) / 100) * 10;
+        const aTotal = aAppScore + aInterview;
+        const bTotal = bAppScore + bInterview;
+        return bTotal - aTotal;
+      });
+
+      sortedCandidates.forEach((candidate, index) => {
+        const interviewScore = getInterviewScore(candidate.id);
+        const applicationScore = ((candidate.score || 0) / 100) * 10;
+        const totalScore = applicationScore + interviewScore;
+        const checkboxSummary = getCheckboxSummary(candidate.id);
+        const grades = interviewGrades[candidate.id];
+
+        content += `
+          <div class="candidate">
+            <div class="candidate-header">
+              <h3>${candidate.userProfile?.fullName || 'N/A'}</h3>
+              <p><strong>Grade:</strong> ${candidate.userProfile?.grade || 'N/A'} | 
+                 <strong>Student Number:</strong> ${candidate.userProfile?.studentNumber || 'N/A'} | 
+                 <strong>Ranking:</strong> ${index === 0 ? 'Recommended' : `#${index + 1}`}</p>
+            </div>
+
+            <div class="score-summary">
+              <h4>Score Summary</h4>
+              <p><strong>Application Score:</strong> ${applicationScore.toFixed(1)}/10</p>
+              <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/5</p>
+              <p><strong>Total Score:</strong> ${totalScore.toFixed(1)}/15</p>
+              <p><strong>Criteria Met:</strong> ${checkboxSummary.total}/5</p>
+            </div>
+
+            <div class="criteria-grid">
+              <div class="criteria-item">
+                <strong>Past Experience:</strong> ${checkboxSummary.breakdown.pastExperience || 0} panel member(s)
+              </div>
+              <div class="criteria-item">
+                <strong>Role Knowledge:</strong> ${checkboxSummary.breakdown.roleKnowledge || 0} panel member(s)
+              </div>
+              <div class="criteria-item">
+                <strong>Leadership Skills:</strong> ${checkboxSummary.breakdown.leadershipSkills || 0} panel member(s)
+              </div>
+              <div class="criteria-item">
+                <strong>Creative Outlook:</strong> ${checkboxSummary.breakdown.creativeOutlook || 0} panel member(s)
+              </div>
+              <div class="criteria-item">
+                <strong>Time Management:</strong> ${checkboxSummary.breakdown.timeManagement || 0} panel member(s)
+              </div>
+            </div>
+        `;
+
+        if (grades && grades.panelGrades && grades.panelGrades.length > 0) {
+          content += `
+            <h4>Individual Panel Member Grades</h4>
+            <table class="grades-table">
+              <thead>
+                <tr>
+                  <th>Panel Member</th>
+                  <th>Communication</th>
+                  <th>Leadership</th>
+                  <th>Knowledge</th>
+                  <th>Enthusiasm</th>
+                  <th>Experience</th>
+                  <th>Average</th>
+                  <th>Submitted</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          grades.panelGrades.forEach(panelGrade => {
+            const gradeValues = Object.values(panelGrade.grades).filter(g => typeof g === 'number' && g >= 0);
+            const avgGrade = gradeValues.length > 0 ? (gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length).toFixed(1) : 'N/A';
+            
+            content += `
+              <tr>
+                <td>${panelGrade.panelMemberName}</td>
+                <td>${panelGrade.grades.communication || 'N/A'}</td>
+                <td>${panelGrade.grades.leadership || 'N/A'}</td>
+                <td>${panelGrade.grades.knowledge || 'N/A'}</td>
+                <td>${panelGrade.grades.enthusiasm || 'N/A'}</td>
+                <td>${panelGrade.grades.experience || 'N/A'}</td>
+                <td>${avgGrade}</td>
+                <td>${new Date(panelGrade.submittedAt).toLocaleDateString()}</td>
+              </tr>
+            `;
+          });
+
+          content += `
+              </tbody>
+            </table>
+          `;
+
+          const feedbackEntries = grades.panelGrades.filter(pg => pg.feedback);
+          if (feedbackEntries.length > 0) {
+            content += `
+              <div class="feedback-section">
+                <h4>Panel Member Feedback</h4>
+            `;
+
+            feedbackEntries.forEach(grade => {
+              content += `
+                <div class="feedback-item">
+                  <strong>${grade.panelMemberName}</strong> - ${new Date(grade.submittedAt).toLocaleDateString()}
+                  <p>${grade.feedback}</p>
+                </div>
+              `;
+            });
+
+            content += `</div>`;
+          }
+        } else {
+          content += `<p><em>No interview grades available for this candidate.</em></p>`;
+        }
+
+        content += `</div>`;
+      });
+
+      content += `</div>`;
+    });
+
+    return content;
+  };
+
   if (selectedCandidate) {
     return (
       <CandidateInterviewDetails
@@ -140,10 +391,21 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
-          <Button variant="ghost" onClick={onBack} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Interview View
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="ghost" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Interview View
+            </Button>
+            
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print All Results
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Interview Results
           </h1>
