@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -511,11 +510,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
             <thead>
               <tr>
                 <th>Panel Member</th>
-                <th>Q1: Communication Skills</th>
-                <th>Q2: Leadership Experience</th>
-                <th>Q3: Role Knowledge</th>
-                <th>Q4: Enthusiasm</th>
-                <th>Q5: Past Experience</th>
                 <th>Average</th>
                 <th>Submitted</th>
               </tr>
@@ -530,11 +524,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           content += `
             <tr>
               <td>${panelGrade.panelMemberName}</td>
-              <td>${panelGrade.grades.communication !== undefined ? panelGrade.grades.communication : 'N/A'}</td>
-              <td>${panelGrade.grades.leadership !== undefined ? panelGrade.grades.leadership : 'N/A'}</td>
-              <td>${panelGrade.grades.knowledge !== undefined ? panelGrade.grades.knowledge : 'N/A'}</td>
-              <td>${panelGrade.grades.enthusiasm !== undefined ? panelGrade.grades.enthusiasm : 'N/A'}</td>
-              <td>${panelGrade.grades.experience !== undefined ? panelGrade.grades.experience : 'N/A'}</td>
               <td>${avgGrade}</td>
               <td>${new Date(panelGrade.submittedAt).toLocaleDateString()}</td>
             </tr>
