@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ interface ScheduledInterview {
   date: Date;
   timeSlot: string;
   endTime: string;
+  hasGrades?: boolean;
 }
 
 const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
@@ -84,6 +84,10 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             const data = interviewDoc.data();
             const interviewDate = data.date.toDate();
             
+            // Check if grades have been submitted for this interview
+            const gradeDoc = await getDoc(doc(db, 'interviewGrades', app.id));
+            const hasGrades = gradeDoc.exists() && gradeDoc.data()?.panelGrades?.length > 0;
+            
             interviews.push({
               candidateId: app.id,
               candidateName: app.userProfile?.fullName || 'Unknown',
@@ -92,7 +96,8 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               studentNumber: app.userProfile?.studentNumber || 'N/A',
               date: interviewDate,
               timeSlot: data.timeSlot,
-              endTime: getEndTime(data.timeSlot)
+              endTime: data.endTime || getEndTime(data.timeSlot),
+              hasGrades
             });
           }
         } catch (error) {
@@ -114,8 +119,25 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     const now = new Date();
     
     return scheduledInterviews.filter(interview => {
-      // Check if the interview date/time is in the future
+      // Show as upcoming if no grades have been submitted, regardless of time
+      if (!interview.hasGrades) {
+        return true;
+      }
+      
+      // If grades exist, check if the interview date/time is in the future
+      const [time, period] = interview.timeSlot.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
+      
+      let totalMinutes = hours * 60 + minutes;
+      if (period === 'PM' && hours !== 12) {
+        totalMinutes += 12 * 60;
+      } else if (period === 'AM' && hours === 12) {
+        totalMinutes -= 12 * 60;
+      }
+      
       const interviewDateTime = new Date(interview.date);
+      interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+      
       return interviewDateTime > now;
     });
   };
@@ -124,9 +146,29 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     const now = new Date();
     
     return scheduledInterviews.filter(interview => {
-      // Check if the interview date/time is in the past
+      // Only show as previous if grades have been submitted
+      if (!interview.hasGrades) {
+        return false;
+      }
+      
+      // Check if the interview date/time has passed
+      const [time, period] = interview.timeSlot.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
+      
+      let totalMinutes = hours * 60 + minutes;
+      if (period === 'PM' && hours !== 12) {
+        totalMinutes += 12 * 60;
+      } else if (period === 'AM' && hours === 12) {
+        totalMinutes -= 12 * 60;
+      }
+      
       const interviewDateTime = new Date(interview.date);
-      return interviewDateTime <= now;
+      interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+      
+      // Add 30 minutes buffer to consider it "previous"
+      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+      
+      return interviewDateTime <= thirtyMinutesAgo;
     });
   };
 
@@ -272,7 +314,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               Upcoming Interviews
             </CardTitle>
             <CardDescription>
-              Scheduled interviews for today and upcoming dates (8 minutes each with 2-minute buffer)
+              Scheduled interviews that haven't been completed yet (8 minutes each with 2-minute buffer)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -325,7 +367,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                 Previous Interviews
               </CardTitle>
               <CardDescription>
-                Completed interviews
+                Completed interviews with submitted grades
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -343,7 +385,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                         Completed: {formatDate(interview.date)} {interview.timeSlot} - {interview.endTime}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                    <Badge variant="secondary" className="bg-green-200 text-green-700">
                       Completed
                     </Badge>
                   </div>
