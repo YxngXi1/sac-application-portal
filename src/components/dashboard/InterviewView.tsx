@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,12 +28,12 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     'Athletics Liaison', 'Promotions Officer', 'Photography Exec'
   ];
 
-  // 8-minute intervals: 11:05 AM - 12:03 PM and 3:00 PM - 5:00 PM
+  // 8-minute interviews with 2-minute buffer (10-minute intervals): 11:05 AM - 12:05 PM and 3:00 PM - 5:00 PM
   const timeSlots = [
-    // Morning slots: 11:05 - 12:03
-    '11:05 AM', '11:13 AM', '11:21 AM', '11:29 AM', '11:37 AM', '11:45 AM', '11:53 AM',
-    // Afternoon slots: 3:00 - 5:00
-    '3:00 PM', '3:08 PM', '3:16 PM', '3:24 PM', '3:32 PM', '3:40 PM', '3:48 PM', '3:56 PM', '4:04 PM', '4:12 PM', '4:20 PM', '4:28 PM', '4:36 PM', '4:44 PM', '4:52 PM'
+    // Morning slots: 11:05 - 12:05 (6 slots)
+    '11:05 AM', '11:15 AM', '11:25 AM', '11:35 AM', '11:45 AM', '11:55 AM',
+    // Afternoon slots: 3:00 - 5:00 (12 slots)
+    '3:00 PM', '3:10 PM', '3:20 PM', '3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM'
   ];
 
   useEffect(() => {
@@ -218,7 +217,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             Interview Management
           </h1>
           <p className="text-gray-600">
-            Schedule and manage candidate interviews (8-minute slots)
+            Schedule and manage candidate interviews (8-minute slots with 2-minute buffer)
           </p>
         </div>
       </div>
@@ -232,7 +231,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               Upcoming Interviews
             </CardTitle>
             <CardDescription>
-              Scheduled interviews for today and upcoming dates (8 minutes each)
+              Scheduled interviews for today and upcoming dates (8 minutes each with 2-minute buffer)
             </CardDescription>
           </CardHeader>
           <CardContent>
