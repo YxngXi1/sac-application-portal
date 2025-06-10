@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, Clock, Users, Plus, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Plus, CheckCircle, XCircle, History } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
 import InterviewScheduler from './InterviewScheduler';
 import InterviewGrader from './InterviewGrader';
@@ -61,13 +62,46 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       .sort((a, b) => (b.score || 0) - (a.score || 0)); // Sort by score descending
   };
 
-  const getUpcomingInterviews = () => {
+  const getAllInterviews = () => {
     const scheduledApps = applications.filter(app => app.interviewScheduled);
     return scheduledApps.map((app, index) => ({
       ...app,
       timeSlot: timeSlots[index % timeSlots.length],
-      endTime: getEndTime(timeSlots[index % timeSlots.length])
+      endTime: getEndTime(timeSlots[index % timeSlots.length]),
+      interviewDateTime: new Date(2025, 1, 5, getHour(timeSlots[index % timeSlots.length]), getMinute(timeSlots[index % timeSlots.length]))
     }));
+  };
+
+  const getHour = (timeSlot: string) => {
+    const [time, period] = timeSlot.split(' ');
+    const [hours] = time.split(':').map(Number);
+    if (period === 'PM' && hours !== 12) return hours + 12;
+    if (period === 'AM' && hours === 12) return 0;
+    return hours;
+  };
+
+  const getMinute = (timeSlot: string) => {
+    const [time] = timeSlot.split(' ');
+    const [, minutes] = time.split(':').map(Number);
+    return minutes;
+  };
+
+  const getUpcomingInterviews = () => {
+    const now = new Date();
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    
+    return getAllInterviews().filter(interview => 
+      interview.interviewDateTime > thirtyMinutesAgo
+    );
+  };
+
+  const getPreviousInterviews = () => {
+    const now = new Date();
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+    
+    return getAllInterviews().filter(interview => 
+      interview.interviewDateTime <= thirtyMinutesAgo
+    );
   };
 
   const getEndTime = (startTime: string) => {
@@ -148,6 +182,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   }
 
   const upcomingInterviews = getUpcomingInterviews();
+  const previousInterviews = getPreviousInterviews();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -236,6 +271,43 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             )}
           </CardContent>
         </Card>
+
+        {/* Previous Interviews */}
+        {previousInterviews.length > 0 && (
+          <Card className="mb-8 border shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5 text-gray-600" />
+                Previous Interviews
+              </CardTitle>
+              <CardDescription>
+                Interviews that occurred more than 30 minutes ago
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {previousInterviews.map((candidate) => (
+                  <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {candidate.userProfile?.fullName || 'N/A'}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {candidate.position} • Grade {candidate.userProfile?.grade}
+                      </p>
+                      <p className="text-sm text-gray-500 font-medium">
+                        Completed: {candidate.timeSlot} - {candidate.endTime}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                      Completed
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Positions Grid */}
         <Card className="border shadow-sm bg-white">
