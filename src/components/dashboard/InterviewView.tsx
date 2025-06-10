@@ -300,7 +300,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             Interview Management
           </h1>
           <p className="text-gray-600">
-            Schedule and manage candidate interviews (8-minute slots with 2-minute buffer)
+            Schedule and manage candidate interviews 
           </p>
         </div>
       </div>
@@ -314,7 +314,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               Upcoming Interviews
             </CardTitle>
             <CardDescription>
-              Scheduled interviews that haven't been completed yet (8 minutes each with 2-minute buffer)
+              Scheduled interviews that haven't been completed yet 
             </CardDescription>
           </CardHeader>
           <CardContent>
