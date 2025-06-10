@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -151,6 +152,21 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
               font-size: 18px;
               font-weight: bold;
             }
+            .overview-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 20px 0;
+            }
+            .overview-table th, .overview-table td { 
+              border: 1px solid #d1d5db; 
+              padding: 8px; 
+              text-align: left;
+              font-size: 12px;
+            }
+            .overview-table th { 
+              background: #f3f4f6; 
+              font-weight: bold;
+            }
             .candidate { 
               margin-bottom: 30px; 
               border: 1px solid #e5e7eb;
@@ -172,6 +188,135 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
               border: 1px solid #d1d5db; 
               padding: 8px; 
               text-align: left;
+              font-size: 11px;
+            }
+            .grades-table th { 
+              background: #f3f4f6; 
+              font-weight: bold;
+            }
+            .feedback-section { 
+              margin-top: 20px;
+            }
+            .feedback-item { 
+              background: #f8fafc; 
+              padding: 15px; 
+              margin: 10px 0;
+              border-left: 3px solid #3b82f6;
+            }
+            .criteria-grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 10px; 
+              margin: 15px 0;
+            }
+            .criteria-item { 
+              padding: 8px; 
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              font-size: 12px;
+            }
+            .score-summary { 
+              background: #eff6ff; 
+              padding: 15px; 
+              border: 1px solid #bfdbfe;
+              margin: 15px 0;
+            }
+            .print-buttons { 
+              margin: 20px 0; 
+              text-align: center;
+            }
+            .print-buttons button { 
+              margin: 0 10px; 
+              padding: 10px 20px; 
+              background: #2563eb; 
+              color: white; 
+              border: none; 
+              border-radius: 4px; 
+              cursor: pointer;
+            }
+            @media print {
+              body { margin: 0; }
+              .print-buttons { display: none; }
+              .position-section { page-break-before: always; }
+              .candidate { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const handlePrintPosition = (position: string) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const printContent = generatePositionPrintContent(position);
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Interview Results Report - ${position}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #000;
+              background: white;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            .overview-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 20px 0;
+            }
+            .overview-table th, .overview-table td { 
+              border: 1px solid #d1d5db; 
+              padding: 8px; 
+              text-align: left;
+              font-size: 12px;
+            }
+            .overview-table th { 
+              background: #f3f4f6; 
+              font-weight: bold;
+            }
+            .candidate { 
+              margin-bottom: 30px; 
+              border: 1px solid #e5e7eb;
+              padding: 20px;
+              page-break-inside: avoid;
+            }
+            .candidate-header { 
+              background: #f9fafb; 
+              padding: 15px; 
+              margin: -20px -20px 20px -20px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .grades-table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 15px 0;
+            }
+            .grades-table th, .grades-table td { 
+              border: 1px solid #d1d5db; 
+              padding: 8px; 
+              text-align: left;
+              font-size: 11px;
             }
             .grades-table th { 
               background: #f3f4f6; 
@@ -206,8 +351,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
             }
             @media print {
               body { margin: 0; }
-              .position-section { page-break-before: always; }
-              .candidate { page-break-inside: avoid; }
             }
           </style>
         </head>
@@ -229,140 +372,206 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     const now = new Date();
     let content = `
       <div class="header">
-        <h1>Student Advisory Council - Interview Results Report</h1>
+        <h1>Interview Results Report</h1>
         <p>Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}</p>
       </div>
     `;
 
     Object.entries(groupedByPosition).forEach(([position, candidates]) => {
+      content += generatePositionContent(position, candidates);
+    });
+
+    return content;
+  };
+
+  const generatePositionPrintContent = (position: string) => {
+    const now = new Date();
+    const candidates = groupedByPosition[position] || [];
+    
+    let content = `
+      <div class="header">
+        <h1>Interview Results Report</h1>
+        <h2>${position}</h2>
+        <p>Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}</p>
+      </div>
+    `;
+
+    content += generatePositionContent(position, candidates);
+    return content;
+  };
+
+  const generatePositionContent = (position: string, candidates: ApplicationData[]) => {
+    const sortedCandidates = candidates.sort((a, b) => {
+      const aInterview = getInterviewScore(a.id);
+      const bInterview = getInterviewScore(b.id);
+      const aAppScore = ((a.score || 0) / 100) * 10;
+      const bAppScore = ((b.score || 0) / 100) * 10;
+      const aTotal = aAppScore + aInterview;
+      const bTotal = bAppScore + bInterview;
+      return bTotal - aTotal;
+    });
+
+    let content = `
+      <div class="position-section">
+        <div class="position-title">${position}</div>
+        
+        <h3>Overview - All Candidates</h3>
+        <table class="overview-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Candidate Name</th>
+              <th>Grade</th>
+              <th>Student Number</th>
+              <th>Application Score</th>
+              <th>Interview Score</th>
+              <th>Total Score</th>
+              <th>Criteria Met</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    sortedCandidates.forEach((candidate, index) => {
+      const interviewScore = getInterviewScore(candidate.id);
+      const applicationScore = ((candidate.score || 0) / 100) * 10;
+      const totalScore = applicationScore + interviewScore;
+      const checkboxSummary = getCheckboxSummary(candidate.id);
+
       content += `
-        <div class="position-section">
-          <div class="position-title">${position}</div>
+        <tr>
+          <td>${index + 1}</td>
+          <td>${candidate.userProfile?.fullName || 'N/A'}</td>
+          <td>${candidate.userProfile?.grade || 'N/A'}</td>
+          <td>${candidate.userProfile?.studentNumber || 'N/A'}</td>
+          <td>${applicationScore.toFixed(1)}/10</td>
+          <td>${interviewScore.toFixed(1)}/5</td>
+          <td>${totalScore.toFixed(1)}/15</td>
+          <td>${checkboxSummary.total}/5</td>
+          <td>${index === 0 ? 'Recommended' : 'Interviewed'}</td>
+        </tr>
+      `;
+    });
+
+    content += `
+          </tbody>
+        </table>
+
+        <h3>Detailed Results</h3>
+    `;
+
+    sortedCandidates.forEach((candidate, index) => {
+      const interviewScore = getInterviewScore(candidate.id);
+      const applicationScore = ((candidate.score || 0) / 100) * 10;
+      const totalScore = applicationScore + interviewScore;
+      const checkboxSummary = getCheckboxSummary(candidate.id);
+      const grades = interviewGrades[candidate.id];
+
+      content += `
+        <div class="candidate">
+          <div class="candidate-header">
+            <h4>${candidate.userProfile?.fullName || 'N/A'}</h4>
+            <p><strong>Grade:</strong> ${candidate.userProfile?.grade || 'N/A'} | 
+               <strong>Student Number:</strong> ${candidate.userProfile?.studentNumber || 'N/A'} | 
+               <strong>Ranking:</strong> ${index === 0 ? 'Recommended' : `#${index + 1}`}</p>
+          </div>
+
+          <div class="score-summary">
+            <h5>Score Summary</h5>
+            <p><strong>Application Score:</strong> ${applicationScore.toFixed(1)}/10</p>
+            <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/5</p>
+            <p><strong>Total Score:</strong> ${totalScore.toFixed(1)}/15</p>
+            <p><strong>Criteria Met:</strong> ${checkboxSummary.total}/5</p>
+          </div>
+
+          <div class="criteria-grid">
+            <div class="criteria-item">
+              <strong>Past Experience:</strong> ${checkboxSummary.breakdown.pastExperience || 0} panel member(s)
+            </div>
+            <div class="criteria-item">
+              <strong>Role Knowledge:</strong> ${checkboxSummary.breakdown.roleKnowledge || 0} panel member(s)
+            </div>
+            <div class="criteria-item">
+              <strong>Leadership Skills:</strong> ${checkboxSummary.breakdown.leadershipSkills || 0} panel member(s)
+            </div>
+            <div class="criteria-item">
+              <strong>Creative Outlook:</strong> ${checkboxSummary.breakdown.creativeOutlook || 0} panel member(s)
+            </div>
+            <div class="criteria-item">
+              <strong>Time Management:</strong> ${checkboxSummary.breakdown.timeManagement || 0} panel member(s)
+            </div>
+          </div>
       `;
 
-      const sortedCandidates = candidates.sort((a, b) => {
-        const aInterview = getInterviewScore(a.id);
-        const bInterview = getInterviewScore(b.id);
-        const aAppScore = ((a.score || 0) / 100) * 10;
-        const bAppScore = ((b.score || 0) / 100) * 10;
-        const aTotal = aAppScore + aInterview;
-        const bTotal = bAppScore + bInterview;
-        return bTotal - aTotal;
-      });
-
-      sortedCandidates.forEach((candidate, index) => {
-        const interviewScore = getInterviewScore(candidate.id);
-        const applicationScore = ((candidate.score || 0) / 100) * 10;
-        const totalScore = applicationScore + interviewScore;
-        const checkboxSummary = getCheckboxSummary(candidate.id);
-        const grades = interviewGrades[candidate.id];
-
+      if (grades && grades.panelGrades && grades.panelGrades.length > 0) {
         content += `
-          <div class="candidate">
-            <div class="candidate-header">
-              <h3>${candidate.userProfile?.fullName || 'N/A'}</h3>
-              <p><strong>Grade:</strong> ${candidate.userProfile?.grade || 'N/A'} | 
-                 <strong>Student Number:</strong> ${candidate.userProfile?.studentNumber || 'N/A'} | 
-                 <strong>Ranking:</strong> ${index === 0 ? 'Recommended' : `#${index + 1}`}</p>
-            </div>
-
-            <div class="score-summary">
-              <h4>Score Summary</h4>
-              <p><strong>Application Score:</strong> ${applicationScore.toFixed(1)}/10</p>
-              <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/5</p>
-              <p><strong>Total Score:</strong> ${totalScore.toFixed(1)}/15</p>
-              <p><strong>Criteria Met:</strong> ${checkboxSummary.total}/5</p>
-            </div>
-
-            <div class="criteria-grid">
-              <div class="criteria-item">
-                <strong>Past Experience:</strong> ${checkboxSummary.breakdown.pastExperience || 0} panel member(s)
-              </div>
-              <div class="criteria-item">
-                <strong>Role Knowledge:</strong> ${checkboxSummary.breakdown.roleKnowledge || 0} panel member(s)
-              </div>
-              <div class="criteria-item">
-                <strong>Leadership Skills:</strong> ${checkboxSummary.breakdown.leadershipSkills || 0} panel member(s)
-              </div>
-              <div class="criteria-item">
-                <strong>Creative Outlook:</strong> ${checkboxSummary.breakdown.creativeOutlook || 0} panel member(s)
-              </div>
-              <div class="criteria-item">
-                <strong>Time Management:</strong> ${checkboxSummary.breakdown.timeManagement || 0} panel member(s)
-              </div>
-            </div>
+          <h5>Individual Panel Member Grades</h5>
+          <table class="grades-table">
+            <thead>
+              <tr>
+                <th>Panel Member</th>
+                <th>Q1: Communication Skills</th>
+                <th>Q2: Leadership Experience</th>
+                <th>Q3: Role Knowledge</th>
+                <th>Q4: Enthusiasm</th>
+                <th>Q5: Past Experience</th>
+                <th>Average</th>
+                <th>Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
         `;
 
-        if (grades && grades.panelGrades && grades.panelGrades.length > 0) {
+        grades.panelGrades.forEach(panelGrade => {
+          const gradeValues = Object.values(panelGrade.grades).filter(g => typeof g === 'number' && g >= 0);
+          const avgGrade = gradeValues.length > 0 ? (gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length).toFixed(1) : 'N/A';
+          
           content += `
-            <h4>Individual Panel Member Grades</h4>
-            <table class="grades-table">
-              <thead>
-                <tr>
-                  <th>Panel Member</th>
-                  <th>Communication</th>
-                  <th>Leadership</th>
-                  <th>Knowledge</th>
-                  <th>Enthusiasm</th>
-                  <th>Experience</th>
-                  <th>Average</th>
-                  <th>Submitted</th>
-                </tr>
-              </thead>
-              <tbody>
+            <tr>
+              <td>${panelGrade.panelMemberName}</td>
+              <td>${panelGrade.grades.communication !== undefined ? panelGrade.grades.communication : 'N/A'}</td>
+              <td>${panelGrade.grades.leadership !== undefined ? panelGrade.grades.leadership : 'N/A'}</td>
+              <td>${panelGrade.grades.knowledge !== undefined ? panelGrade.grades.knowledge : 'N/A'}</td>
+              <td>${panelGrade.grades.enthusiasm !== undefined ? panelGrade.grades.enthusiasm : 'N/A'}</td>
+              <td>${panelGrade.grades.experience !== undefined ? panelGrade.grades.experience : 'N/A'}</td>
+              <td>${avgGrade}</td>
+              <td>${new Date(panelGrade.submittedAt).toLocaleDateString()}</td>
+            </tr>
+          `;
+        });
+
+        content += `
+            </tbody>
+          </table>
+        `;
+
+        const feedbackEntries = grades.panelGrades.filter(pg => pg.feedback);
+        if (feedbackEntries.length > 0) {
+          content += `
+            <div class="feedback-section">
+              <h5>Panel Member Feedback</h5>
           `;
 
-          grades.panelGrades.forEach(panelGrade => {
-            const gradeValues = Object.values(panelGrade.grades).filter(g => typeof g === 'number' && g >= 0);
-            const avgGrade = gradeValues.length > 0 ? (gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length).toFixed(1) : 'N/A';
-            
+          feedbackEntries.forEach(grade => {
             content += `
-              <tr>
-                <td>${panelGrade.panelMemberName}</td>
-                <td>${panelGrade.grades.communication || 'N/A'}</td>
-                <td>${panelGrade.grades.leadership || 'N/A'}</td>
-                <td>${panelGrade.grades.knowledge || 'N/A'}</td>
-                <td>${panelGrade.grades.enthusiasm || 'N/A'}</td>
-                <td>${panelGrade.grades.experience || 'N/A'}</td>
-                <td>${avgGrade}</td>
-                <td>${new Date(panelGrade.submittedAt).toLocaleDateString()}</td>
-              </tr>
+              <div class="feedback-item">
+                <strong>${grade.panelMemberName}</strong> - ${new Date(grade.submittedAt).toLocaleDateString()}
+                <p>${grade.feedback}</p>
+              </div>
             `;
           });
 
-          content += `
-              </tbody>
-            </table>
-          `;
-
-          const feedbackEntries = grades.panelGrades.filter(pg => pg.feedback);
-          if (feedbackEntries.length > 0) {
-            content += `
-              <div class="feedback-section">
-                <h4>Panel Member Feedback</h4>
-            `;
-
-            feedbackEntries.forEach(grade => {
-              content += `
-                <div class="feedback-item">
-                  <strong>${grade.panelMemberName}</strong> - ${new Date(grade.submittedAt).toLocaleDateString()}
-                  <p>${grade.feedback}</p>
-                </div>
-              `;
-            });
-
-            content += `</div>`;
-          }
-        } else {
-          content += `<p><em>No interview grades available for this candidate.</em></p>`;
+          content += `</div>`;
         }
-
-        content += `</div>`;
-      });
+      } else {
+        content += `<p><em>No interview grades available for this candidate.</em></p>`;
+      }
 
       content += `</div>`;
     });
 
+    content += `</div>`;
     return content;
   };
 
@@ -427,13 +636,26 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
             {Object.entries(groupedByPosition).map(([position, candidates]) => (
               <Card key={position} className="border shadow-sm bg-white">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-blue-600" />
-                    {position}
-                  </CardTitle>
-                  <CardDescription>
-                    {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} interviewed
-                  </CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Award className="h-5 w-5 text-blue-600" />
+                        {position}
+                      </CardTitle>
+                      <CardDescription>
+                        {candidates.length} candidate{candidates.length !== 1 ? 's' : ''} interviewed
+                      </CardDescription>
+                    </div>
+                    <Button
+                      onClick={() => handlePrintPosition(position)}
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print {position} Report
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Table>
