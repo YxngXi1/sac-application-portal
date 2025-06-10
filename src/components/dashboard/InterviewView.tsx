@@ -1,9 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Clock, Users, Plus, CheckCircle, XCircle, History } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import InterviewScheduler from './InterviewScheduler';
 import InterviewGrader from './InterviewGrader';
 import InterviewResults from './InterviewResults';
@@ -13,8 +16,20 @@ interface InterviewViewProps {
   onBack: () => void;
 }
 
+interface ScheduledInterview {
+  candidateId: string;
+  candidateName: string;
+  position: string;
+  grade: string;
+  studentNumber: string;
+  date: Date;
+  timeSlot: string;
+  endTime: string;
+}
+
 const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [applications, setApplications] = useState<ApplicationData[]>([]);
+  const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showGrader, setShowGrader] = useState(false);
@@ -37,7 +52,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   ];
 
   useEffect(() => {
-    const loadApplications = async () => {
+    const loadData = async () => {
       try {
         const allApplications = await getAllApplications();
         // Only show submitted applications with scores
@@ -45,6 +60,9 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
           app.status === 'submitted' && app.score !== undefined
         );
         setApplications(submittedWithScores);
+
+        // Load actual scheduled interviews from Firebase
+        await loadScheduledInterviews(submittedWithScores);
       } catch (error) {
         console.error('Error loading applications:', error);
       } finally {
@@ -52,8 +70,39 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       }
     };
 
-    loadApplications();
+    loadData();
   }, []);
+
+  const loadScheduledInterviews = async (applications: ApplicationData[]) => {
+    const interviews: ScheduledInterview[] = [];
+    
+    for (const app of applications) {
+      if (app.interviewScheduled) {
+        try {
+          const interviewDoc = await getDoc(doc(db, 'interviews', app.id));
+          if (interviewDoc.exists()) {
+            const data = interviewDoc.data();
+            const interviewDate = data.date.toDate();
+            
+            interviews.push({
+              candidateId: app.id,
+              candidateName: app.userProfile?.fullName || 'Unknown',
+              position: app.position,
+              grade: app.userProfile?.grade || 'N/A',
+              studentNumber: app.userProfile?.studentNumber || 'N/A',
+              date: interviewDate,
+              timeSlot: data.timeSlot,
+              endTime: getEndTime(data.timeSlot)
+            });
+          }
+        } catch (error) {
+          console.error('Error loading interview for candidate:', app.id, error);
+        }
+      }
+    }
+    
+    setScheduledInterviews(interviews);
+  };
 
   const getPositionApplications = (position: string) => {
     return applications
@@ -61,46 +110,24 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       .sort((a, b) => (b.score || 0) - (a.score || 0)); // Sort by score descending
   };
 
-  const getAllInterviews = () => {
-    const scheduledApps = applications.filter(app => app.interviewScheduled);
-    return scheduledApps.map((app, index) => ({
-      ...app,
-      timeSlot: timeSlots[index % timeSlots.length],
-      endTime: getEndTime(timeSlots[index % timeSlots.length]),
-      interviewDateTime: new Date(2025, 1, 5, getHour(timeSlots[index % timeSlots.length]), getMinute(timeSlots[index % timeSlots.length]))
-    }));
-  };
-
-  const getHour = (timeSlot: string) => {
-    const [time, period] = timeSlot.split(' ');
-    const [hours] = time.split(':').map(Number);
-    if (period === 'PM' && hours !== 12) return hours + 12;
-    if (period === 'AM' && hours === 12) return 0;
-    return hours;
-  };
-
-  const getMinute = (timeSlot: string) => {
-    const [time] = timeSlot.split(' ');
-    const [, minutes] = time.split(':').map(Number);
-    return minutes;
-  };
-
   const getUpcomingInterviews = () => {
     const now = new Date();
-    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
     
-    return getAllInterviews().filter(interview => 
-      interview.interviewDateTime > thirtyMinutesAgo
-    );
+    return scheduledInterviews.filter(interview => {
+      // Check if the interview date/time is in the future
+      const interviewDateTime = new Date(interview.date);
+      return interviewDateTime > now;
+    });
   };
 
   const getPreviousInterviews = () => {
     const now = new Date();
-    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
     
-    return getAllInterviews().filter(interview => 
-      interview.interviewDateTime <= thirtyMinutesAgo
-    );
+    return scheduledInterviews.filter(interview => {
+      // Check if the interview date/time is in the past
+      const interviewDateTime = new Date(interview.date);
+      return interviewDateTime <= now;
+    });
   };
 
   const getEndTime = (startTime: string) => {
@@ -126,6 +153,20 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     const endHours12 = endHours24 > 12 ? endHours24 - 12 : endHours24 === 0 ? 12 : endHours24;
     
     return `${endHours12}:${endMins.toString().padStart(2, '0')} ${endPeriod}`;
+  };
+
+  const formatDate = (date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString();
+    }
   };
 
   if (showScheduler && selectedPosition) {
@@ -241,23 +282,27 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               </p>
             ) : (
               <div className="space-y-4">
-                {upcomingInterviews.map((candidate) => (
-                  <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                {upcomingInterviews.map((interview) => (
+                  <div key={interview.candidateId} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                     <div>
                       <h3 className="font-semibold text-gray-900">
-                        {candidate.userProfile?.fullName || 'N/A'}
+                        {interview.candidateName}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {candidate.position} • Grade {candidate.userProfile?.grade}
+                        {interview.position} • Grade {interview.grade}
                       </p>
                       <p className="text-sm text-blue-600 font-medium">
-                        Today {candidate.timeSlot} - {candidate.endTime}
+                        {formatDate(interview.date)} {interview.timeSlot} - {interview.endTime}
                       </p>
                     </div>
                     <Button
                       onClick={() => {
-                        setSelectedCandidate(candidate);
-                        setShowGrader(true);
+                        // Find the candidate in applications
+                        const candidate = applications.find(app => app.id === interview.candidateId);
+                        if (candidate) {
+                          setSelectedCandidate(candidate);
+                          setShowGrader(true);
+                        }
                       }}
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -280,22 +325,22 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                 Previous Interviews
               </CardTitle>
               <CardDescription>
-                Interviews that occurred more than 30 minutes ago
+                Completed interviews
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {previousInterviews.map((candidate) => (
-                  <div key={candidate.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                {previousInterviews.map((interview) => (
+                  <div key={interview.candidateId} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                     <div>
                       <h3 className="font-semibold text-gray-900">
-                        {candidate.userProfile?.fullName || 'N/A'}
+                        {interview.candidateName}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {candidate.position} • Grade {candidate.userProfile?.grade}
+                        {interview.position} • Grade {interview.grade}
                       </p>
                       <p className="text-sm text-gray-500 font-medium">
-                        Completed: {candidate.timeSlot} - {candidate.endTime}
+                        Completed: {formatDate(interview.date)} {interview.timeSlot} - {interview.endTime}
                       </p>
                     </div>
                     <Badge variant="secondary" className="bg-gray-200 text-gray-700">
