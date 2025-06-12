@@ -39,8 +39,14 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
 
   const positions = [
-    'Secretary', 'Treasurer', 'Community Outreach', 
-    'Athletics Liaison', 'Promotions Officer', 'Photography Exec'
+    'Secretary', 
+    'Treasurer', 
+    'Community Outreach', 
+    'Athletics Liaison', 
+    'Promotions Officer', 
+    'Photography Exec',
+    'Technology Executive',
+    'Arts Liaison'
   ];
 
   // 8-minute interviews with 2-minute buffer (10-minute intervals): 11:05 AM - 12:05 PM and 3:00 PM - 5:00 PM
