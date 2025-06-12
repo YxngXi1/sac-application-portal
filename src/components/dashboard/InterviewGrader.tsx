@@ -94,8 +94,9 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
       'Arts Liaison': [
         "If you could only run one major event this year, how would you choose what it is, and what would you prioritize in planning it?",
         "Tell us about a time you had to mediate between creative differences in a team. How did you approach it?",
-        "If you had to plan a collaborative event with the Music or Drama department, what would it look like?",
-        "If you could change how the school values or supports the arts, what would you do—and how would you make it happen?"
+        "If you had to plan a collaborative event between SAC and all of the Arts, what would it look like and how would you prevent miscommunication between so many clubs?",
+        "If you could change how the school values or supports the arts, what would you do—and how would you make it happen?",
+        "Tell us about your passion of the arts. How do you plan to transfer that passion into this role as a liaison of multiple clubs?"
       ]
     };
 

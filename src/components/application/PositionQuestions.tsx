@@ -89,10 +89,11 @@ const getQuestions = (position: string): Question[] => {
       ];
     case 'Arts Liaison':
       return [
-        { id: 'arts_1', question: 'As the Arts Liaison, how will you ensure that all Art clubs (ie. Visual Arts Club, Studio 119, Fraser Dance Crew, Photography club, etc) are promoted equally throughout the school-year?', type: 'text' },
-        { id: 'arts_2', question: 'What plans do you have that will maintain effective communication between the executives and supervisors of both SAC and Arts Council? Explain.', type: 'text' },
-        { id: 'arts_3', question: 'What specific time-management strategies do you practice that will help you balance the business of being an Arts Liaison?', type: 'text' },
-        { id: 'arts_4', question: 'From your personal perspective, how would you describe the current dynamic between the Arts Council and SAC? What do you think is working well, what could be improved, and how would you personally work to improve the relationship between the two councils?', type: 'text' },
+        { id: 'arts_1', question: 'If you could only run one major event this year, how would you choose what it is, and what would you prioritize in planning it?', type: 'text' },
+        { id: 'arts_2', question: 'Tell us about a time you had to mediate between creative differences in a team. How did you approach it?', type: 'text' },
+        { id: 'arts_3', question: 'If you had to plan a collaborative event between SAC and all of the Arts, what would it look like and how would you prevent miscommunication between so many clubs?', type: 'text' },
+        { id: 'arts_4', question: 'If you could change how the school values or supports the arts, what would you do—and how would you make it happen?', type: 'text' },
+        { id: 'arts_5', question: 'Tell us about your passion of the arts. How do you plan to transfer that passion into this role as a liaison of multiple clubs?', type: 'text' },
         { id: 'commitments', question: 'What other commitments do you plan to have next year? Include the club/council/extracurricular, your position and the estimated time per week.', type: 'text' }
       ];
     default:
