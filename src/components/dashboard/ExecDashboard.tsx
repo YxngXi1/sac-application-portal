@@ -199,6 +199,20 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                 </Button>
               )}
               
+              {/* New: Settings link visible to teacher/pres/vp and the superadmin email */}
+              {(userProfile?.role === "teacher" || userProfile?.role === "pres" || userProfile?.role === "vp" || userProfile?.email === "909957@pdsb.net") && (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-indigo-600 text-indigo-700 hover:bg-indigo-50"
+                >
+                  <a href="/settings">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Control Center
+                  </a>
+                </Button>
+              )}
+              
               <Button
                 onClick={() => setShowSummaryView(true)}
                 variant="outline"
