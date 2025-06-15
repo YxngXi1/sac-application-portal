@@ -8,7 +8,7 @@ interface UserProfile {
   email: string;
   name: string;
   studentNumber?: string;
-  role: 'student' | 'exec' | 'teacher' | 'superadmin' | 'pres' | 'vp';
+  role: 'student' | 'exec' | 'teacher' | 'superadmin';
   fullName?: string;
   studentType?: 'AP' | 'SHSM' | 'none';
   isOnboarded?: boolean;

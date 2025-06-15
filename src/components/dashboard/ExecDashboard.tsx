@@ -1,9 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3, Settings } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3 } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
@@ -15,7 +15,6 @@ interface ExecDashboardProps {
 }
 
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
-  const { userProfile } = useAuth();
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [showInterviewView, setShowInterviewView] = useState(false);
   const [showSummaryView, setShowSummaryView] = useState(false);
@@ -143,8 +142,6 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   ).length;
   const totalInterviewed = applications.filter(app => app.interviewScheduled).length;
 
-  const isAdmin = (userProfile && (userProfile.role === "teacher" || userProfile.role === "pres" || userProfile.role === "vp"));
-
   if (selectedPosition) {
     return (
       <PositionApplications 
@@ -186,33 +183,6 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             </Button>
             
             <div className="flex space-x-3">
-              {isAdmin && (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-blue-600 text-blue-700 hover:bg-blue-50"
-                >
-                  <a href="/admin">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Admin Settings
-                  </a>
-                </Button>
-              )}
-              
-              {/* New: Settings link visible to teacher/pres/vp and the superadmin email */}
-              {(userProfile?.role === "teacher" || userProfile?.role === "pres" || userProfile?.role === "vp" || userProfile?.email === "909957@pdsb.net") && (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-indigo-600 text-indigo-700 hover:bg-indigo-50"
-                >
-                  <a href="/settings">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Control Center
-                  </a>
-                </Button>
-              )}
-              
               <Button
                 onClick={() => setShowSummaryView(true)}
                 variant="outline"
