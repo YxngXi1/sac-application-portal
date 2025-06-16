@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,6 +96,12 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
         "If you had to plan a collaborative event between SAC and all of the Arts, what would it look like and how would you prevent miscommunication between so many clubs?",
         "If you could change how the school values or supports the arts, what would you do—and how would you make it happen?",
         "Tell us about your passion of the arts. How do you plan to transfer that passion into this role as a liaison of multiple clubs?"
+      ],
+      'Technology Executive': [
+        "Being the Technology Executive will not be easy work — and it's much more than simply operating the cafeteria tech booth or updating the SAC website. We are looking for someone truly passionate about using technology to solve problems and make a meaningful impact on the school. FraserPay is a great example: it took months of effort to develop but ultimately enabled SAC to process over $13,000 during Charity Week. Why do you want to be the Technology Executive, and what motivates you to contribute to SAC in this capacity?",
+        "Our current suite of platforms — FraserPay, FraserVotes, and FraserSAP — are built using TypeScript, HTML, and CSS. They're hosted on Vercel and use Firebase as their backend. How confident are you in your ability to work with, or learn to work with, these technologies in order to maintain, operate, and improve these systems?",
+        "Tell us about a time you saw a problem and used technology to solve it — whether it was for a school event, a personal project, or something else. What was the challenge, what did you build or improve, and what impact did it have?",
+        "SAC pays for and provides any resource you need to develop useful programs at our teacher supervisors discretion. Knowing this, if you could build any program for SAC, or the greater school community — what would it be and why?"
       ]
     };
 
