@@ -92,7 +92,19 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             
             // Check if grades have been submitted for this interview
             const gradeDoc = await getDoc(doc(db, 'interviewGrades', app.id));
-            const hasGrades = gradeDoc.exists() && gradeDoc.data()?.panelGrades?.length > 0;
+            console.log(`Checking grades for ${app.id}:`, gradeDoc.exists(), gradeDoc.data());
+            
+            let hasGrades = false;
+            if (gradeDoc.exists()) {
+              const gradeData = gradeDoc.data();
+              // Check if there are any panel grades with actual scores
+              hasGrades = gradeData?.panelGrades && 
+                         Array.isArray(gradeData.panelGrades) && 
+                         gradeData.panelGrades.length > 0 &&
+                         gradeData.panelGrades.some((grade: any) => 
+                           grade.scores && Object.keys(grade.scores).length > 0
+                         );
+            }
             
             interviews.push({
               candidateId: app.id,
