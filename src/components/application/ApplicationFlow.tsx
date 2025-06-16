@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveApplicationProgress, loadApplicationProgress } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
-import PositionQuestions from './PositionQuestions';
+import PositionQuestionsComponent from './PositionQuestionsComponent';
 import ConfirmationPage from './ConfirmationPage';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -329,7 +329,7 @@ const ApplicationFlow = () => {
   // Step 2: Position Questions
   if (currentStep === 2) {
     return (
-      <PositionQuestions
+      <PositionQuestionsComponent
         position={selectedPosition}
         answers={answers}
         uploadedFiles={uploadedFiles}
