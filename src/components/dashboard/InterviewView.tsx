@@ -97,12 +97,14 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             let hasGrades = false;
             if (gradeDoc.exists()) {
               const gradeData = gradeDoc.data();
-              // Check if there are any panel grades with actual scores
+              // Check if there are any panel grades with actual scores submitted
               hasGrades = gradeData?.panelGrades && 
                          Array.isArray(gradeData.panelGrades) && 
                          gradeData.panelGrades.length > 0 &&
                          gradeData.panelGrades.some((grade: any) => 
-                           grade.scores && Object.keys(grade.scores).length > 0
+                           grade.scores && 
+                           Object.keys(grade.scores).length > 0 &&
+                           Object.values(grade.scores).some((score: any) => score !== null && score !== undefined)
                          );
             }
             
