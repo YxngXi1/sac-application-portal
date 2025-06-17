@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Award, TrendingUp, MessageSquare, CheckSquare, User, Eye, Printer } from 'lucide-react';
+import { ArrowLeft, Award, MessageSquare, CheckSquare, User, Eye, Printer } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import CandidateInterviewDetails from './CandidateInterviewDetails';
 
@@ -426,7 +426,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
               <th>Interview Score</th>
               <th>Total Score</th>
               <th>Criteria Met</th>
-              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -448,7 +447,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           <td>${interviewScore.toFixed(1)}/5</td>
           <td>${totalScore.toFixed(1)}/15</td>
           <td>${checkboxSummary.total}/5</td>
-          <td>${index === 0 ? 'Recommended' : 'Interviewed'}</td>
         </tr>
       `;
     });
@@ -658,7 +656,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                         <TableHead className="text-gray-700">Assessment</TableHead>
                         <TableHead className="text-gray-700">Criteria Met</TableHead>
                         <TableHead className="text-gray-700">Feedback</TableHead>
-                        <TableHead className="text-gray-700">Status</TableHead>
                         <TableHead className="text-gray-700">Details</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -794,17 +791,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                     </div>
                                   </DialogContent>
                                 </Dialog>
-                              </TableCell>
-                              <TableCell>
-                                <Badge 
-                                  className={
-                                    index === 0 
-                                      ? "bg-gray-800 text-white" 
-                                      : "bg-gray-200 text-gray-700"
-                                  }
-                                >
-                                  {index === 0 ? 'Recommended' : 'Interviewed'}
-                                </Badge>
                               </TableCell>
                               <TableCell>
                                 <Button
