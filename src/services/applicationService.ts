@@ -136,10 +136,19 @@ export const loadApplicationProgress = async (userId: string): Promise<Applicati
   }
 };
 
-export const submitApplication = async (userId: string): Promise<void> => {
+export const submitApplication = async (
+  userId: string, 
+  currentApplicationData?: Partial<ApplicationData>
+): Promise<void> => {
   console.log('submitApplication called for userId:', userId);
   
   try {
+    // First, save any current application data if provided
+    if (currentApplicationData) {
+      console.log('Saving current application data before submission');
+      await saveApplicationProgress(userId, currentApplicationData);
+    }
+    
     const applicationRef = doc(db, 'applications', userId);
     
     // Verify data exists before submitting

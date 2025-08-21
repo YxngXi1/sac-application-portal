@@ -39,7 +39,7 @@ const isValidPDSBEmail = (email: string): boolean => {
 };
 
 const isSuperAdmin = (email: string): boolean => {
-  return email === '909957@pdsb.net';
+  return email === '752470@pdsb.net';
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

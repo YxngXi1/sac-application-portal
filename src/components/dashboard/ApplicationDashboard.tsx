@@ -59,36 +59,8 @@ const ApplicationDashboard = () => {
 
   const availablePositions = [
     {
-      title: "Promotion Officers (2)",
-      description: "Run SAC Instagram, design and post promotional content, collaborate on all event marketing."
-    },
-    {
-      title: "Secretary",
-      description: "Manage SAC emails, book rooms, track attendance, take meeting notes."
-    },
-    {
-      title: "Photography Exec",
-      description: "Take and post photos/videos from all events, manage SAC media library."
-    },
-    {
-      title: "Treasurer",
-      description: "Handle SAC finances, cash boxes, reimbursements, and Charity Week money tracking."
-    },
-    {
-      title: "Community Outreach",
-      description: "Coordinate with nonprofits, lead school drives, attend public events like Open House."
-    },
-    {
-      title: "Athletics Liaison",
-      description: "Plan sports events (Terry Fox, Fraser Games), act as a bridge between SAC and FAC."
-    },
-    {
-      title: "Technology Executive",
-      description: "Runs all technology used by SAC."
-    },
-    {
-      title: "Arts Liaison",
-      description: "Make banners, run art events, coordinate between SAC and Arts Council."
+      title: "Honourary Member",
+      description: "idk david tell me something to puit"
     }
   ];
 

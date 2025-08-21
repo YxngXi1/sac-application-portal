@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { submitApplication } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
+import { submitApplication, saveApplicationProgress } from '@/services/applicationService';
 
 interface ConfirmationPageProps {
   position: string;
@@ -30,9 +30,25 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Application deadline - June 5th, 2025 at 11:59 PM EST
-  const deadline = new Date('2025-06-05T23:59:59-04:00'); // EDT time in June
+  const deadline = new Date('2025-09-05T23:59:59-04:00'); // EDT time in September
   const now = new Date();
   const isDeadlinePassed = now > deadline;
+
+  const getQuestionCount = (position: string) => {
+    switch (position) {
+      case 'Honourary Member': return 5;
+      default: return 1;
+    }
+  };
+
+  const calculateProgress = () => {
+    if (!position) return 0;
+    // Position selected = 20%
+    if (Object.keys(answers).length === 0) return 20;
+    const totalQuestions = getQuestionCount(position);
+    const answeredQuestions = Object.keys(answers).length;
+    return Math.min(20 + (answeredQuestions / totalQuestions) * 70, 90);
+  };
 
   const handleSubmit = async () => {
     if (isDeadlinePassed) {
@@ -56,6 +72,32 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     setIsSubmitting(true);
     
     try {
+      // First: save latest progress to the DB (same call used by Save Progress)
+      const progress = calculateProgress();
+
+      try {
+        await saveApplicationProgress(user.uid, {
+          position,
+          answers,
+          progress,
+          userProfile: {
+            fullName: userProfile?.fullName || '',
+            studentNumber: userProfile?.studentNumber || '',
+            grade: userProfile?.grade || '',
+          }
+        });
+        console.log('Progress saved before final submit');
+      } catch (saveError) {
+        console.error('Error saving progress before submit:', saveError);
+        toast({
+          title: "Error",
+          description: "Failed to save your application before submission. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return; // abort submission if we can't save
+      }
+
       // Submit the application using the service
       await submitApplication(user.uid);
       
@@ -104,7 +146,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             </CardTitle>
             <p className="text-gray-600">
               {isDeadlinePassed 
-                ? 'The application deadline was Thursday, June 5th, 2025 at 11:59 PM EDT'
+                ? 'The application deadline was Thursday, September 5th, 2025 at 11:59 PM EDT'
                 : 'Please confirm your details before submitting'
               }
             </p>

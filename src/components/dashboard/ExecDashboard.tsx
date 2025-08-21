@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3 } from 'lucide-react';
+import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3, GraduationCap } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
@@ -15,28 +14,28 @@ interface ExecDashboardProps {
 }
 
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
-  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const [showInterviewView, setShowInterviewView] = useState(false);
   const [showSummaryView, setShowSummaryView] = useState(false);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const positions = [
-    { id: 'Secretary', name: 'Secretary' },
-    { id: 'Treasurer', name: 'Treasurer' },
-    { id: 'Community Outreach', name: 'Community Outreach' },
-    { id: 'Athletics Liaison', name: 'Athletics Liaison' },
-    { id: 'Promotions Officer', name: 'Promotions Officer' },
-    { id: 'Photography Exec', name: 'Photography Exec' },
-    { id: 'Technology Executive', name: 'Technology Executive' },
-    { id: 'Arts Liaison', name: 'Arts Liaison' }
+  const grades = [
+    { id: '9', name: 'Grade 9' },
+    { id: '10', name: 'Grade 10' },
+    { id: '11', name: 'Grade 11' },
+    { id: '12', name: 'Grade 12' }
   ];
 
   useEffect(() => {
     const loadApplications = async () => {
       try {
         const allApplications = await getAllApplications();
-        setApplications(allApplications);
+        // Filter for only Honourary Member applications
+        const honouraryApplications = allApplications.filter(app => 
+          app.position === 'Honourary Member'
+        );
+        setApplications(honouraryApplications);
       } catch (error) {
         console.error('Error loading applications:', error);
       } finally {
@@ -55,7 +54,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>SAC Applications Report</title>
+          <title>SAC Honourary Member Applications Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -74,7 +73,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </style>
         </head>
         <body>
-          <h1>SAC Applications Report</h1>
+          <h1>SAC Honourary Member Applications Report</h1>
           <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           <p><strong>Total Applications:</strong> ${applications.length}</p>
           
@@ -82,7 +81,6 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             <thead>
               <tr>
                 <th>Student Name</th>
-                <th>Position</th>
                 <th>Grade</th>
                 <th>Student Number</th>
                 <th>Status</th>
@@ -95,11 +93,10 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
               ${applications.map(app => `
                 <tr>
                   <td>${app.userProfile?.fullName || 'N/A'}</td>
-                  <td>${app.position || 'N/A'}</td>
                   <td>${app.userProfile?.grade || 'N/A'}</td>
                   <td>${app.userProfile?.studentNumber || 'N/A'}</td>
                   <td class="status-${app.status}">${app.status.replace('_', ' ').toUpperCase()}</td>
-                  <td class="grade">${app.score !== undefined ? app.score.toFixed(1) + '/100' : 'Not graded'}</td>
+                  <td class="grade">${app.score !== undefined ? app.score.toFixed(1) + '/10' : 'Not graded'}</td>
                   <td>${app.interviewScheduled ? 'Yes' : 'No'}</td>
                   <td>${app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'N/A'}</td>
                 </tr>
@@ -120,17 +117,17 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     printWindow.document.close();
   };
 
-  const getPositionStats = (positionName: string) => {
-    const positionApps = applications.filter(app => 
-      app.position === positionName
+  const getGradeStats = (grade: string) => {
+    const gradeApps = applications.filter(app => 
+      app.userProfile?.grade === grade
     );
     
-    const total = positionApps.length;
-    const submitted = positionApps.filter(app => app.status === 'submitted').length;
-    const inProgress = positionApps.filter(app => 
+    const total = gradeApps.length;
+    const submitted = gradeApps.filter(app => app.status === 'submitted').length;
+    const inProgress = gradeApps.filter(app => 
       app.status === 'draft' && app.progress > 0
     ).length;
-    const interviewed = positionApps.filter(app => app.interviewScheduled).length;
+    const interviewed = gradeApps.filter(app => app.interviewScheduled).length;
 
     return { total, submitted, inProgress, interviewed };
   };
@@ -142,12 +139,19 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   ).length;
   const totalInterviewed = applications.filter(app => app.interviewScheduled).length;
 
-  if (selectedPosition) {
+  if (selectedGrade) {
+    // Filter applications by grade for the PositionApplications component
+    const gradeApplications = applications.filter(app => 
+      app.userProfile?.grade === selectedGrade
+    );
+    
     return (
       <PositionApplications 
-        positionId={selectedPosition}
-        positionName={positions.find(p => p.id === selectedPosition)?.name || ''}
-        onBack={() => setSelectedPosition(null)}
+        positionId="Honourary Member"
+        positionName={`Grade ${selectedGrade} Honourary Members`}
+        onBack={() => setSelectedGrade(null)}
+        filteredApplications={gradeApplications}
+        gradeFilter={selectedGrade}
       />
     );
   }
@@ -199,13 +203,22 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                 <Calendar className="h-4 w-4 mr-2" />
                 Interview View
               </Button>
+              
+              <Button
+                onClick={handlePrintApplications}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Print Report
+              </Button>
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Executive Dashboard
+            Honourary Member Dashboard
           </h1>
           <p className="text-gray-600">
-            Manage SAC applications and review candidates
+            Manage SAC Honourary Member applications by grade level
           </p>
         </div>
       </div>
@@ -262,27 +275,33 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </Card>
         </div>
 
-        {/* Positions Grid */}
+        {/* Grade Levels Grid */}
         <Card className="border shadow-sm bg-white">
           <CardHeader>
-            <CardTitle>Applications by Position</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-blue-600" />
+              Honourary Member Applications by Grade
+            </CardTitle>
             <CardDescription>
-              Click on a position to view and manage applications. Includes incomplete applications in progress.
+              Click on a grade to view and manage applications for that grade level.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {positions.map((position) => {
-                const stats = getPositionStats(position.name);
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {grades.map((grade) => {
+                const stats = getGradeStats(grade.id);
                 return (
                   <Card 
-                    key={position.id}
+                    key={grade.id}
                     className="cursor-pointer hover:shadow-lg transition-all duration-200 border shadow-sm hover:scale-105"
-                    onClick={() => setSelectedPosition(position.id)}
+                    onClick={() => setSelectedGrade(grade.id)}
                   >
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className="font-semibold text-lg text-gray-900">{position.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="h-5 w-5 text-blue-600" />
+                          <h3 className="font-semibold text-lg text-gray-900">{grade.name}</h3>
+                        </div>
                         <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                           {stats.total} total
                         </Badge>
@@ -313,13 +332,42 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                         className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedPosition(position.id);
+                          setSelectedGrade(grade.id);
                         }}
                       >
-                        View Applications
+                        View Grade {grade.id} Applications
                       </Button>
                     </CardContent>
                   </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Stats by Grade */}
+        <Card className="border shadow-sm bg-white mt-6">
+          <CardHeader>
+            <CardTitle>Grade Distribution Summary</CardTitle>
+            <CardDescription>
+              Overview of applications across all grade levels
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {grades.map((grade) => {
+                const stats = getGradeStats(grade.id);
+                const submissionRate = stats.total > 0 ? ((stats.submitted / stats.total) * 100).toFixed(1) : '0';
+                
+                return (
+                  <div key={grade.id} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <h4 className="font-semibold text-gray-900 mb-2">{grade.name}</h4>
+                      <div className="text-2xl font-bold text-blue-600 mb-1">{stats.submitted}</div>
+                      <div className="text-sm text-gray-600">of {stats.total} submitted</div>
+                      <div className="text-xs text-gray-500 mt-1">{submissionRate}% completion</div>
+                    </div>
+                  </div>
                 );
               })}
             </div>

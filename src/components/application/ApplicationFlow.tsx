@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,33 +24,35 @@ const ApplicationFlow = () => {
   const [forceStartFromBeginning, setForceStartFromBeginning] = useState(false);
 
   const positions = [
-    'Secretary',
-    'Treasurer', 
-    'Community Outreach',
-    'Athletics Liaison',
-    'Promotions Officer',
-    'Photography Exec',
-    'Technology Executive',
-    'Arts Liaison'
+    'Honourary Member',
   ];
 
+  // Load application progress on component mount
   useEffect(() => {
     const loadProgress = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
+        console.log('Loading application progress for user:', user.uid);
         const savedApplication = await loadApplicationProgress(user.uid);
+        
         if (savedApplication && !forceStartFromBeginning) {
+          console.log('Found existing application:', savedApplication);
           setHasExistingApplication(true);
-          setCurrentStep(2); // Go directly to questions if application exists
           setSelectedPosition(savedApplication.position);
           setAnswers(savedApplication.answers || {});
           
           if (savedApplication.status === 'submitted') {
             setCurrentStep(3); // Go to confirmation if already submitted
+          } else {
+            setCurrentStep(2); // Go to questions if draft exists
           }
         } else {
-          // Start from the beginning
+          console.log('No existing application found, starting fresh');
+          // Start from the beginning - go to get started page
           setCurrentStep(0);
           setSelectedPosition('');
           setAnswers({});
@@ -60,10 +61,11 @@ const ApplicationFlow = () => {
         }
       } catch (error) {
         console.error('Error loading application progress:', error);
+        // If there's an error, start fresh
+        setCurrentStep(0);
         toast({
-          title: "Error",
-          description: "Failed to load your application progress. Please try again.",
-          variant: "destructive",
+          title: "Welcome",
+          description: "Let's start your application process.",
         });
       } finally {
         setLoading(false);
@@ -82,39 +84,78 @@ const ApplicationFlow = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (currentStep === 1 && !loading && !selectedPosition) {
+      console.log('Auto-selecting Honourary Member position');
+      setSelectedPosition('Honourary Member');
+    }
+  }, [currentStep, loading, selectedPosition]);
+
+  // Handle position selection and proceed to next step
+  useEffect(() => {
+    if (currentStep === 1 && selectedPosition === 'Honourary Member' && !loading) {
+      console.log('Position is set, proceeding to save and continue');
+      
+      const proceedWithApplication = async () => {
+        try {
+          await handlePositionSelect();
+        } catch (error) {
+          console.error('Error during auto-position selection:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save your position selection. Please try again.",
+            variant: "destructive",
+          });
+        }
+      };
+
+      // Small delay to ensure state is properly updated
+      const timeoutId = setTimeout(proceedWithApplication, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentStep, selectedPosition, loading]);
+
   const handleGetStarted = () => {
+    console.log('Getting started, moving to position selection');
     setCurrentStep(1);
   };
 
   const handlePositionSelect = async () => {
-    if (selectedPosition && user) {
-      try {
-        const progress = calculateProgress();
-        await saveApplicationProgress(user.uid, {
-          position: selectedPosition,
-          answers,
-          progress,
-          userProfile: {
-            fullName: userProfile?.fullName || '',
-            studentNumber: userProfile?.studentNumber || '',
-            grade: userProfile?.grade || '',
-          }
-        });
-        
-        setHasExistingApplication(true);
-        setCurrentStep(2);
-        toast({
-          title: "Progress Saved",
-          description: "Your position selection has been saved.",
-        });
-      } catch (error) {
-        console.error('Error saving position selection:', error);
-        toast({
-          title: "Error",
-          description: "Failed to save your selection. Please try again.",
-          variant: "destructive",
-        });
-      }
+    if (!selectedPosition || !user) {
+      console.error('Cannot select position: missing data', { selectedPosition, user: !!user });
+      return;
+    }
+
+    try {
+      console.log('Saving position selection:', selectedPosition);
+      const progress = 20; // Position selected = 20% progress
+      
+      await saveApplicationProgress(user.uid, {
+        position: selectedPosition,
+        answers: {},
+        progress,
+        status: 'draft',
+        userProfile: {
+          fullName: userProfile?.fullName || '',
+          studentNumber: userProfile?.studentNumber || '',
+          grade: userProfile?.grade || '',
+        }
+      });
+      
+      setHasExistingApplication(true);
+      setCurrentStep(2);
+      
+      toast({
+        title: "Position Selected",
+        description: "You're applying for Honourary Member position.",
+      });
+    } catch (error) {
+      console.error('Error saving position selection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your selection. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -174,38 +215,46 @@ const ApplicationFlow = () => {
 
   const getQuestionCount = (position: string) => {
     switch (position) {
-      case 'Secretary': return 4;
-      case 'Treasurer': return 6;
-      case 'Community Outreach': return 6;
-      case 'Athletics Liaison': return 5;
-      case 'Promotions Officer': return 3;
-      case 'Photography Exec': return 4;
-      case 'Technology Executive': return 4;
-      case 'Arts Liaison': return 5;
+      case 'Honourary Member': return 5;
       default: return 1;
     }
   };
 
-  const saveProgress = async () => {
-    if (!user) return;
+const saveProgress = async () => {
+  if (!user) return;
+  
+  try {
+    const progress = calculateProgress();
     
-    try {
-      const progress = calculateProgress();
-      await saveApplicationProgress(user.uid, {
-        position: selectedPosition,
-        answers,
-        progress,
-        userProfile: {
-          fullName: userProfile?.fullName || '',
-          studentNumber: userProfile?.studentNumber || '',
-          grade: userProfile?.grade || '',
-        }
-      });
-    } catch (error) {
-      console.error('Error saving progress:', error);
-      throw error;
-    }
-  };
+    console.log('Saving progress with data:', {
+      position: selectedPosition,
+      answers: answers,
+      answersCount: Object.keys(answers).length,
+      progress,
+      userProfile: {
+        fullName: userProfile?.fullName || '',
+        studentNumber: userProfile?.studentNumber || '',
+        grade: userProfile?.grade || '',
+      }
+    });
+    
+    await saveApplicationProgress(user.uid, {
+      position: selectedPosition,
+      answers,
+      progress,
+      userProfile: {
+        fullName: userProfile?.fullName || '',
+        studentNumber: userProfile?.studentNumber || '',
+        grade: userProfile?.grade || '',
+      }
+    });
+    
+    console.log('Save completed successfully');
+  } catch (error) {
+    console.error('Error saving progress:', error);
+    throw error;
+  }
+};
 
   const handleNext = () => {
     setCurrentStep(prev => prev + 1);
@@ -237,9 +286,15 @@ const ApplicationFlow = () => {
         <Card className="w-full max-w-md mx-4">
           <CardHeader className="text-center p-4 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl">Start Your Application</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council?</p>
+            <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council as an Honourary Member?</p>
           </CardHeader>
           <CardContent className="text-center space-y-4 p-4 sm:p-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">Honourary Member Position</h3>
+              <p className="text-sm text-blue-700">
+                As an honourary member, you'll contribute to SAC events, attend meetings, and help make our school better.
+              </p>
+            </div>
             <div className="bg-blue-50 p-3 rounded-lg text-xs sm:text-sm text-blue-800">
               Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.
             </div>
@@ -248,7 +303,7 @@ const ApplicationFlow = () => {
               size="lg"
               className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
             >
-              Get Started
+              Start Application
             </Button>
           </CardContent>
         </Card>
@@ -256,77 +311,31 @@ const ApplicationFlow = () => {
     );
   }
 
-  // Step 1: Position Selection
+  // Step 1: Position Selection (Auto-select Honourary Member)
   if (currentStep === 1) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md mx-4">
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-xl sm:text-2xl">Choose Your Position</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base">Select the SAC position you'd like to apply for. You can only apply to one position.</p>
-            {hasExistingApplication && !forceStartFromBeginning && (
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <span className="text-amber-800 font-medium">Position Already Selected</span>
-                </div>
-                <p className="text-amber-700 mt-1">
-                  You've already selected {selectedPosition}. To change positions, you must reset your entire application.
-                </p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleResetApplication}
-                  className="mt-2 text-amber-700 border-amber-300 hover:bg-amber-100"
-                >
-                  Reset Application
-                </Button>
-              </div>
-            )}
+            <CardTitle className="text-xl sm:text-2xl">Setting Up Your Application</CardTitle>
+            <p className="text-gray-600 text-sm sm:text-base">Preparing your Honourary Member application...</p>
           </CardHeader>
-          <CardContent className="space-y-4 p-4 sm:p-6">
-            <Select 
-              value={selectedPosition} 
-              onValueChange={setSelectedPosition}
-              disabled={hasExistingApplication && !forceStartFromBeginning}
-            >
-              <SelectTrigger className="text-sm sm:text-base">
-                <SelectValue placeholder="Select a position" />
-              </SelectTrigger>
-              <SelectContent>
-                {positions.map((position) => (
-                  <SelectItem key={position} value={position} className="text-sm sm:text-base">
-                    {position}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="outline" 
-                onClick={handleBack}
-                className="flex-1 text-sm sm:text-base"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <Button 
-                onClick={handlePositionSelect}
-                disabled={!selectedPosition || (hasExistingApplication && !forceStartFromBeginning)}
-                className="flex-1 text-sm sm:text-base"
-              >
-                {hasExistingApplication && !forceStartFromBeginning ? 'Continue Application' : 'Next'}
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+          <CardContent className="text-center space-y-4 p-4 sm:p-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-900 mb-2">Honourary Member Position</h3>
+              <p className="text-sm text-blue-700">
+                As an honourary member, you'll contribute to SAC events, attend meetings, and help make our school better.
+              </p>
             </div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-600 text-sm">Setting up your application...</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Step 2: Position Questions
+  // Step 2: Questions
   if (currentStep === 2) {
     return (
       <PositionQuestionsComponent

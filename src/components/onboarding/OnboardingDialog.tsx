@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +32,9 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
     studentType: 'none' as 'AP' | 'SHSM' | 'none'
   });
 
+  const isStep2Valid = formData.fullName.trim() !== '' && formData.studentNumber.trim() !== '';
+  const isStep3Valid = formData.grade.trim() !== '' && formData.studentType !== 'none';
+
   const stepContent = [
     {
       title: "Welcome to SAC Applications",
@@ -51,12 +53,28 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
   const totalSteps = stepContent.length;
 
   const handleContinue = () => {
+    // Add validation for each step
+    if (step === 2 && !isStep2Valid) {
+      // Could add toast notification here if you want
+      return;
+    }
+    if (step === 3 && !isStep3Valid) {
+      return;
+    }
+    
     if (step < totalSteps) {
       setStep(step + 1);
     }
   };
 
   const handleComplete = async () => {
+    // Final validation before completing onboarding
+    if (!formData.fullName.trim() || !formData.studentNumber.trim() || 
+        !formData.grade.trim() || formData.studentType === 'none') {
+      console.error('All fields must be completed');
+      return;
+    }
+
     try {
       await updateUserProfile({
         fullName: formData.fullName,
@@ -70,9 +88,6 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
       console.error('Error completing onboarding:', error);
     }
   };
-
-  const isStep2Valid = formData.fullName.trim() !== '' && formData.studentNumber.trim() !== '';
-  const isStep3Valid = formData.grade.trim() !== '';
 
   return (
     <Dialog open={open}>
@@ -91,21 +106,23 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
           {step === 2 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">Full Name *</Label>
                 <Input
                   id="fullName"
                   placeholder="Enter your full name"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="studentNumber">Student Number</Label>
+                <Label htmlFor="studentNumber">Student Number *</Label>
                 <Input
                   id="studentNumber"
                   placeholder="Enter your student number"
                   value={formData.studentNumber}
                   onChange={(e) => setFormData({ ...formData, studentNumber: e.target.value })}
+                  required
                 />
               </div>
             </div>
@@ -114,10 +131,11 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
           {step === 3 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="grade">Grade</Label>
+                <Label htmlFor="grade">Grade *</Label>
                 <Select
                   value={formData.grade}
                   onValueChange={(value) => setFormData({ ...formData, grade: value })}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select your grade" />
@@ -132,10 +150,11 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
               </div>
               
               <div className="space-y-2">
-                <Label>Academic Program</Label>
+                <Label>Academic Program *</Label>
                 <RadioGroup
                   value={formData.studentType}
                   onValueChange={(value) => setFormData({ ...formData, studentType: value as 'AP' | 'SHSM' | 'none' })}
+                  required
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="AP" id="ap" />
@@ -145,50 +164,40 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
                     <RadioGroupItem value="SHSM" id="shsm" />
                     <Label htmlFor="shsm">Specialist High Skills Major (SHSM)</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="none" id="none" />
-                    <Label htmlFor="none">None</Label>
-                  </div>
                 </RadioGroup>
               </div>
             </div>
           )}
 
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div className="flex justify-center space-x-1.5 max-sm:order-1">
-              {[...Array(totalSteps)].map((_, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full bg-primary",
-                    index + 1 === step ? "bg-primary" : "opacity-20",
-                  )}
-                />
-              ))}
-            </div>
-            <DialogFooter>
+          <DialogFooter className="flex-col space-y-2">
+            <div className="flex w-full gap-2">
+              {step > 1 && (
+                <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+                  Back
+                </Button>
+              )}
               {step < totalSteps ? (
                 <Button 
-                  className="group" 
-                  type="button" 
-                  onClick={handleContinue}
-                  disabled={(step === 2 && !isStep2Valid) || (step === 3 && !isStep3Valid)}
+                  onClick={handleContinue} 
+                  className="flex-1"
+                  disabled={
+                    (step === 2 && !isStep2Valid) ||
+                    (step === 3 && !isStep3Valid)
+                  }
                 >
-                  Next
-                  <ArrowRight
-                    className="-me-1 ms-2 opacity-60 transition-transform group-hover:translate-x-0.5"
-                    size={16}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
+                  Continue
                 </Button>
               ) : (
-                <Button type="button" onClick={handleComplete}>
+                <Button 
+                  onClick={handleComplete} 
+                  className="flex-1"
+                  disabled={!isStep2Valid || !isStep3Valid || step !== totalSteps}
+                >
                   Complete Setup
                 </Button>
               )}
-            </DialogFooter>
-          </div>
+            </div>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

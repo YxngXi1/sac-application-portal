@@ -30,7 +30,7 @@ interface ScheduledInterview {
 const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
-  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showGrader, setShowGrader] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -38,16 +38,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const positions = [
-    'Secretary', 
-    'Treasurer', 
-    'Community Outreach', 
-    'Athletics Liaison', 
-    'Promotions Officer', 
-    'Photography Exec',
-    'Technology Executive',
-    'Arts Liaison'
-  ];
+  const grades = ['9', '10', '11', '12'];
 
   // 8-minute interviews with 2-minute buffer (10-minute intervals): 11:05 AM - 12:05 PM and 3:00 PM - 5:00 PM
   const timeSlots = [
@@ -56,6 +47,12 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     // Afternoon slots: 3:00 - 5:00 (12 slots)
     '3:00 PM', '3:10 PM', '3:20 PM', '3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM'
   ];
+
+  const getGradeApplications = (grade: string) => {
+    return applications
+      .filter(app => app.position === 'Honourary Member' && app.userProfile?.grade === grade)
+      .sort((a, b) => (b.score || 0) - (a.score || 0)); // Sort by score descending
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -85,29 +82,52 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     for (const app of applications) {
       if (app.interviewScheduled) {
         try {
-          const interviewDoc = await getDoc(doc(db, 'interviews', app.id));
-          if (interviewDoc.exists()) {
-            const data = interviewDoc.data();
-            const interviewDate = data.date.toDate();
+          // Look for the new scheduled interview format
+          const scheduledInterviewDoc = await getDoc(doc(db, 'scheduledInterviews', `${app.id}_${app.position}`));
+          
+          if (scheduledInterviewDoc.exists()) {
+            const data = scheduledInterviewDoc.data();
             
-            // Check if grades have been submitted for this interview
+            // Check if grades have been submitted for this candidate
             const gradeDoc = await getDoc(doc(db, 'interviewGrades', app.id));
             const hasGrades = gradeDoc.exists() && gradeDoc.data()?.panelGrades?.length > 0;
             
-            interviews.push({
-              candidateId: app.id,
-              candidateName: app.userProfile?.fullName || 'Unknown',
-              position: app.position,
-              grade: app.userProfile?.grade || 'N/A',
-              studentNumber: app.userProfile?.studentNumber || 'N/A',
-              date: interviewDate,
-              timeSlot: data.timeSlot,
-              endTime: data.endTime || getEndTime(data.timeSlot),
-              hasGrades
-            });
+            // Add Interview One if it exists
+            if (data.interviewOneDate && data.interviewOneTime) {
+              const interviewOneDate = data.interviewOneDate.toDate();
+              
+              interviews.push({
+                candidateId: `${app.id}_interview_one`,
+                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Interview One`,
+                position: app.position,
+                grade: app.userProfile?.grade || 'N/A',
+                studentNumber: app.userProfile?.studentNumber || 'N/A',
+                date: interviewOneDate,
+                timeSlot: data.interviewOneTime,
+                endTime: getEndTime(data.interviewOneTime),
+                hasGrades
+              });
+            }
+            
+            // Add Interview Two if it exists
+            if (data.interviewTwoDate && data.interviewTwoTime) {
+              const interviewTwoDate = data.interviewTwoDate.toDate();
+              
+              interviews.push({
+                candidateId: `${app.id}_interview_two`,
+                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Interview Two`,
+                position: app.position,
+                grade: app.userProfile?.grade || 'N/A',
+                studentNumber: app.userProfile?.studentNumber || 'N/A',
+                date: interviewTwoDate,
+                timeSlot: data.interviewTwoTime,
+                endTime: getEndTime(data.interviewTwoTime),
+                hasGrades
+              });
+            }
           }
         } catch (error) {
-          console.error('Error loading interview for candidate:', app.id, error);
+          console.error('Error loading scheduled interview for candidate:', app.id, error);
         }
       }
     }
@@ -217,13 +237,13 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     }
   };
 
-  if (showScheduler && selectedPosition) {
+  if (showScheduler && selectedGrade) {
     return (
       <InterviewScheduler
-        positionName={selectedPosition}
+        positionName="Honourary Member"
         onBack={() => {
           setShowScheduler(false);
-          setSelectedPosition(null);
+          setSelectedGrade(null);
         }}
         onGoToCalendar={() => setShowCalendar(true)}
       />
@@ -306,7 +326,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             Interview Management
           </h1>
           <p className="text-gray-600">
-            Schedule and manage candidate interviews 
+            Schedule and manage candidate interviews for Honourary Members
           </p>
         </div>
       </div>
@@ -345,8 +365,13 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                     </div>
                     <Button
                       onClick={() => {
+                        // Extract the original candidate ID from the modified format
+                        const originalCandidateId = interview.candidateId.includes('_interview_') 
+                          ? interview.candidateId.split('_interview_')[0]
+                          : interview.candidateId;
+                          
                         // Find the candidate in applications
-                        const candidate = applications.find(app => app.id === interview.candidateId);
+                        const candidate = applications.find(app => app.id === originalCandidateId);
                         if (candidate) {
                           setSelectedCandidate(candidate);
                           setShowGrader(true);
@@ -401,30 +426,30 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
           </Card>
         )}
 
-        {/* Positions Grid */}
+        {/* Grades Grid */}
         <Card className="border shadow-sm bg-white">
           <CardHeader>
-            <CardTitle>Interview Scheduling by Position</CardTitle>
+            <CardTitle>Interview Scheduling by Grade</CardTitle>
             <CardDescription>
-              Schedule interviews for candidates by position (ordered by application grade)
+              Schedule interviews for Honourary Member candidates by grade (ordered by application score)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {positions.map((position) => {
-                const positionApps = getPositionApplications(position);
-                const scheduled = positionApps.filter(app => app.interviewScheduled).length;
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {grades.map((grade) => {
+                const gradeApps = getGradeApplications(grade);
+                const scheduled = gradeApps.filter(app => app.interviewScheduled).length;
                 
                 return (
                   <Card 
-                    key={position}
+                    key={grade}
                     className="border shadow-sm bg-gray-50 hover:shadow-md transition-shadow"
                   >
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className="font-semibold text-lg text-gray-900">{position}</h3>
+                        <h3 className="font-semibold text-lg text-gray-900">Grade {grade}</h3>
                         <Badge variant="secondary" className="bg-gray-200 text-gray-800">
-                          {positionApps.length} qualified
+                          {gradeApps.length} qualified
                         </Badge>
                       </div>
                       
@@ -435,17 +460,17 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Pending:</span>
-                          <span className="font-medium text-gray-600">{positionApps.length - scheduled}</span>
+                          <span className="font-medium text-gray-600">{gradeApps.length - scheduled}</span>
                         </div>
                       </div>
 
                       <Button 
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => {
-                          setSelectedPosition(position);
+                          setSelectedGrade(grade);
                           setShowScheduler(true);
                         }}
-                        disabled={positionApps.length === 0}
+                        disabled={gradeApps.length === 0}
                       >
                         <Calendar className="h-4 w-4 mr-2" />
                         Schedule Interviews

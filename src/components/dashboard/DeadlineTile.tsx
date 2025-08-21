@@ -7,7 +7,7 @@ const DeadlineTile = () => {
   const [timeLeft, setTimeLeft] = useState('');
   
   // Set the deadline to June 5th, 2025 at 11:59 PM EDT
-  const deadline = new Date(2025, 5, 5, 23, 59, 59); // Month is 0-indexed, so 5 = June
+    const deadline = new Date(2025, 8, 5, 23, 59, 59); // Month is 0-indexed, so 8 = September
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -50,7 +50,7 @@ const DeadlineTile = () => {
       <CardContent className="p-6">
         <div className="text-center space-y-4">
           <div>
-            <p className="text-lg font-semibold text-gray-900">Due on June 5th</p>
+            <p className="text-lg font-semibold text-gray-900">Due on September 5th</p>
             <p className="text-sm text-gray-600">11:59 PM EDT</p>
           </div>
           
