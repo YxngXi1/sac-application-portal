@@ -342,11 +342,11 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
 const getQuestionText = (questionId: string): string => {
   const questionMappings: Record<string, string> = {
-    'honorary_1': 'Why do you want to become an honourary member of the Student Activity Council?',
-    'honorary_2': 'What experience do you have in leadership, teamwork, or community involvement?',
-    'honorary_3': 'How would you contribute to SAC events and initiatives? Describe specific ways you could help.',
-    'honorary_4': 'What ideas do you have to improve student life at John Fraser?',
-    'honorary_5': 'What other commitments do you plan to have this year? Include clubs, sports, part-time jobs, and estimated time per week.',
+    'honorary_1': 'Tell us your “why” - why do you want to be a part of the Student Activity Council for the 2025-26 school year? (100 words max)',
+    'honorary_2': 'What unique qualities, skills, or assets make you a very valuable member to the council? In other words, why should we choose you over other applicants? (150 words max)',
+    'honorary_3': "Imagine you’re given a magic wand that instantly makes only TWO changes to school life. What are your two spells and how would it benefit life at John Fraser. Be specific by also including the overall goal and impact of your changes. (200 words max)",
+    'honorary_4': "Describe a time when your group’s ‘perfect plan’ faced a setback. How did your group overcome this obstacle and what was your role in doing so? (150 words max)",
+    'honorary_5': 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.',
   };
 
   return questionMappings[questionId] || questionId;
