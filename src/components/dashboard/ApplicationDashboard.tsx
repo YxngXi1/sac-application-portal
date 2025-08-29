@@ -60,7 +60,7 @@ const ApplicationDashboard = () => {
   const availablePositions = [
     {
       title: "Honourary Member",
-      description: "idk david tell me something to puit"
+      description: "Volunteer to assist with all SAC event execution, increase school spirit and attend general meetings."
     }
   ];
 

@@ -46,6 +46,13 @@ const positionQuestions = {
       required: true,
       wordLimit: 100,
     },
+        {
+      id: 'honorary_6',
+      question: 'Do you know anyone currently on the SAC Executive Council? If so, please list them here.',
+      type: 'textarea' as const,
+      required: false,
+      wordLimit: 100,
+    },
   ],
 };
 

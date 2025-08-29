@@ -28,16 +28,18 @@ interface Question {
   maxScore: number;
 }
 
-// Position-specific questions with their corresponding answer keys - updated to match application questions
 const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>> = {
   'Honourary Member': [
-    { question: 'is sohum a sigma?', key: 'honorary_1' },
-    { question: 'by the way is yang more sigma or is sohum?', key: 'honorary_2' },
-    { question: 'hello sigma i am a sigma WOOOOOOO.', key: 'honorary_3' },
-    { question: 'WAHOOOO I AM A SIGMA', key: 'honorary_4' },
-    { question: 'hamza is really scary when he uses proper grammar', key: 'honorary_5' }
+    { question: 'Tell us your "why" - why do you want to be a part of the Student Activity Council for the 2025-26 school year?', key: 'honorary_1' },
+    { question: 'What unique qualities, skills, or assets make you a very valuable member to the council? In other words, why should we choose you over other applicants?', key: 'honorary_2' },
+    { question: "Describe a time when your group's 'perfect plan' faced a setback. How did your group overcome this obstacle and what was your role in doing so?", key: 'honorary_3' },
+    { question: "Imagine you're given a magic wand that instantly makes only TWO changes to school life. What are your two spells and how would it benefit life at John Fraser. Be specific by also including the overall goal and impact of your changes.", key: 'honorary_4' },
+    { question: 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.', key: 'honorary_5' },
+    { question: 'Do you know anyone currently on the SAC Executive Council?', key: 'honorary_6' }
   ]
 };
+
+
 
 const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   application,
@@ -88,7 +90,8 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
           { question: 'Question 2', key: 'honorary_2' },
           { question: 'Question 3', key: 'honorary_3' },
           { question: 'Question 4', key: 'honorary_4' },
-          { question: 'Question 5', key: 'honorary_5' }
+          { question: 'Question 5', key: 'honorary_5' },
+          { question: 'Question 6', key: 'honorary_6' }
         ];
         
         // Convert application answers to questions format with proper key mapping
@@ -342,11 +345,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
 const getQuestionText = (questionId: string): string => {
   const questionMappings: Record<string, string> = {
-    'honorary_1': 'Tell us your “why” - why do you want to be a part of the Student Activity Council for the 2025-26 school year? (100 words max)',
+    'honorary_1': 'Tell us your "why" - why do you want to be a part of the Student Activity Council for the 2025-26 school year? (100 words max)',
     'honorary_2': 'What unique qualities, skills, or assets make you a very valuable member to the council? In other words, why should we choose you over other applicants? (150 words max)',
-    'honorary_3': "Imagine you’re given a magic wand that instantly makes only TWO changes to school life. What are your two spells and how would it benefit life at John Fraser. Be specific by also including the overall goal and impact of your changes. (200 words max)",
-    'honorary_4': "Describe a time when your group’s ‘perfect plan’ faced a setback. How did your group overcome this obstacle and what was your role in doing so? (150 words max)",
+    'honorary_3': "Describe a time when your group's 'perfect plan' faced a setback. How did your group overcome this obstacle and what was your role in doing so? (150 words max)",
+    'honorary_4': "Imagine you're given a magic wand that instantly makes only TWO changes to school life. What are your two spells and how would it benefit life at John Fraser. Be specific by also including the overall goal and impact of your changes. (200 words max)",
     'honorary_5': 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.',
+    'honorary_6': 'Do you know anyone currently on the SAC Executive Council?'
   };
 
   return questionMappings[questionId] || questionId;

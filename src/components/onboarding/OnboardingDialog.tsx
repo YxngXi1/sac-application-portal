@@ -29,11 +29,11 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
     fullName: '',
     studentNumber: '',
     grade: '',
-    studentType: 'none' as 'AP' | 'SHSM' | 'none'
+    studentType: '' as 'AP' | 'SHSM' | 'none' | ''
   });
 
   const isStep2Valid = formData.fullName.trim() !== '' && formData.studentNumber.trim() !== '';
-  const isStep3Valid = formData.grade.trim() !== '' && formData.studentType !== 'none';
+  const isStep3Valid = formData.grade.trim() !== '' && formData.studentType !== '';
 
   const stepContent = [
     {
@@ -70,7 +70,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
   const handleComplete = async () => {
     // Final validation before completing onboarding
     if (!formData.fullName.trim() || !formData.studentNumber.trim() || 
-        !formData.grade.trim() || formData.studentType === 'none') {
+        !formData.grade.trim() || formData.studentType === '') {
       console.error('All fields must be completed');
       return;
     }

@@ -117,10 +117,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
                 <SelectValue placeholder="Select your program" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Regular Program</SelectItem>
-                <SelectItem value="IB">International Baccalaureate (IB)</SelectItem>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="IB">SHSM</SelectItem>
                 <SelectItem value="AP">Advanced Placement (AP)</SelectItem>
-                <SelectItem value="French Immersion">French Immersion</SelectItem>
               </SelectContent>
             </Select>
           </div>
