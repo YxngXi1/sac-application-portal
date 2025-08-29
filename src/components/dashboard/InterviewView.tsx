@@ -25,6 +25,7 @@ interface ScheduledInterview {
   timeSlot: string;
   endTime: string;
   hasGrades?: boolean;
+  interviewType?: 'one' | 'two'; // Add this field
 }
 
 const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
@@ -37,6 +38,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
+   const [selectedInterviewType, setSelectedInterviewType] = useState<'one' | 'two' | null>(null);
 
   const grades = ['9', '10', '11', '12'];
 
@@ -88,9 +90,11 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
           if (scheduledInterviewDoc.exists()) {
             const data = scheduledInterviewDoc.data();
             
-            // Check if grades have been submitted for this candidate
-            const gradeDoc = await getDoc(doc(db, 'interviewGrades', app.id));
-            const hasGrades = gradeDoc.exists() && gradeDoc.data()?.panelGrades?.length > 0;
+            // Check if grades have been submitted for this candidate's interviews
+            const gradeDocOne = await getDoc(doc(db, 'interviewGrades', `${app.id}_interview_one`));
+            const gradeDocTwo = await getDoc(doc(db, 'interviewGrades', `${app.id}_interview_two`));
+            const hasGradesOne = gradeDocOne.exists() && gradeDocOne.data()?.panelGrades?.length > 0;
+            const hasGradesTwo = gradeDocTwo.exists() && gradeDocTwo.data()?.panelGrades?.length > 0;
             
             // Add Interview One if it exists
             if (data.interviewOneDate && data.interviewOneTime) {
@@ -105,7 +109,8 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                 date: interviewOneDate,
                 timeSlot: data.interviewOneTime,
                 endTime: getEndTime(data.interviewOneTime),
-                hasGrades
+                hasGrades: hasGradesOne,
+                interviewType: 'one'
               });
             }
             
@@ -122,7 +127,8 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                 date: interviewTwoDate,
                 timeSlot: data.interviewTwoTime,
                 endTime: getEndTime(data.interviewTwoTime),
-                hasGrades
+                hasGrades: hasGradesTwo,
+                interviewType: 'two'
               });
             }
           }
@@ -176,7 +182,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       if (!interview.hasGrades) {
         return false;
       }
-      
+
       // Check if the interview date/time has passed
       const [time, period] = interview.timeSlot.split(' ');
       const [hours, minutes] = time.split(':').map(Number);
@@ -250,13 +256,15 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     );
   }
 
-  if (showGrader && selectedCandidate) {
+if (showGrader && selectedCandidate && selectedInterviewType) {
     return (
       <InterviewGrader
         candidate={selectedCandidate}
+        interviewType={selectedInterviewType}
         onBack={() => {
           setShowGrader(false);
           setSelectedCandidate(null);
+          setSelectedInterviewType(null);
         }}
       />
     );
@@ -374,6 +382,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
                         const candidate = applications.find(app => app.id === originalCandidateId);
                         if (candidate) {
                           setSelectedCandidate(candidate);
+                          setSelectedInterviewType(interview.interviewType || 'one');
                           setShowGrader(true);
                         }
                       }}

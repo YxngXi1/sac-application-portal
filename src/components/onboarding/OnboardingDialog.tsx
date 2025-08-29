@@ -164,6 +164,10 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
                     <RadioGroupItem value="SHSM" id="shsm" />
                     <Label htmlFor="shsm">Specialist High Skills Major (SHSM)</Label>
                   </div>
+                    <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="none" id="none" />
+                    <Label htmlFor="none">None</Label>
+                  </div>
                 </RadioGroup>
               </div>
             </div>

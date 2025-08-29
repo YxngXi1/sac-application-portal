@@ -42,6 +42,28 @@ const isSuperAdmin = (email: string): boolean => {
   return email === '752470@pdsb.net';
 };
 
+const isExec = (email: string): boolean => {
+  const execEmails = [
+    '793546@pdsb.net',
+    '843909@pdsb.net',
+    '890323@pdsb.net',
+    '752470@pdsb.net',
+    '952625@pdsb.net',
+    '1099702@pdsb.net',
+    '752622@pdsb.net',
+    '795804@pdsb.net',
+    '1024127@pdsb.net',
+    '782630@pdsb.net',
+    '930999@pdsb.net',
+    '892934@pdsb.net',
+    '781284@pdsb.net',
+    '898765@pdsb.net',
+    '806272@pdsb.net',
+    '780748@pdsb.net'
+  ];
+  return execEmails.includes(email);
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -67,20 +89,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (profileDoc.exists()) {
             let profile = profileDoc.data() as UserProfile;
             
-            // Always update role if user is superadmin
+            // Always update role based on email
             if (isSuperAdmin(user.email || '')) {
               profile = { ...profile, role: 'superadmin' };
+              await setDoc(doc(db, 'users', user.uid), profile);
+            } else if (isExec(user.email || '')) {
+              profile = { ...profile, role: 'exec' };
               await setDoc(doc(db, 'users', user.uid), profile);
             }
             
             setUserProfile(profile);
           } else {
-            // Create initial profile
+            // Create initial profile with appropriate role
+            let initialRole: 'student' | 'exec' | 'superadmin' = 'student';
+            if (isSuperAdmin(user.email || '')) {
+              initialRole = 'superadmin';
+            } else if (isExec(user.email || '')) {
+              initialRole = 'exec';
+            }
+
             const initialProfile: UserProfile = {
               uid: user.uid,
               email: user.email || '',
               name: user.displayName || '',
-              role: isSuperAdmin(user.email || '') ? 'superadmin' : 'student',
+              role: initialRole,
               isOnboarded: false,
             };
             await setDoc(doc(db, 'users', user.uid), initialProfile);

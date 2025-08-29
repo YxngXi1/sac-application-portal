@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ArrowLeft, Award, MessageSquare, CheckSquare, User, Eye, Printer } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import CandidateInterviewDetails from './CandidateInterviewDetails';
 
@@ -35,11 +35,20 @@ interface InterviewGrades {
   candidateId: string;
   panelGrades: PanelMemberGrade[];
   averageScore: number;
+  interviewType: string;
+}
+
+interface CombinedInterviewGrades {
+  candidateId: string;
+  interviewOne?: InterviewGrades;
+  interviewTwo?: InterviewGrades;
+  combinedAverageScore: number;
+  allPanelGrades: PanelMemberGrade[];
 }
 
 const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
   const [applications, setApplications] = useState<ApplicationData[]>([]);
-  const [interviewGrades, setInterviewGrades] = useState<Record<string, InterviewGrades>>({});
+  const [interviewGrades, setInterviewGrades] = useState<Record<string, CombinedInterviewGrades>>({});
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
 
@@ -52,12 +61,61 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
         setApplications(interviewed);
 
         // Load interview grades for each candidate
-        const gradesData: Record<string, InterviewGrades> = {};
+        const gradesData: Record<string, CombinedInterviewGrades> = {};
+        
         for (const app of interviewed) {
           try {
-            const gradeDoc = await getDoc(doc(db, 'interviewGrades', app.id));
-            if (gradeDoc.exists()) {
-              gradesData[app.id] = gradeDoc.data() as InterviewGrades;
+            // Query for both interview types for this candidate
+            const interviewGradesQuery = query(
+              collection(db, 'interviewGrades'),
+              where('candidateId', '==', app.id)
+            );
+            
+            const querySnapshot = await getDocs(interviewGradesQuery);
+            const candidateInterviews: InterviewGrades[] = [];
+            
+            querySnapshot.forEach((doc) => {
+              candidateInterviews.push({ candidateId: doc.id, ...doc.data() } as InterviewGrades);
+            });
+
+            if (candidateInterviews.length > 0) {
+              const interviewOne = candidateInterviews.find(interview => interview.interviewType === 'one');
+              const interviewTwo = candidateInterviews.find(interview => interview.interviewType === 'two');
+              
+              // Calculate combined average score
+              let combinedAverageScore = 0;
+              let scoreCount = 0;
+              
+              if (interviewOne && interviewOne.averageScore) {
+                combinedAverageScore += parseFloat(interviewOne.averageScore.toString());
+                scoreCount++;
+              }
+              
+              if (interviewTwo && interviewTwo.averageScore) {
+                combinedAverageScore += parseFloat(interviewTwo.averageScore.toString());
+                scoreCount++;
+              }
+              
+              if (scoreCount > 0) {
+                combinedAverageScore = combinedAverageScore / scoreCount;
+              }
+
+              // Combine all panel grades from both interviews
+              const allPanelGrades: PanelMemberGrade[] = [];
+              if (interviewOne?.panelGrades) {
+                allPanelGrades.push(...interviewOne.panelGrades);
+              }
+              if (interviewTwo?.panelGrades) {
+                allPanelGrades.push(...interviewTwo.panelGrades);
+              }
+
+              gradesData[app.id] = {
+                candidateId: app.id,
+                interviewOne,
+                interviewTwo,
+                combinedAverageScore,
+                allPanelGrades
+              };
             }
           } catch (error) {
             console.error(`Error loading grades for ${app.id}:`, error);
@@ -76,20 +134,14 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
 
   const getInterviewScore = (candidateId: string): number => {
     const grades = interviewGrades[candidateId];
-    if (!grades || !grades.panelGrades.length) return 0;
+    if (!grades) return 0;
     
-    // Calculate average score across all panel members
-    const allScores = grades.panelGrades.map(panelGrade => {
-      const scores = Object.values(panelGrade.grades).filter(s => typeof s === 'number' && s >= 0);
-      return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
-    });
-    
-    return allScores.length > 0 ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length : 0;
+    return grades.combinedAverageScore || 0;
   };
 
   const getCheckboxSummary = (candidateId: string) => {
     const grades = interviewGrades[candidateId];
-    if (!grades || !grades.panelGrades.length) return { total: 0, breakdown: {} };
+    if (!grades || !grades.allPanelGrades.length) return { total: 0, breakdown: {} };
     
     const checkboxKeys: (keyof InterviewCheckboxes)[] = [
       'pastExperience', 'roleKnowledge', 'leadershipSkills', 'creativeOutlook', 'timeManagement'
@@ -99,13 +151,15 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     let totalChecked = 0;
     
     checkboxKeys.forEach(key => {
-      const checkedCount = grades.panelGrades.filter(pg => pg.checkboxes && pg.checkboxes[key]).length;
+      const checkedCount = grades.allPanelGrades.filter(pg => pg.checkboxes && pg.checkboxes[key]).length;
       breakdown[key] = checkedCount;
       if (checkedCount > 0) totalChecked++;
     });
     
     return { total: totalChecked, breakdown };
   };
+
+  // ...existing code for groupedByPosition, handlePrint functions...
 
   const groupedByPosition = applications.reduce((acc, app) => {
     if (!acc[app.position]) {
@@ -114,6 +168,8 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     acc[app.position].push(app);
     return acc;
   }, {} as Record<string, ApplicationData[]>);
+
+  // ...existing handlePrint and generatePrintContent functions remain the same...
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -477,7 +533,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           <div class="score-summary">
             <h5>Score Summary</h5>
             <p><strong>Application Score:</strong> ${applicationScore.toFixed(1)}/10</p>
-            <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/5</p>
+            <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/5 (Combined from both interviews)</p>
             <p><strong>Total Score:</strong> ${totalScore.toFixed(1)}/15</p>
             <p><strong>Criteria Met:</strong> ${checkboxSummary.total}/5</p>
           </div>
@@ -501,13 +557,14 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           </div>
       `;
 
-      if (grades && grades.panelGrades && grades.panelGrades.length > 0) {
+      if (grades && grades.allPanelGrades && grades.allPanelGrades.length > 0) {
         content += `
-          <h5>Individual Panel Member Grades</h5>
+          <h5>Individual Panel Member Grades (Both Interviews)</h5>
           <table class="grades-table">
             <thead>
               <tr>
                 <th>Panel Member</th>
+                <th>Interview Type</th>
                 <th>Average</th>
                 <th>Submitted</th>
               </tr>
@@ -515,13 +572,22 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
             <tbody>
         `;
 
-        grades.panelGrades.forEach(panelGrade => {
+        grades.allPanelGrades.forEach(panelGrade => {
           const gradeValues = Object.values(panelGrade.grades).filter(g => typeof g === 'number' && g >= 0);
           const avgGrade = gradeValues.length > 0 ? (gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length).toFixed(1) : 'N/A';
+          
+          // Determine which interview this grade is from
+          let interviewType = 'Unknown';
+          if (grades.interviewOne?.panelGrades?.includes(panelGrade)) {
+            interviewType = 'Interview One';
+          } else if (grades.interviewTwo?.panelGrades?.includes(panelGrade)) {
+            interviewType = 'Interview Two';
+          }
           
           content += `
             <tr>
               <td>${panelGrade.panelMemberName}</td>
+              <td>${interviewType}</td>
               <td>${avgGrade}</td>
               <td>${new Date(panelGrade.submittedAt).toLocaleDateString()}</td>
             </tr>
@@ -533,17 +599,25 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           </table>
         `;
 
-        const feedbackEntries = grades.panelGrades.filter(pg => pg.feedback);
+        const feedbackEntries = grades.allPanelGrades.filter(pg => pg.feedback);
         if (feedbackEntries.length > 0) {
           content += `
             <div class="feedback-section">
-              <h5>Panel Member Feedback</h5>
+              <h5>Panel Member Feedback (Both Interviews)</h5>
           `;
 
           feedbackEntries.forEach(grade => {
+            // Determine which interview this feedback is from
+            let interviewType = 'Unknown';
+            if (grades.interviewOne?.panelGrades?.includes(grade)) {
+              interviewType = 'Interview One';
+            } else if (grades.interviewTwo?.panelGrades?.includes(grade)) {
+              interviewType = 'Interview Two';
+            }
+
             content += `
               <div class="feedback-item">
-                <strong>${grade.panelMemberName}</strong> - ${new Date(grade.submittedAt).toLocaleDateString()}
+                <strong>${grade.panelMemberName}</strong> (${interviewType}) - ${new Date(grade.submittedAt).toLocaleDateString()}
                 <p>${grade.feedback}</p>
               </div>
             `;
@@ -709,7 +783,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                   <DialogContent className="max-w-2xl">
                                     <DialogHeader>
                                       <DialogTitle>Assessment Summary - {candidate.userProfile?.fullName}</DialogTitle>
-                                      <DialogDescription>Panel assessment criteria results</DialogDescription>
+                                      <DialogDescription>Panel assessment criteria results (Combined from both interviews)</DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4">
                                       <div className="grid grid-cols-1 gap-3">
@@ -767,24 +841,38 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                   <DialogContent className="max-w-3xl">
                                     <DialogHeader>
                                       <DialogTitle>Panel Feedback - {candidate.userProfile?.fullName}</DialogTitle>
-                                      <DialogDescription>Feedback from all panel members</DialogDescription>
+                                      <DialogDescription>Feedback from all panel members (Both interviews)</DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                                      {interviewGrades[candidate.id]?.panelGrades?.filter(pg => pg.feedback).length > 0 ? (
-                                        interviewGrades[candidate.id].panelGrades
+                                      {interviewGrades[candidate.id]?.allPanelGrades?.filter(pg => pg.feedback).length > 0 ? (
+                                        interviewGrades[candidate.id].allPanelGrades
                                           .filter(pg => pg.feedback)
-                                          .map((grade) => (
-                                            <div key={grade.panelMemberId} className="p-4 border rounded-lg">
-                                              <div className="flex items-center gap-2 mb-2">
-                                                <User className="h-4 w-4 text-gray-600" />
-                                                <span className="font-medium">{grade.panelMemberName}</span>
-                                                <span className="text-xs text-gray-500">
-                                                  {new Date(grade.submittedAt).toLocaleDateString()}
-                                                </span>
+                                          .map((grade, index) => {
+                                            // Determine which interview this feedback is from
+                                            const grades = interviewGrades[candidate.id];
+                                            let interviewType = 'Unknown';
+                                            if (grades.interviewOne?.panelGrades?.includes(grade)) {
+                                              interviewType = 'Interview One';
+                                            } else if (grades.interviewTwo?.panelGrades?.includes(grade)) {
+                                              interviewType = 'Interview Two';
+                                            }
+
+                                            return (
+                                              <div key={`${grade.panelMemberId}-${index}`} className="p-4 border rounded-lg">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <User className="h-4 w-4 text-gray-600" />
+                                                  <span className="font-medium">{grade.panelMemberName}</span>
+                                                  <Badge variant="outline" className="text-xs">
+                                                    {interviewType}
+                                                  </Badge>
+                                                  <span className="text-xs text-gray-500">
+                                                    {new Date(grade.submittedAt).toLocaleDateString()}
+                                                  </span>
+                                                </div>
+                                                <p className="text-sm text-gray-800">{grade.feedback}</p>
                                               </div>
-                                              <p className="text-sm text-gray-800">{grade.feedback}</p>
-                                            </div>
-                                          ))
+                                            );
+                                          })
                                       ) : (
                                         <p className="text-gray-500 text-center py-4">No feedback available</p>
                                       )}

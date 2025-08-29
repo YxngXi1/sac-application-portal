@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface InterviewGraderProps {
   candidate: ApplicationData;
+  interviewType: 'one' | 'two';
   onBack: () => void;
 }
 
@@ -34,11 +35,12 @@ interface PanelMemberGrade {
 
 interface InterviewGrades {
   candidateId: string;
+  interviewType: 'one' | 'two';
   panelGrades: PanelMemberGrade[];
   averageScore: number;
 }
 
-const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) => {
+const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewType, onBack }) => {
   const { user } = useAuth();
   const [grades, setGrades] = useState<Record<string, number>>({});
   const [feedback, setFeedback] = useState('');
@@ -52,6 +54,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
   const [submitting, setSubmitting] = useState(false);
   const [panelGrades, setPanelGrades] = useState<PanelMemberGrade[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+
 
   const getQuestionsForPosition = (position: string) => {
     const questionSets: Record<string, string[]> = {
@@ -117,7 +120,10 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
   useEffect(() => {
     const loadExistingGrades = async () => {
       try {
-        const gradeDoc = await getDoc(doc(db, 'interviewGrades', candidate.id));
+        // Use separate document IDs for each interview type
+        const gradeDocId = `${candidate.id}_interview_${interviewType}`;
+        const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
+        
         if (gradeDoc.exists()) {
           const data = gradeDoc.data() as InterviewGrades;
           setPanelGrades(data.panelGrades || []);
@@ -139,7 +145,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
     if (user) {
       loadExistingGrades();
     }
-  }, [candidate.id, user]);
+  }, [candidate.id, interviewType, user]);
 
   const handleGradeChange = (questionIndex: number, score: number) => {
     setGrades(prev => ({
@@ -155,7 +161,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
     }));
   };
 
-  const handleSubmit = async () => {
+    const handleSubmit = async () => {
     if (!user) return;
 
     setSubmitting(true);
@@ -169,8 +175,9 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
         submittedAt: new Date()
       };
 
-      // Update or create the interview grades document
-      const gradeDocRef = doc(db, 'interviewGrades', candidate.id);
+      // Update or create the interview grades document with separate ID for each interview
+      const gradeDocId = `${candidate.id}_interview_${interviewType}`;
+      const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
       const existingDoc = await getDoc(gradeDocRef);
 
       let updatedPanelGrades: PanelMemberGrade[];
@@ -196,6 +203,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
 
       const interviewGradeData: InterviewGrades = {
         candidateId: candidate.id,
+        interviewType,
         panelGrades: updatedPanelGrades,
         averageScore
       };
@@ -206,7 +214,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
       setHasSubmitted(true);
       
       // Show success feedback
-      alert('Grades submitted successfully!');
+      alert(`Interview ${interviewType === 'one' ? 'One' : 'Two'} grades submitted successfully!`);
     } catch (error) {
       console.error('Error submitting grades:', error);
       alert('Error submitting grades. Please try again.');
@@ -259,7 +267,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Interview Grading
+                Interview {interviewType === 'one' ? 'One' : 'Two'} Grading
               </h1>
               <div className="flex items-center gap-4 text-gray-600">
                 <div className="flex items-center gap-2">
@@ -271,6 +279,16 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                 </Badge>
                 <Badge variant="outline" className="border-gray-300">
                   Grade {candidate.userProfile?.grade}
+                </Badge>
+                <Badge 
+                  variant="outline" 
+                  className={`border-2 ${
+                    interviewType === 'one' 
+                      ? 'border-blue-300 text-blue-700 bg-blue-50' 
+                      : 'border-green-300 text-green-700 bg-green-50'
+                  }`}
+                >
+                  Interview {interviewType === 'one' ? 'One' : 'Two'}
                 </Badge>
               </div>
             </div>
@@ -286,9 +304,38 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
 
       <div className="max-w-7xl mx-auto p-8 pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Main Content */}
+          {/* Main Content - same as before */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Interview Questions */}
+            {/* Add a notice about which interview this is */}
+            <Card className={`border-2 shadow-sm ${
+              interviewType === 'one' 
+                ? 'border-blue-200 bg-blue-50' 
+                : 'border-green-200 bg-green-50'
+            }`}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                    interviewType === 'one' ? 'bg-blue-600' : 'bg-green-600'
+                  }`}>
+                    {interviewType === 'one' ? '1' : '2'}
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold ${
+                      interviewType === 'one' ? 'text-blue-800' : 'text-green-800'
+                    }`}>
+                      Grading Interview {interviewType === 'one' ? 'One' : 'Two'}
+                    </h3>
+                    <p className={`text-sm ${
+                      interviewType === 'one' ? 'text-blue-600' : 'text-green-600'
+                    }`}>
+                      This is the {interviewType === 'one' ? 'first' : 'second'} interview session for this candidate.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Interview Questions - same as before */}
             <div className="space-y-6">
               {questions.map((question, index) => (
                 <Card key={index} className="border shadow-sm bg-white hover:shadow-md transition-shadow">
@@ -383,7 +430,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
             </Card>
           </div>
 
-          {/* Sidebar */}
+                    {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-32 space-y-6">
               {/* Interview Panel */}
@@ -391,7 +438,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-blue-600" />
-                    Interview Panel
+                    Interview {interviewType === 'one' ? 'One' : 'Two'} Panel
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -443,7 +490,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
             <div className="text-sm text-gray-600">
               {isFormComplete() 
                 ? hasSubmitted 
-                  ? "✅ Grades have been submitted successfully" 
+                  ? `✅ Interview ${interviewType === 'one' ? 'One' : 'Two'} grades submitted successfully` 
                   : "✅ All fields completed - ready to submit"
                 : "⚠️ Please complete all questions and provide feedback"
               }
@@ -461,7 +508,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, onBack }) 
               ) : hasSubmitted ? (
                 'Submitted'
               ) : (
-                'Submit My Grades'
+                `Submit Interview ${interviewType === 'one' ? 'One' : 'Two'} Grades`
               )}
             </Button>
           </div>

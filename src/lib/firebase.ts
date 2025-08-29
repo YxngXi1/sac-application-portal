@@ -6,12 +6,12 @@ import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCaP_RYaXLzsY7SwT5m2RBBWz7WeJA1OAk",
-  authDomain: "sac-apply.firebaseapp.com",
-  projectId: "sac-apply",
-  storageBucket: "sac-apply.appspot.com",
-  messagingSenderId: "226413841077",
-  appId: "1:226413841077:web:abcdef123456"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
