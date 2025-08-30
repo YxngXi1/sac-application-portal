@@ -40,35 +40,6 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     }
   };
 
-    const sendConfirmationEmail = async (userId: string, position: string) => {
-    try {
-      const response = await fetch('/api/send-confirmation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          position,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send confirmation email');
-      }
-
-      console.log('Confirmation email sent successfully');
-    } catch (error) {
-      console.error('Error sending confirmation email:', error);
-      // Don't throw - we don't want email failure to prevent submission success
-      toast({
-        title: "Warning",
-        description: "Application submitted successfully, but confirmation email could not be sent.",
-        variant: "default",
-      });
-    }
-  };
-
   const calculateProgress = () => {
     if (!position) return 0;
     // Position selected = 20%
@@ -128,8 +99,6 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
 
       // Submit the application using the service
       await submitApplication(user.uid);
-
-      sendConfirmationEmail(user.uid, position);
       
       // Clear saved progress
       localStorage.removeItem('applicationProgress');
@@ -140,7 +109,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
       // Show success message and redirect
       toast({
         title: "Success",
-        description: "Application submitted successfully! A confirmation email will be sent to your PDSB email.",
+        description: "Application submitted successfully!",
       });
       
       // Redirect to thank you page
