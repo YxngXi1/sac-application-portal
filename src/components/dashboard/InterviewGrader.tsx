@@ -55,68 +55,44 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
   const [panelGrades, setPanelGrades] = useState<PanelMemberGrade[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
-
-  const getQuestionsForPosition = (position: string) => {
-    const questionSets: Record<string, string[]> = {
-      'Promotions Officer': [
-        "Explain the promotional material you created and why you feel it is beneficial for promoting the SAC event.",
-        "Can you give an example of a time when you had to plan something under tight deadlines? What steps did you take to ensure it was done well, and what did you learn from that experience? In other words, can you get work done quickly and efficiently?",
-        "What do you think is the biggest challenge in getting students excited about school events, and how would you approach solving it?",
-        "If you were to look back at the end of the year, what would success as a promotions officer look like for you? What would you want to be remembered for?"
-      ],
-      'Photography Exec': [
-        "Photography can involve a lot of behind-the-scenes work—like editing and sorting photos quickly. How do you manage your time and stay organized with these tasks?",
-        "Can you walk us through your experience with photography? What types of photos do you most enjoy taking, and why?",
-        "School events are often fast-paced and unpredictable. How would you ensure you're able to capture the most important and interesting moments?",
-        "Imagine you are at an SAC event and all your members are having fun, but your duty is to take photos for the event, how would you manage this?",
-        "Can you think of a new way that photos or photography could be more visible in the school other than on social media?"
-      ],
-      'Secretary': [
-        "Imagine you're faced with several tasks at once—taking minutes during a meeting, managing event sign-ups, and updating the council's calendar. How would you prioritize and manage these tasks to ensure they're all done well?",
-        "Tell me about a time you made a mistake in organizing or managing information. How did you address it and what did you learn from the experience?",
-        "Being detail-oriented is key for a secretary. Can you give me an example of a time when paying attention to the small details made a big difference?",
-        "The current role of the Secretary, outside of Council meetings, is to update the SAC website, publish meeting agendas, and draft up announcements for SAC. What other responsibilities as secretary do you want to take on and how can you put your head down, stay motivated, and work?",
-        "Sometimes the secretary's job can be slow depending on the time of year. How else can you play a big role in council when you aren't doing secretarial work?"
-      ],
-      'Treasurer': [
-        "What's one idea you have for using the treasurer role to make a positive impact on the student council and the school? Write a few sentences explaining your idea and how you'd make it happen.",
-        "With emerging technology developed by this year's Council, and the role of the Treasurer becoming more limited and with less responsibilities, what do you propose that the treasurer for the 2025/2026 year take on? These responsibilities can include the continuity of current responsibilities or new responsibilities.",
-        "Our members contribute cash in the fall for SAC snacks. How would you ensure this money would last the school year and be accounted for."
-      ],
-      'Community Outreach': [
-        "Community outreach often means connecting with many different people. How do you approach building relationships with people you don't know well?",
-        "Community outreach requires strong communication and relationship-building skills. Share an example of a time when you successfully worked with others to achieve a goal",
-        "Food drives are a common community outreach activity. If you were responsible for organizing a food drive at John Fraser, how would you plan it to make sure it's successful and engages as many students as possible?"
-      ],
-      'Athletics Liaison': [
-        "Being the Athletics Liaison is a very innovative position, and the Athletics Liaisons in the last couple of years have created new events that have had great turnouts. For example, one liaison created the Spring Dance, while the other created the Fraser Games. What ideas do you have for this role? If you would create an event, or improve an existing one, how would you do so?",
-        "The Fraser Games was brought back this year by our Athletics Liaison. Say you become the Athletics Liaison, and you have spent weeks planning this event, but the assigned SAC and FAC volunteers haven't shown up to a station. What would you do?",
-        "How would you handle a situation where the Athletics Council and SAC have different opinions about an event or project? How would you help both sides reach an agreement?"
-      ],
-      'Arts Liaison': [
-        "If you could only run one major event this year, how would you choose what it is, and what would you prioritize in planning it?",
-        "Tell us about a time you had to mediate between creative differences in a team. How did you approach it?",
-        "If you had to plan a collaborative event between SAC and all of the Arts, what would it look like and how would you prevent miscommunication between so many clubs?",
-        "If you could change how the school values or supports the arts, what would you do—and how would you make it happen?",
-        "Tell us about your passion of the arts. How do you plan to transfer that passion into this role as a liaison of multiple clubs?"
-      ],
-      'Technology Executive': [
-        "Being the Technology Executive will not be easy work — and it's much more than simply operating the cafeteria tech booth or updating the SAC website. We are looking for someone truly passionate about using technology to solve problems and make a meaningful impact on the school. FraserPay is a great example: it took months of effort to develop but ultimately enabled SAC to process over $13,000 during Charity Week. Why do you want to be the Technology Executive, and what motivates you to contribute to SAC in this capacity?",
-        "Our current suite of platforms — FraserPay, FraserVotes, and FraserSAP — are built using TypeScript, HTML, and CSS. They're hosted on Vercel and use Firebase as their backend. How confident are you in your ability to work with, or learn to work with, these technologies in order to maintain, operate, and improve these systems?",
-        "Tell us about a time you saw a problem and used technology to solve it — whether it was for a school event, a personal project, or something else. What was the challenge, what did you build or improve, and what impact did it have?",
-        "SAC pays for and provides any resource you need to develop useful programs at our teacher supervisors discretion. Knowing this, if you could build any program for SAC, or the greater school community — what would it be and why?"
-      ]
+  const getQuestionsForPosition = (position: string, interviewType: 'one' | 'two') => {
+    const questionSets: Record<string, { one: string[], two: string[] }> = {
+      'Honourary Member': {
+        one: [
+          'no idea what to put for the questions but this is for interview one',
+          'no idea what to put for the questions but this is for interview one',
+          'no idea what to put for the questions but this is for interview one',
+        ],
+        two: [
+          'no idea what to put for the questions but this is for interview two',
+          'no idea what to put for the questions but this is for interview two',
+          'no idea what to put for the questions but this is for interview two',
+        ]
+      },
     };
 
-    return questionSets[position] || [
-      "Tell us about yourself and why you are interested in this position.",
-      "How would you handle challenges in this role?",
-      "What makes you a good fit for this position?"
-    ];
+    const positionQuestions = questionSets[position];
+    if (!positionQuestions) {
+      // Default questions if position not found
+      return interviewType === 'one' 
+        ? [
+            "Tell us about yourself and why you are interested in this position.",
+            "How would you handle challenges in this role?",
+            "What makes you a good fit for this position?"
+          ]
+        : [
+            "What specific contributions do you hope to make to the student council?",
+            "How do you plan to stay engaged and active throughout the year?",
+            "Describe a time when you went above and beyond in a leadership or service role."
+          ];
+    }
+
+    return positionQuestions[interviewType];
   };
 
-  const questions = getQuestionsForPosition(candidate.position);
+  const questions = getQuestionsForPosition(candidate.position, interviewType);
 
+  // ...existing code remains the same...
   useEffect(() => {
     const loadExistingGrades = async () => {
       try {
@@ -161,7 +137,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     }));
   };
 
-    const handleSubmit = async () => {
+  const handleSubmit = async () => {
     if (!user) return;
 
     setSubmitting(true);
@@ -304,7 +280,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
 
       <div className="max-w-7xl mx-auto p-8 pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Main Content - same as before */}
+          {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
             {/* Add a notice about which interview this is */}
             <Card className={`border-2 shadow-sm ${
@@ -328,26 +304,33 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                     <p className={`text-sm ${
                       interviewType === 'one' ? 'text-blue-600' : 'text-green-600'
                     }`}>
-                      This is the {interviewType === 'one' ? 'first' : 'second'} interview session for this candidate.
+                      This is the {interviewType === 'one' ? 'first' : 'second'} interview session for this candidate. 
+                      Each interview has different questions to assess different aspects.
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Interview Questions - same as before */}
+            {/* Interview Questions */}
             <div className="space-y-6">
               {questions.map((question, index) => (
                 <Card key={index} className="border shadow-sm bg-white hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <CardTitle className="flex items-center gap-3 text-lg">
-                        <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm text-white ${
+                          interviewType === 'one' ? 'bg-blue-600' : 'bg-green-600'
+                        }`}>
                           {index + 1}
                         </div>
-                        Question {index + 1}
+                        Question {index + 1} ({interviewType === 'one' ? 'Interview 1' : 'Interview 2'})
                       </CardTitle>
-                      <Badge variant="outline" className="border-blue-300 text-blue-700 bg-blue-50">
+                      <Badge variant="outline" className={`${
+                        interviewType === 'one' 
+                          ? 'border-blue-300 text-blue-700 bg-blue-50' 
+                          : 'border-green-300 text-green-700 bg-green-50'
+                      }`}>
                         Max: 5 points
                       </Badge>
                     </div>
@@ -376,7 +359,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                   Assessment Criteria
                 </CardTitle>
                 <CardDescription>
-                  Check all criteria that apply to this candidate
+                  Check all criteria that apply to this candidate during Interview {interviewType === 'one' ? 'One' : 'Two'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -413,14 +396,14 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
             {/* Feedback Section */}
             <Card className="border shadow-sm bg-white">
               <CardHeader>
-                <CardTitle>Additional Feedback</CardTitle>
+                <CardTitle>Interview {interviewType === 'one' ? 'One' : 'Two'} Feedback</CardTitle>
                 <CardDescription>
-                  Provide detailed feedback about the candidate's interview performance
+                  Provide detailed feedback about the candidate's performance in Interview {interviewType === 'one' ? 'One' : 'Two'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder="Enter your detailed feedback about the candidate's responses, communication skills, and overall impression..."
+                  placeholder={`Enter your detailed feedback about the candidate's responses during Interview ${interviewType === 'one' ? 'One' : 'Two'}, communication skills, and overall impression...`}
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   className="min-h-32 resize-none border-gray-200 focus:border-blue-300 focus:ring-blue-200"
@@ -430,7 +413,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
             </Card>
           </div>
 
-                    {/* Sidebar */}
+          {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-32 space-y-6">
               {/* Interview Panel */}
