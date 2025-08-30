@@ -1,28 +1,28 @@
-import { doc, getDoc } from 'firebase/firestore';
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 
-// Initialize Firebase (you may need to adjust this based on your config)
-const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID
-};
+// Initialize Firebase Admin (different from client SDK)
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (error) {
+    console.error('Firebase Admin initialization error:', error);
+  }
+}
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = admin.firestore();
 
 const createTransporter = () => {
   return nodemailer.createTransporter({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
+    service: 'gmail', // Use service instead of host for Gmail
     auth: {
-      user: '752470@pdsb.net',
+      user: process.env.EMAIL_USER || '752470@pdsb.net',
       pass: process.env.EMAIL_PASSWORD,
     },
   });
@@ -33,7 +33,7 @@ const sendConfirmationEmail = async (studentNumber, position, fullName) => {
   const transporter = createTransporter();
   
   const mailOptions = {
-    from: '752470@pdsb.net',
+    from: process.env.EMAIL_USER || '752470@pdsb.net',
     to: recipientEmail,
     subject: 'SAC Application Confirmation - Submission Received',
     html: `
@@ -41,7 +41,7 @@ const sendConfirmationEmail = async (studentNumber, position, fullName) => {
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
           <h1 style="color: #2563eb; margin-bottom: 20px;">Application Confirmation</h1>
           
-          <p>Dear ${fullName},</p>
+          <p>Dear ${fullName || 'Student'},</p>
           
           <p>Thank you for submitting your application to the Student Activity Council!</p>
           
@@ -73,37 +73,77 @@ const sendConfirmationEmail = async (studentNumber, position, fullName) => {
 };
 
 export default async function handler(req, res) {
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    console.log('API called with body:', req.body);
+    
     const { userId, position } = req.body;
 
     if (!userId || !position) {
+      console.log('Missing required fields:', { userId: !!userId, position: !!position });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get user data from Firebase
-    const userDoc = await getDoc(doc(db, 'users', userId));
+    // Check if Firebase Admin is initialized
+    if (!admin.apps.length) {
+      console.error('Firebase Admin not initialized');
+      return res.status(500).json({ error: 'Firebase Admin not initialized' });
+    }
+
+    console.log('Getting user document for userId:', userId);
     
-    if (!userDoc.exists()) {
+    // Get user data from Firebase
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      console.log('User not found:', userId);
       return res.status(404).json({ error: 'User not found' });
     }
 
     const userData = userDoc.data();
+    console.log('User data:', userData);
+    
     const { studentNumber, fullName } = userData;
 
     if (!studentNumber) {
+      console.log('Student number not found in user data');
       return res.status(400).json({ error: 'Student number not found' });
     }
+
+    console.log('Sending email to:', `${studentNumber}@pdsb.net`);
 
     // Send confirmation email
     await sendConfirmationEmail(studentNumber, position, fullName || 'Student');
 
+    console.log('Email sent successfully');
     res.status(200).json({ success: true, message: 'Confirmation email sent' });
   } catch (error) {
     console.error('Error in send-confirmation API:', error);
-    res.status(500).json({ error: 'Failed to send confirmation email' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      error: 'Failed to send confirmation email',
+      details: error.message 
+    });
   }
 }
