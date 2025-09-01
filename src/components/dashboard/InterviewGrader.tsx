@@ -337,6 +337,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     );
   }
 
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Fixed Header */}
@@ -349,7 +350,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Interview {interviewType === 'one' ? 'One' : 'Two'} Grading
+                {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Grading
               </h1>
               <div className="flex items-center gap-4 text-gray-600">
                 <div className="flex items-center gap-2">
@@ -370,7 +371,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                       : 'border-green-300 text-green-700 bg-green-50'
                   }`}
                 >
-                  Interview {interviewType === 'one' ? 'One' : 'Two'}
+                  {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}
                 </Badge>
                 {interviewType === 'two' && (
                   <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
@@ -411,14 +412,14 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                     <h3 className={`font-semibold ${
                       interviewType === 'one' ? 'text-blue-800' : 'text-green-800'
                     }`}>
-                      Grading Interview {interviewType === 'one' ? 'One' : 'Two'}
+                      Grading {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}
                     </h3>
                     <p className={`text-sm ${
                       interviewType === 'one' ? 'text-blue-600' : 'text-green-600'
                     }`}>
                       {interviewType === 'one' 
-                        ? 'This is the first interview session with standardized questions to assess basic qualifications and motivation.'
-                        : 'This interview uses randomly selected questions from predefined pools to ensure variety while maintaining fairness. All panel members will see the same questions for this candidate.'
+                        ? 'This is the group interview session with standardized questions to assess basic qualifications and motivation.'
+                        : 'This individual interview uses randomly selected questions from predefined pools to ensure variety while maintaining fairness. All panel members will see the same questions for this candidate.'
                       }
                     </p>
                   </div>
@@ -441,7 +442,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                         }`}>
                           {index + 1}
                         </div>
-                        Question {index + 1} ({interviewType === 'one' ? 'Interview 1' : 'Interview 2'})
+                        Question {index + 1} ({interviewType === 'one' ? 'Group Interview' : 'Individual Interview'})
                         {interviewType === 'two' && (
                           <Shuffle className="h-4 w-4 text-orange-500"/>
                         )}
@@ -479,7 +480,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                   Assessment Criteria
                 </CardTitle>
                 <CardDescription>
-                  Check all criteria that apply to this candidate during Interview {interviewType === 'one' ? 'One' : 'Two'}
+                  Check all criteria that apply to this candidate during the {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -516,14 +517,14 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
             {/* Feedback Section */}
             <Card className="border shadow-sm bg-white">
               <CardHeader>
-                <CardTitle>Interview {interviewType === 'one' ? 'One' : 'Two'} Feedback</CardTitle>
+                <CardTitle>{interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Feedback</CardTitle>
                 <CardDescription>
-                  Provide detailed feedback about the candidate's performance in Interview {interviewType === 'one' ? 'One' : 'Two'}
+                  Provide detailed feedback about the candidate's performance in the {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder={`Enter your detailed feedback about the candidate's responses during Interview ${interviewType === 'one' ? 'One' : 'Two'}, communication skills, and overall impression...`}
+                  placeholder={`Enter your detailed feedback about the candidate's responses during the ${interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}, communication skills, and overall impression...`}
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   className="min-h-32 resize-none border-gray-200 focus:border-blue-300 focus:ring-blue-200"
@@ -541,7 +542,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-blue-600" />
-                    Interview {interviewType === 'one' ? 'One' : 'Two'} Panel
+                    {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Panel
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -593,7 +594,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
             <div className="text-sm text-gray-600">
               {isFormComplete() 
                 ? hasSubmitted 
-                  ? `✅ Interview ${interviewType === 'one' ? 'One' : 'Two'} grades submitted successfully` 
+                  ? `✅ ${interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} grades submitted successfully` 
                   : "✅ All fields completed - ready to submit"
                 : "⚠️ Please complete all questions and provide feedback"
               }
@@ -611,7 +612,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               ) : hasSubmitted ? (
                 'Submitted'
               ) : (
-                `Submit Interview ${interviewType === 'one' ? 'One' : 'Two'} Grades`
+                `Submit ${interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Grades`
               )}
             </Button>
           </div>
