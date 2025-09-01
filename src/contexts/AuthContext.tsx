@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
+import { serverTimestamp as firestoreServerTimestamp } from 'firebase/firestore';
 
 interface UserProfile {
   uid: string;
@@ -13,6 +14,7 @@ interface UserProfile {
   studentType?: 'AP' | 'SHSM' | 'none';
   isOnboarded?: boolean;
   grade?: string;
+  createdAt: any;
 }
 
 interface AuthContextType {
@@ -114,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name: user.displayName || '',
               role: initialRole,
               isOnboarded: false,
+              createdAt: firestoreServerTimestamp()
             };
             await setDoc(doc(db, 'users', user.uid), initialProfile);
             setUserProfile(initialProfile);
@@ -192,3 +195,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+function serverTimestamp(): any {
+  return firestoreServerTimestamp();
+}

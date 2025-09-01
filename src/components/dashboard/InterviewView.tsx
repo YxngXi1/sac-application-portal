@@ -96,13 +96,13 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             const hasGradesOne = gradeDocOne.exists() && gradeDocOne.data()?.panelGrades?.length > 0;
             const hasGradesTwo = gradeDocTwo.exists() && gradeDocTwo.data()?.panelGrades?.length > 0;
             
-            // Add Interview One if it exists
+            // Add Group Interview if it exists
             if (data.interviewOneDate && data.interviewOneTime) {
               const interviewOneDate = data.interviewOneDate.toDate();
               
               interviews.push({
                 candidateId: `${app.id}_interview_one`,
-                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Interview One`,
+                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Group Interview`,
                 position: app.position,
                 grade: app.userProfile?.grade || 'N/A',
                 studentNumber: app.userProfile?.studentNumber || 'N/A',
@@ -114,13 +114,13 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
               });
             }
             
-            // Add Interview Two if it exists
+            // Add Individual Interview if it exists
             if (data.interviewTwoDate && data.interviewTwoTime) {
               const interviewTwoDate = data.interviewTwoDate.toDate();
               
               interviews.push({
                 candidateId: `${app.id}_interview_two`,
-                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Interview Two`,
+                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Individual Interview`,
                 position: app.position,
                 grade: app.userProfile?.grade || 'N/A',
                 studentNumber: app.userProfile?.studentNumber || 'N/A',
@@ -149,59 +149,113 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
 
   const getUpcomingInterviews = () => {
     const now = new Date();
+    // const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
-    return scheduledInterviews.filter(interview => {
-      // Show as upcoming if no grades have been submitted, regardless of time
-      if (!interview.hasGrades) {
-        return true;
-      }
-      
-      // If grades exist, check if the interview date/time is in the future
-      const [time, period] = interview.timeSlot.split(' ');
-      const [hours, minutes] = time.split(':').map(Number);
-      
-      let totalMinutes = hours * 60 + minutes;
-      if (period === 'PM' && hours !== 12) {
-        totalMinutes += 12 * 60;
-      } else if (period === 'AM' && hours === 12) {
-        totalMinutes -= 12 * 60;
-      }
-      
-      const interviewDateTime = new Date(interview.date);
-      interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
-      
-      return interviewDateTime > now;
-    });
+    return scheduledInterviews
+      .filter(interview => {
+        // Create the full interview datetime
+        const [time, period] = interview.timeSlot.split(' ');
+        const [hours, minutes] = time.split(':').map(Number);
+        
+        let totalMinutes = hours * 60 + minutes;
+        if (period === 'PM' && hours !== 12) {
+          totalMinutes += 12 * 60;
+        } else if (period === 'AM' && hours === 12) {
+          totalMinutes -= 12 * 60;
+        }
+        
+        const interviewDateTime = new Date(interview.date);
+        interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+        
+        // // Always check the 24-hour window first
+        // const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        // const isWithin24Hours = interviewDateTime >= twentyFourHoursAgo && interviewDateTime <= twentyFourHoursFromNow;
+        
+        // // Only show interviews within 24 hours
+        // if (!isWithin24Hours) {
+        //   return false;
+        // }
+        
+        // If no grades have been submitted, show with a 5-minute grace period after start
+        if (!interview.hasGrades) {
+          const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+          return interviewDateTime >= fiveMinutesAgo;
+        }
+        
+        // If grades exist, only show if the interview hasn't started yet
+        return interviewDateTime > now;
+      })
+      .sort((a, b) => {
+        // Sort by datetime (earliest first)
+        const getDateTime = (interview: ScheduledInterview) => {
+          const [time, period] = interview.timeSlot.split(' ');
+          const [hours, minutes] = time.split(':').map(Number);
+          
+          let totalMinutes = hours * 60 + minutes;
+          if (period === 'PM' && hours !== 12) {
+            totalMinutes += 12 * 60;
+          } else if (period === 'AM' && hours === 12) {
+            totalMinutes -= 12 * 60;
+          }
+          
+          const dateTime = new Date(interview.date);
+          dateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+          return dateTime;
+        };
+        
+        return getDateTime(a).getTime() - getDateTime(b).getTime();
+      });
   };
 
   const getPreviousInterviews = () => {
     const now = new Date();
     
-    return scheduledInterviews.filter(interview => {
-      // Only show as previous if grades have been submitted
-      if (!interview.hasGrades) {
-        return false;
-      }
+    return scheduledInterviews
+      .filter(interview => {
+        // Only show as previous if grades have been submitted
+        if (!interview.hasGrades) {
+          return false;
+        }
 
-      // Check if the interview date/time has passed
-      const [time, period] = interview.timeSlot.split(' ');
-      const [hours, minutes] = time.split(':').map(Number);
-      
-      let totalMinutes = hours * 60 + minutes;
-      if (period === 'PM' && hours !== 12) {
-        totalMinutes += 12 * 60;
-      } else if (period === 'AM' && hours === 12) {
-        totalMinutes -= 12 * 60;
-      }
-      
-      const interviewDateTime = new Date(interview.date);
-      interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
-      
-      // Add 30 minutes buffer to consider it "previous"
-      const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-      
-      return interviewDateTime <= thirtyMinutesAgo;
-    });
+        // Check if the interview date/time has passed
+        const [time, period] = interview.timeSlot.split(' ');
+        const [hours, minutes] = time.split(':').map(Number);
+        
+        let totalMinutes = hours * 60 + minutes;
+        if (period === 'PM' && hours !== 12) {
+          totalMinutes += 12 * 60;
+        } else if (period === 'AM' && hours === 12) {
+          totalMinutes -= 12 * 60;
+        }
+        
+        const interviewDateTime = new Date(interview.date);
+        interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+        
+        // Add 30 minutes buffer to consider it "previous"
+        const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+        
+        return interviewDateTime <= thirtyMinutesAgo;
+      })
+      .sort((a, b) => {
+        // Sort by datetime (most recent first for previous interviews)
+        const getDateTime = (interview: ScheduledInterview) => {
+          const [time, period] = interview.timeSlot.split(' ');
+          const [hours, minutes] = time.split(':').map(Number);
+          
+          let totalMinutes = hours * 60 + minutes;
+          if (period === 'PM' && hours !== 12) {
+            totalMinutes += 12 * 60;
+          } else if (period === 'AM' && hours === 12) {
+            totalMinutes -= 12 * 60;
+          }
+          
+          const dateTime = new Date(interview.date);
+          dateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+          return dateTime;
+        };
+        
+        return getDateTime(b).getTime() - getDateTime(a).getTime();
+      });
   };
 
   const getEndTime = (startTime: string) => {
@@ -247,6 +301,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     return (
       <InterviewScheduler
         positionName="Honourary Member"
+        selectedGrade={selectedGrade} // Pass the selected grade
         onBack={() => {
           setShowScheduler(false);
           setSelectedGrade(null);
@@ -358,41 +413,84 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
               </p>
             ) : (
               <div className="space-y-4">
-                {upcomingInterviews.map((interview) => (
-                  <div key={interview.candidateId} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {interview.candidateName}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {interview.position} • Grade {interview.grade}
-                      </p>
-                      <p className="text-sm text-blue-600 font-medium">
-                        {formatDate(interview.date)} {interview.timeSlot} - {interview.endTime}
-                      </p>
+                {upcomingInterviews.map((interview) => {
+                  // Calculate if interview can be started (5 minutes before)
+                  const now = new Date();
+                  const [time, period] = interview.timeSlot.split(' ');
+                  const [hours, minutes] = time.split(':').map(Number);
+                  
+                  let totalMinutes = hours * 60 + minutes;
+                  if (period === 'PM' && hours !== 12) {
+                    totalMinutes += 12 * 60;
+                  } else if (period === 'AM' && hours === 12) {
+                    totalMinutes -= 12 * 60;
+                  }
+                  
+                  const interviewDateTime = new Date(interview.date);
+                  interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+                  
+                  // Allow starting 5 minutes before interview time
+                  // const fiveMinutesBefore = new Date(interviewDateTime.getTime() - 5 * 60 * 1000);
+                  // const canStartInterview = now >= fiveMinutesBefore;
+                  const canStartInterview = true; // Allow starting anytime for now
+                  
+                  // Calculate time until interview can be started
+                  // const timeUntilStart = fiveMinutesBefore.getTime() - now.getTime();
+                  // const minutesUntilStart = Math.ceil(timeUntilStart / (60 * 1000));
+                  
+                  return (
+                    <div key={interview.candidateId} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          {interview.candidateName}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {interview.position} • Grade {interview.grade}
+                        </p>
+                        <p className="text-sm text-blue-600 font-medium">
+                          {formatDate(interview.date)} {interview.timeSlot} - {interview.endTime}
+                        </p>
+                        {/* {!canStartInterview && minutesUntilStart > 0 && (
+                          <p className="text-xs text-orange-600 mt-1">
+                            Available in {minutesUntilStart} minute{minutesUntilStart !== 1 ? 's' : ''}
+                          </p>
+                        )} */}
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Button
+                          onClick={() => {
+                            // Extract the original candidate ID from the modified format
+                            const originalCandidateId = interview.candidateId.includes('_interview_') 
+                              ? interview.candidateId.split('_interview_')[0]
+                              : interview.candidateId;
+                              
+                            // Find the candidate in applications
+                            const candidate = applications.find(app => app.id === originalCandidateId);
+                            if (candidate) {
+                              setSelectedCandidate(candidate);
+                              setSelectedInterviewType(interview.interviewType || 'one');
+                              setShowGrader(true);
+                            }
+                          }}
+                          size="sm"
+                          // disabled={!canStartInterview}
+                          className={`${
+                            canStartInterview 
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300'
+                          }`}
+                        >
+                          {canStartInterview ? 'Start Interview' : 'Not Available'}
+                        </Button>
+                        {/* {!canStartInterview && (
+                          <span className="text-xs text-gray-500">
+                            Available 5min before
+                          </span>
+                        )} */}
+                      </div>
                     </div>
-                    <Button
-                      onClick={() => {
-                        // Extract the original candidate ID from the modified format
-                        const originalCandidateId = interview.candidateId.includes('_interview_') 
-                          ? interview.candidateId.split('_interview_')[0]
-                          : interview.candidateId;
-                          
-                        // Find the candidate in applications
-                        const candidate = applications.find(app => app.id === originalCandidateId);
-                        if (candidate) {
-                          setSelectedCandidate(candidate);
-                          setSelectedInterviewType(interview.interviewType || 'one');
-                          setShowGrader(true);
-                        }
-                      }}
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Start Interview
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

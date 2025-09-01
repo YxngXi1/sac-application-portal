@@ -200,10 +200,10 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
             <span>Grade: {candidate.userProfile?.grade || 'N/A'}</span>
             <span>Application Score: {applicationScore.toFixed(1)}/10</span>
             {combinedGrades?.interviewOne && (
-              <span>Interview One: {combinedGrades.interviewOne.averageScore.toFixed(1)}/5</span>
+              <span>Group Interview: {combinedGrades.interviewOne.averageScore.toFixed(1)}/5</span>
             )}
             {combinedGrades?.interviewTwo && (
-              <span>Interview Two: {combinedGrades.interviewTwo.averageScore.toFixed(1)}/5</span>
+              <span>Individual Interview: {combinedGrades.interviewTwo.averageScore.toFixed(1)}/5</span>
             )}
             <span>Combined Interview: {interviewScore.toFixed(1)}/5</span>
             <span className="font-semibold">Total: {(applicationScore + interviewScore).toFixed(1)}/15</span>
@@ -241,16 +241,16 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
           </CardContent>
         </Card>
 
-        {/* Interview One Questions */}
+        {/* Group Interview Questions */}
         {combinedGrades?.interviewOne && (
           <Card className="border shadow-sm bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-blue-600" />
-                Interview One Questions & Grades
+                Group Interview Questions & Grades
               </CardTitle>
               <CardDescription>
-                Results from Interview One (Average: {combinedGrades.interviewOne.averageScore.toFixed(1)}/5)
+                Results from Group Interview (Average: {combinedGrades.interviewOne.averageScore.toFixed(1)}/5)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -307,16 +307,16 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
           </Card>
         )}
         
-        {/* Interview Two Questions */}
+        {/* Individual Interview Questions */}
         {combinedGrades?.interviewTwo && (
           <Card className="border shadow-sm bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-green-600" />
-                Interview Two Questions & Grades
+                Individual Interview Questions & Grades
               </CardTitle>
               <CardDescription>
-                Results from Interview Two (Average: {combinedGrades.interviewTwo.averageScore.toFixed(1)}/5)
+                Results from Individual Interview (Average: {combinedGrades.interviewTwo.averageScore.toFixed(1)}/5)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -392,7 +392,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                     <span className="text-sm font-medium">{label}</span>
                     <div className="flex flex-wrap items-center gap-2">
                       {combinedGrades.allPanelGrades.map((panelGrade, gradeIndex) => {
-                        const interviewType = panelGrade.interviewType === 'one' ? 'Interview One' : 'Interview Two';
+                        const interviewType = panelGrade.interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
 
                         return (
                           <div key={`${panelGrade.panelMemberId}-${panelGrade.interviewType}-${gradeIndex}`} className="flex items-center gap-1 bg-white p-2 rounded border">
@@ -434,7 +434,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
                 {combinedGrades.allPanelGrades
                   .filter(pg => pg.feedback)
                   .map((panelGrade, gradeIndex) => {
-                    const interviewType = panelGrade.interviewType === 'one' ? 'Interview One' : 'Interview Two';
+                    const interviewType = panelGrade.interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
 
                     return (
                       <div key={`${panelGrade.panelMemberId}-${panelGrade.interviewType}-${gradeIndex}`} className="p-4 border rounded-lg">

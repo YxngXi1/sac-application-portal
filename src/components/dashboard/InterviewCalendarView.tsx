@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { ArrowLeft, Edit, Trash2, Users, Clock } from 'lucide-react';
 import { getAllApplications, updateInterviewStatus, ApplicationData } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface InterviewCalendarViewProps {
@@ -24,52 +23,132 @@ interface Executive {
 }
 
 interface ScheduledInterview {
+  id?: string;
+  candidateId: string;
+  positionId: string;
+  interviewOneDate?: Date;
+  interviewOneTime?: string;
+  interviewOnePanelMembers?: string[];
+  interviewTwoDate?: Date;
+  interviewTwoTime?: string;
+  interviewTwoPanelMembers?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface CalendarInterview {
   candidateId: string;
   candidateName: string;
   position: string;
   date: Date;
   timeSlot: string;
   panelMembers: string[];
+  interviewType: 'one' | 'two';
+  interviewLabel: 'Group Interview' | 'Individual Interview';
 }
 
 const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack }) => {
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
+  const [calendarInterviews, setCalendarInterviews] = useState<CalendarInterview[]>([]);
+  const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [executives, setExecutives] = useState<Executive[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [editingInterview, setEditingInterview] = useState<ScheduledInterview | null>(null);
+  const [editingInterview, setEditingInterview] = useState<CalendarInterview | null>(null);
   const [newTimeSlot, setNewTimeSlot] = useState<string>('');
   const [newPanelMembers, setNewPanelMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const { toast } = useToast();
 
-  // 8-minute interviews with 2-minute buffer (10-minute intervals): 11:05 AM - 12:05 PM and 3:00 PM - 5:00 PM
+  // Time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
   const timeSlots = [
-    // Morning slots: 11:05 - 12:05 (6 slots)
-    '11:05 AM', '11:15 AM', '11:25 AM', '11:35 AM', '11:45 AM', '11:55 AM',
-    // Afternoon slots: 3:00 - 5:00 (12 slots)
-    '3:00 PM', '3:10 PM', '3:20 PM', '3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM'
+    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
+    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
   ];
+
+  // Function to check if a date is valid for interview scheduling
+  const isValidInterviewDate = (date: Date, interviewType: 'one' | 'two') => {
+    const year = 2025; // Assuming interviews are in 2025
+    
+    if (interviewType === 'one') {
+      // September 11-12, 2025
+      const sept11 = new Date(year, 8, 11); // Month is 0-indexed
+      const sept12 = new Date(year, 8, 12);
+      return (date.toDateString() === sept11.toDateString() || 
+              date.toDateString() === sept12.toDateString());
+    } else {
+      // September 15-18, 2025 (weekdays only: 16, 17, 18 since 15 is Sunday)
+      const sept16 = new Date(year, 8, 16); // Monday
+      const sept17 = new Date(year, 8, 17); // Tuesday
+      const sept18 = new Date(year, 8, 18); // Wednesday
+      return (date.toDateString() === sept16.toDateString() || 
+              date.toDateString() === sept17.toDateString() || 
+              date.toDateString() === sept18.toDateString());
+    }
+  };
+
+  // Check if time slot is available for editing
+  const isTimeSlotAvailable = (timeSlot: string, date: Date, interviewType: 'one' | 'two', excludeCandidateId?: string) => {
+    const existingInterviews = calendarInterviews.filter(interview => {
+      if (excludeCandidateId && interview.candidateId === excludeCandidateId) {
+        return false; // Exclude the interview being edited
+      }
+      return interview.interviewType === interviewType &&
+        interview.timeSlot === timeSlot && 
+        interview.date.toDateString() === date.toDateString();
+    });
+    
+    // Group Interview can have up to 5 people per slot
+    if (interviewType === 'one') {
+      return existingInterviews.length < 5;
+    }
+    
+    // Individual Interview is 1 person per slot
+    return existingInterviews.length < 1;
+  };
 
   // Fetch executives
   useEffect(() => {
     const fetchExecutives = async () => {
       try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('role', '==', 'superadmin'));
-        const querySnapshot = await getDocs(q);
+        // Fetch both executives and superadmins
+        const executivesQuery = query(
+          collection(db, 'users'),
+          where('role', '==', 'executive')
+        );
+        const superadminsQuery = query(
+          collection(db, 'users'),
+          where('role', '==', 'superadmin')
+        );
         
-        const superAdminUsers: Executive[] = [];
-        querySnapshot.forEach((doc) => {
+        const [executivesSnapshot, superadminsSnapshot] = await Promise.all([
+          getDocs(executivesQuery),
+          getDocs(superadminsQuery)
+        ]);
+        
+        const allExecutives: Executive[] = [];
+        
+        // Add executives
+        executivesSnapshot.forEach((doc) => {
           const userData = doc.data();
-          superAdminUsers.push({
+          allExecutives.push({
             id: doc.id,
             name: userData.name || userData.fullName || 'Unnamed User',
             email: userData.email || ''
           });
         });
         
-        setExecutives(superAdminUsers);
+        // Add superadmins
+        superadminsSnapshot.forEach((doc) => {
+          const userData = doc.data();
+          allExecutives.push({
+            id: doc.id,
+            name: userData.name || userData.fullName || 'Unnamed User',
+            email: userData.email || ''
+          });
+        });
+        
+        setExecutives(allExecutives);
       } catch (error) {
         console.error('Error fetching executives:', error);
       }
@@ -82,20 +161,67 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
   useEffect(() => {
     const loadScheduledInterviews = async () => {
       try {
-        const applications = await getAllApplications();
-        const scheduledApps = applications.filter(app => app.interviewScheduled);
+        // Get all applications
+        const apps = await getAllApplications();
+        setApplications(apps);
         
-        // Mock interview data - in real implementation, this would come from Firebase
-        const mockInterviews: ScheduledInterview[] = scheduledApps.map((app, index) => ({
-          candidateId: app.id,
-          candidateName: app.userProfile?.fullName || 'Unknown',
-          position: app.position,
-          date: new Date(2025, 1, 5 + index, 14, 0), // Mock dates
-          timeSlot: timeSlots[index % timeSlots.length],
-          panelMembers: executives.slice(0, 2).map(e => e.id)
-        }));
+        // Get all scheduled interviews
+        const interviewsQuery = query(collection(db, 'scheduledInterviews'));
+        const querySnapshot = await getDocs(interviewsQuery);
         
-        setScheduledInterviews(mockInterviews);
+        const interviews: ScheduledInterview[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          interviews.push({
+            id: doc.id,
+            ...data,
+            interviewOneDate: data.interviewOneDate?.toDate(),
+            interviewTwoDate: data.interviewTwoDate?.toDate(),
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate(),
+          } as ScheduledInterview);
+        });
+        
+        setScheduledInterviews(interviews);
+        
+        // Convert to calendar format
+        const calendarData: CalendarInterview[] = [];
+        
+        interviews.forEach(interview => {
+          const candidate = apps.find(app => app.id === interview.candidateId);
+          const candidateName = candidate?.userProfile?.fullName || 'Unknown Candidate';
+          const position = interview.positionId;
+          
+          // Add Group Interview if scheduled
+          if (interview.interviewOneDate && interview.interviewOneTime) {
+            calendarData.push({
+              candidateId: interview.candidateId,
+              candidateName,
+              position,
+              date: interview.interviewOneDate,
+              timeSlot: interview.interviewOneTime,
+              panelMembers: interview.interviewOnePanelMembers || [],
+              interviewType: 'one',
+              interviewLabel: 'Group Interview'
+            });
+          }
+          
+          // Add Individual Interview if scheduled
+          if (interview.interviewTwoDate && interview.interviewTwoTime) {
+            calendarData.push({
+              candidateId: interview.candidateId,
+              candidateName,
+              position,
+              date: interview.interviewTwoDate,
+              timeSlot: interview.interviewTwoTime,
+              panelMembers: interview.interviewTwoPanelMembers || [],
+              interviewType: 'two',
+              interviewLabel: 'Individual Interview'
+            });
+          }
+        });
+        
+        setCalendarInterviews(calendarData);
       } catch (error) {
         console.error('Error loading interviews:', error);
       } finally {
@@ -116,54 +242,151 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
     );
   };
 
-  const handleEditInterview = (interview: ScheduledInterview) => {
+  const handleEditInterview = (interview: CalendarInterview) => {
     setEditingInterview(interview);
     setSelectedDate(interview.date);
     setNewTimeSlot(interview.timeSlot);
     setNewPanelMembers(interview.panelMembers);
   };
 
-  const handleSaveEditedInterview = () => {
-    if (!editingInterview || !selectedDate || !newTimeSlot) return;
-
-    const updatedInterview: ScheduledInterview = {
-      ...editingInterview,
-      date: selectedDate,
-      timeSlot: newTimeSlot,
-      panelMembers: newPanelMembers
-    };
-
-    setScheduledInterviews(prev => 
-      prev.map(interview => 
-        interview.candidateId === editingInterview.candidateId 
-          ? updatedInterview 
-          : interview
-      )
-    );
-
-    const panelMemberNames = newPanelMembers.map(id => 
-      executives.find(exec => exec.id === id)?.name
-    ).join(', ');
-
-    toast({
-      title: "Interview Updated",
-      description: `Interview for ${editingInterview.candidateName} updated to ${selectedDate.toLocaleDateString()} at ${newTimeSlot} with panel: ${panelMemberNames}`,
-    });
-
-    setEditingInterview(null);
+  const clearSpecificInterview = async (candidateId: string, positionId: string, interviewType: 'one' | 'two'): Promise<void> => {
+    try {
+      const interviewRef = doc(db, 'scheduledInterviews', `${candidateId}_${positionId}`);
+      
+      if (interviewType === 'one') {
+        await updateDoc(interviewRef, {
+          interviewOneDate: deleteField(),
+          interviewOneTime: deleteField(),
+          interviewOnePanelMembers: deleteField(),
+          updatedAt: new Date(),
+        });
+      } else {
+        await updateDoc(interviewRef, {
+          interviewTwoDate: deleteField(),
+          interviewTwoTime: deleteField(),
+          interviewTwoPanelMembers: deleteField(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing specific interview:', error);
+      throw error;
+    }
   };
 
-  const handleRemoveInterview = async (interview: ScheduledInterview) => {
+  const updateSpecificInterview = async (candidateId: string, positionId: string, interviewType: 'one' | 'two', date: Date, timeSlot: string, panelMembers: string[]): Promise<void> => {
     try {
-      await updateInterviewStatus(interview.candidateId, false);
+      const interviewRef = doc(db, 'scheduledInterviews', `${candidateId}_${positionId}`);
       
-      setScheduledInterviews(prev => 
-        prev.filter(int => int.candidateId !== interview.candidateId)
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+      
+      if (interviewType === 'one') {
+        updateData.interviewOneDate = date;
+        updateData.interviewOneTime = timeSlot;
+        updateData.interviewOnePanelMembers = panelMembers;
+      } else {
+        updateData.interviewTwoDate = date;
+        updateData.interviewTwoTime = timeSlot;
+        updateData.interviewTwoPanelMembers = panelMembers;
+      }
+      
+      await updateDoc(interviewRef, updateData);
+    } catch (error) {
+      console.error('Error updating specific interview:', error);
+      throw error;
+    }
+  };
+
+  const handleSaveEditedInterview = async () => {
+    if (!editingInterview || !selectedDate || !newTimeSlot) return;
+
+    // Check if the new time slot is available
+    if (!isTimeSlotAvailable(newTimeSlot, selectedDate, editingInterview.interviewType, editingInterview.candidateId)) {
+      const maxCandidates = editingInterview.interviewType === 'one' ? 5 : 1;
+      toast({
+        title: "Time Slot Unavailable",
+        description: `This time slot is full (${maxCandidates} candidate${maxCandidates > 1 ? 's' : ''} max). Please select another time.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Update in Firebase
+      await updateSpecificInterview(
+        editingInterview.candidateId,
+        editingInterview.position,
+        editingInterview.interviewType,
+        selectedDate,
+        newTimeSlot,
+        newPanelMembers
       );
+
+      // Update local state
+      const updatedInterview: CalendarInterview = {
+        ...editingInterview,
+        date: selectedDate,
+        timeSlot: newTimeSlot,
+        panelMembers: newPanelMembers
+      };
+
+      setCalendarInterviews(prev => 
+        prev.map(interview => 
+          interview.candidateId === editingInterview.candidateId && 
+          interview.interviewType === editingInterview.interviewType
+            ? updatedInterview 
+            : interview
+        )
+      );
+
+      const panelMemberNames = newPanelMembers.map(id => 
+        executives.find(exec => exec.id === id)?.name
+      ).join(', ');
+
+      toast({
+        title: "Interview Updated",
+        description: `${editingInterview.interviewLabel} for ${editingInterview.candidateName} updated to ${selectedDate.toLocaleDateString()} at ${newTimeSlot} with panel: ${panelMemberNames}`,
+      });
+
+      setEditingInterview(null);
+    } catch (error) {
+      console.error('Error updating interview:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update interview",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveInterview = async (interview: CalendarInterview) => {
+    try {
+      // Clear the specific interview from Firebase
+      await clearSpecificInterview(interview.candidateId, interview.position, interview.interviewType);
+      
+      // Remove from local state
+      setCalendarInterviews(prev => 
+        prev.filter(int => 
+          !(int.candidateId === interview.candidateId && int.interviewType === interview.interviewType)
+        )
+      );
+      
+      // Check if candidate still has any interviews
+      const remainingInterviews = calendarInterviews.filter(int => 
+        int.candidateId === interview.candidateId && 
+        !(int.candidateId === interview.candidateId && int.interviewType === interview.interviewType)
+      );
+      
+      // Update interview status if no interviews remain
+      if (remainingInterviews.length === 0) {
+        await updateInterviewStatus(interview.candidateId, false);
+      }
 
       toast({
         title: "Interview Removed",
-        description: `Interview for ${interview.candidateName} has been removed`,
+        description: `${interview.interviewLabel} for ${interview.candidateName} has been removed`,
       });
     } catch (error) {
       console.error('Error removing interview:', error);
@@ -176,9 +399,14 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
   };
 
   const getInterviewsForDate = (date: Date) => {
-    return scheduledInterviews.filter(interview => 
+    return calendarInterviews.filter(interview => 
       interview.date.toDateString() === date.toDateString()
-    );
+    ).sort((a, b) => {
+      // Sort by time slot
+      const timeA = timeSlots.indexOf(a.timeSlot);
+      const timeB = timeSlots.indexOf(b.timeSlot);
+      return timeA - timeB;
+    });
   };
 
   const getPanelMemberNames = (panelMemberIds: string[]) => {
@@ -186,6 +414,17 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
       .map(id => executives.find(exec => exec.id === id)?.name)
       .filter(Boolean)
       .join(', ');
+  };
+
+  const getTimeSlotStats = (timeSlot: string, date: Date, interviewType: 'one' | 'two') => {
+    const interviews = calendarInterviews.filter(interview => 
+      interview.interviewType === interviewType &&
+      interview.timeSlot === timeSlot && 
+      interview.date.toDateString() === date.toDateString()
+    );
+    
+    const maxSlots = interviewType === 'one' ? 5 : 1;
+    return { current: interviews.length, max: maxSlots };
   };
 
   if (loading) {
@@ -212,7 +451,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
             Interview Calendar
           </h1>
           <p className="text-gray-600">
-            View and manage all scheduled interviews (8-minute slots with 2-minute buffer)
+            View and manage all scheduled interviews (Group: up to 5 per slot, Individual: 1 per slot)
           </p>
         </div>
       </div>
@@ -250,20 +489,26 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
                 Interviews for {selectedDate?.toLocaleDateString() || 'Select a date'}
               </CardTitle>
               <CardDescription>
-                Scheduled interviews for the selected date (8 minutes each with 2-minute buffer)
+                Scheduled interviews for the selected date
               </CardDescription>
             </CardHeader>
             <CardContent>
               {selectedDate ? (
                 <div className="space-y-4">
-                  {getInterviewsForDate(selectedDate).map((interview) => (
-                    <div key={interview.candidateId} className="border rounded-lg p-4 bg-gray-50">
+                  {getInterviewsForDate(selectedDate).map((interview, index) => (
+                    <div key={`${interview.candidateId}-${interview.interviewType}`} className="border rounded-lg p-4 bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <h4 className="font-semibold text-lg">{interview.candidateName}</h4>
                           <p className="text-sm text-gray-600">{interview.position}</p>
+                          <Badge 
+                            variant={interview.interviewType === 'one' ? 'default' : 'secondary'}
+                            className="mt-1"
+                          >
+                            {interview.interviewLabel}
+                          </Badge>
                         </div>
-                        <Badge variant="secondary">{interview.timeSlot}</Badge>
+                        <Badge variant="outline">{interview.timeSlot}</Badge>
                       </div>
                       
                       <div className="flex items-center text-sm text-gray-600 mb-3">
@@ -285,7 +530,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Edit Interview</DialogTitle>
+                              <DialogTitle>Edit {interview.interviewLabel}</DialogTitle>
                               <DialogDescription>
                                 Update interview details for {interview.candidateName}
                               </DialogDescription>
@@ -299,25 +544,42 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
                                   selected={selectedDate}
                                   onSelect={setSelectedDate}
                                   className="rounded-md border"
-                                  disabled={(date) => date < new Date()}
+                                  disabled={(date) => !isValidInterviewDate(date, interview.interviewType)}
                                 />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Available: {interview.interviewType === 'one' 
+                                    ? 'September 11-12, 2025' 
+                                    : 'September 16-18, 2025 (weekdays only)'}
+                                </p>
                               </div>
 
-                              <div>
-                                <Label>Time Slot (8 minutes with 2-minute buffer)</Label>
-                                <Select value={newTimeSlot} onValueChange={setNewTimeSlot}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select time" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {timeSlots.map((time) => (
-                                      <SelectItem key={time} value={time}>
-                                        {time}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                              {selectedDate && (
+                                <div>
+                                  <Label>Time Slot</Label>
+                                  <Select value={newTimeSlot} onValueChange={setNewTimeSlot}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select time" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {timeSlots.map((time) => {
+                                        const stats = getTimeSlotStats(time, selectedDate, interview.interviewType);
+                                        const isAvailable = isTimeSlotAvailable(time, selectedDate, interview.interviewType, interview.candidateId);
+                                        const slotsText = interview.interviewType === 'one' ? ` (${stats.current}/${stats.max})` : '';
+                                        
+                                        return (
+                                          <SelectItem 
+                                            key={time} 
+                                            value={time}
+                                            disabled={!isAvailable}
+                                          >
+                                            {time}{slotsText} {!isAvailable && '(Full)'}
+                                          </SelectItem>
+                                        );
+                                      })}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
 
                               <div>
                                 <Label>Panel Members</Label>
@@ -340,7 +602,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
 
                               <Button
                                 onClick={handleSaveEditedInterview}
-                                disabled={!selectedDate || !newTimeSlot || newPanelMembers.length < 2}
+                                disabled={!selectedDate || !newTimeSlot}
                                 className="w-full"
                               >
                                 Save Changes

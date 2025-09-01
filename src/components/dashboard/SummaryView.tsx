@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +5,36 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Printer, FileText, Users } from 'lucide-react';
 import { getAllApplications, getApplicationGrades, ApplicationData, ApplicationGrades } from '@/services/applicationService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface SummaryViewProps {
   onBack: () => void;
+}
+
+interface InterviewCheckboxes {
+  pastExperience: boolean;
+  roleKnowledge: boolean;
+  leadershipSkills: boolean;
+  creativeOutlook: boolean;
+  timeManagement: boolean;
+}
+
+interface PanelMemberGrade {
+  panelMemberId: string;
+  panelMemberName: string;
+  grades: Record<string, number>;
+  checkboxes: InterviewCheckboxes;
+  feedback: string;
+  submittedAt: Date;
+}
+
+interface InterviewGrades {
+  candidateId: string;
+  interviewType: 'one' | 'two';
+  panelGrades: PanelMemberGrade[];
+  averageScore: number;
 }
 
 interface ApplicationSummary extends ApplicationData {
@@ -23,27 +48,18 @@ interface ApplicationSummary extends ApplicationData {
 const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
   const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPosition, setSelectedPosition] = useState<string>('all');
   const { toast } = useToast();
-
-  const positions = [
-    'Secretary',
-    'Treasurer', 
-    'Community Outreach',
-    'Athletics Liaison',
-    'Promotions Officer',
-    'Photography Exec',
-    'Technology Executive',
-    'Arts Liaison'
-  ];
 
   useEffect(() => {
     const loadApplicationSummaries = async () => {
       try {
         const allApplications = await getAllApplications();
         
+        // Filter for only Honourary Member applications
+        const honouraryMemberApplications = allApplications.filter(app => app.position === 'Honourary Member');
+        
         const summaries = await Promise.all(
-          allApplications.map(async (app) => {
+          honouraryMemberApplications.map(async (app) => {
             let grades: ApplicationGrades | null = null;
             try {
               grades = await getApplicationGrades(app.id);
@@ -51,10 +67,43 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
               console.error(`Error loading grades for ${app.id}:`, error);
             }
 
+            // Load interview grades from both interviews
+            let combinedInterviewGrade: number | null = null;
+            try {
+              const [gradeDocOne, gradeDocTwo] = await Promise.all([
+                getDoc(doc(db, 'interviewGrades', `${app.id}_interview_one`)),
+                getDoc(doc(db, 'interviewGrades', `${app.id}_interview_two`))
+              ]);
+
+              let interviewOneScore: number | null = null;
+              let interviewTwoScore: number | null = null;
+
+              if (gradeDocOne.exists()) {
+                const data = gradeDocOne.data() as InterviewGrades;
+                interviewOneScore = data.averageScore || null;
+              }
+
+              if (gradeDocTwo.exists()) {
+                const data = gradeDocTwo.data() as InterviewGrades;
+                interviewTwoScore = data.averageScore || null;
+              }
+
+              // Calculate combined interview grade (average of both interviews)
+              if (interviewOneScore !== null && interviewTwoScore !== null) {
+                combinedInterviewGrade = (interviewOneScore + interviewTwoScore) / 2;
+              } else if (interviewOneScore !== null) {
+                combinedInterviewGrade = interviewOneScore;
+              } else if (interviewTwoScore !== null) {
+                combinedInterviewGrade = interviewTwoScore;
+              }
+            } catch (error) {
+              console.error(`Error loading interview grades for ${app.id}:`, error);
+            }
+
             // Extract executive friends from universal questions
             const executiveFriends: string[] = [];
             if (app.answers) {
-              const friendsAnswer = app.answers['executives_friends'] || app.answers['executive_friends'] || '';
+              const friendsAnswer = app.answers['honorary_6'] || app.answers['executive_friends'] || '';
               if (friendsAnswer) {
                 executiveFriends.push(...friendsAnswer.split(',').map((name: string) => name.trim()).filter(Boolean));
               }
@@ -65,7 +114,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
               grades,
               gradedByExecutives: grades?.executiveGrades.map(eg => eg.executiveName) || [],
               averageApplicationGrade: grades?.averageScore || null,
-              interviewGrade: null, // TODO: Add interview grade when available
+              interviewGrade: combinedInterviewGrade,
               executiveFriends
             } as ApplicationSummary;
           })
@@ -87,12 +136,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
     loadApplicationSummaries();
   }, [toast]);
 
-  const filteredApplications = selectedPosition === 'all' 
-    ? applications 
-    : applications.filter(app => app.position === selectedPosition);
-
   const handlePrintSummary = () => {
-    const printContent = generatePrintContent(filteredApplications, selectedPosition);
+    const printContent = generatePrintContent(applications);
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -109,8 +154,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
     printWindow.document.close();
   };
 
-  const generatePrintContent = (apps: ApplicationSummary[], position: string) => {
-    const title = position === 'all' ? 'All SAC Applications Summary' : `${position} Applications Summary`;
+  const generatePrintContent = (apps: ApplicationSummary[]) => {
+    const title = 'Honourary Member Applications Summary';
     
     return `
       <!DOCTYPE html>
@@ -143,7 +188,6 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Position</th>
                 <th>Grade</th>
                 <th>Student #</th>
                 <th>Program</th>
@@ -159,7 +203,6 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
               ${apps.map(app => `
                 <tr>
                   <td>${app.userProfile?.fullName || 'N/A'}</td>
-                  <td>${app.position || 'N/A'}</td>
                   <td>${app.userProfile?.grade || 'N/A'}</td>
                   <td>${app.userProfile?.studentNumber || 'N/A'}</td>
                   <td>${app.userProfile?.studentType && app.userProfile.studentType !== 'none' ? app.userProfile.studentType : 'N/A'}</td>
@@ -168,7 +211,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
                     ${app.averageApplicationGrade ? app.averageApplicationGrade.toFixed(1) + '/10' : 'N/A'}
                   </td>
                   <td class="${app.interviewGrade ? 'grade' : 'no-grade'}">
-                    ${app.interviewGrade ? app.interviewGrade.toFixed(1) + '/10' : 'N/A'}
+                    ${app.interviewGrade ? app.interviewGrade.toFixed(1) + '/5' : 'N/A'}
                   </td>
                   <td>${app.gradedByExecutives.join(', ') || 'None'}</td>
                   <td>${app.executiveFriends.join(', ') || 'None'}</td>
@@ -191,7 +234,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${app.userProfile?.fullName || 'Unknown'} - Application Details</title>
+          <title>${app.userProfile?.fullName || 'Unknown'} - Honourary Member Application</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1, h2 { color: #1f2937; }
@@ -208,7 +251,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
           </style>
         </head>
         <body>
-          <h1>Application Details - ${app.userProfile?.fullName || 'Unknown Applicant'}</h1>
+          <h1>Honourary Member Application - ${app.userProfile?.fullName || 'Unknown Applicant'}</h1>
           
           <div class="section">
             <h2>Applicant Information</h2>
@@ -216,9 +259,10 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
             <p><strong>Student Number:</strong> ${app.userProfile?.studentNumber || 'N/A'}</p>
             <p><strong>Grade:</strong> ${app.userProfile?.grade || 'N/A'}</p>
             <p><strong>Program:</strong> ${app.userProfile?.studentType && app.userProfile.studentType !== 'none' ? app.userProfile.studentType : 'N/A'}</p>
-            <p><strong>Position Applied For:</strong> ${app.position || 'N/A'}</p>
+            <p><strong>Position Applied For:</strong> Honourary Member</p>
             <p><strong>Application Status:</strong> ${app.status?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
             <p><strong>Submitted:</strong> ${app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Not submitted'}</p>
+            ${app.interviewGrade ? `<p><strong>Combined Interview Score:</strong> ${app.interviewGrade.toFixed(1)}/5</p>` : ''}
           </div>
 
           <div class="section">
@@ -304,53 +348,21 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Applications Summary
+            Honourary Member Applications Summary
           </h1>
           <p className="text-gray-600">
-            Comprehensive view of all applications with grades and feedback
+            Comprehensive view of all Honourary Member applications with grades and feedback
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-8">
-        {/* Position Filter */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Filter by Position</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={selectedPosition === 'all' ? 'default' : 'outline'}
-                onClick={() => setSelectedPosition('all')}
-                size="sm"
-              >
-                All Positions ({applications.length})
-              </Button>
-              {positions.map(position => {
-                const count = applications.filter(app => app.position === position).length;
-                return (
-                  <Button
-                    key={position}
-                    variant={selectedPosition === position ? 'default' : 'outline'}
-                    onClick={() => setSelectedPosition(position)}
-                    size="sm"
-                  >
-                    {position} ({count})
-                  </Button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Summary Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              {selectedPosition === 'all' ? 'All Applications' : `${selectedPosition} Applications`} 
-              ({filteredApplications.length})
+              Honourary Member Applications ({applications.length})
             </CardTitle>
             <CardDescription>
               Comprehensive overview with grades, feedback, and candidate details
@@ -362,7 +374,6 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Position</TableHead>
                     <TableHead>Grade</TableHead>
                     <TableHead>Student #</TableHead>
                     <TableHead>Program</TableHead>
@@ -375,12 +386,11 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredApplications.map((app) => (
+                  {applications.map((app) => (
                     <TableRow key={app.id}>
                       <TableCell className="font-medium">
                         {app.userProfile?.fullName || 'N/A'}
                       </TableCell>
-                      <TableCell>{app.position}</TableCell>
                       <TableCell>{app.userProfile?.grade || 'N/A'}</TableCell>
                       <TableCell>{app.userProfile?.studentNumber || 'N/A'}</TableCell>
                       <TableCell>
@@ -407,7 +417,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
                       <TableCell>
                         {app.interviewGrade ? (
                           <span className="font-semibold text-green-600">
-                            {app.interviewGrade.toFixed(1)}/10
+                            {app.interviewGrade.toFixed(1)}/5
                           </span>
                         ) : (
                           <span className="text-gray-400">N/A</span>
@@ -456,28 +466,28 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
               </Table>
             </div>
             
-            {filteredApplications.length === 0 && (
+            {applications.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                No applications found for the selected criteria.
+                No Honourary Member applications found.
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Comments Section */}
-        {filteredApplications.some(app => app.grades?.executiveGrades.some(eg => eg.feedback)) && (
+        {applications.some(app => app.grades?.executiveGrades.some(eg => eg.feedback)) && (
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Executive Comments Summary</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {filteredApplications
+                {applications
                   .filter(app => app.grades?.executiveGrades.some(eg => eg.feedback))
                   .map(app => (
                     <div key={app.id} className="border-l-4 border-blue-200 pl-4 py-2">
                       <h4 className="font-semibold text-gray-900 mb-2">
-                        {app.userProfile?.fullName} - {app.position}
+                        {app.userProfile?.fullName} - Honourary Member
                       </h4>
                       <div className="space-y-2">
                         {app.grades?.executiveGrades

@@ -579,9 +579,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           // Determine which interview this grade is from
           let interviewType = 'Unknown';
           if (grades.interviewOne?.panelGrades?.includes(panelGrade)) {
-            interviewType = 'Interview One';
+            interviewType = 'Group Interview';
           } else if (grades.interviewTwo?.panelGrades?.includes(panelGrade)) {
-            interviewType = 'Interview Two';
+            interviewType = 'Individual Interview';
           }
           
           content += `
@@ -610,9 +610,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
             // Determine which interview this feedback is from
             let interviewType = 'Unknown';
             if (grades.interviewOne?.panelGrades?.includes(grade)) {
-              interviewType = 'Interview One';
+              interviewType = 'Group Interview';
             } else if (grades.interviewTwo?.panelGrades?.includes(grade)) {
-              interviewType = 'Interview Two';
+              interviewType = 'Individual Interview';
             }
 
             content += `
@@ -852,9 +852,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                             const grades = interviewGrades[candidate.id];
                                             let interviewType = 'Unknown';
                                             if (grades.interviewOne?.panelGrades?.includes(grade)) {
-                                              interviewType = 'Interview One';
+                                              interviewType = 'Group Interview';
                                             } else if (grades.interviewTwo?.panelGrades?.includes(grade)) {
-                                              interviewType = 'Interview Two';
+                                              interviewType = 'Individual Interview';
                                             }
 
                                             return (

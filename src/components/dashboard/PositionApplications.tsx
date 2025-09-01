@@ -307,19 +307,27 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     loadData();
   }, [positionId, filteredApplications]);
 
-  const isTimeSlotTaken = (timeSlot: string, date: Date) => {
-    return scheduledInterviews.some(interview => {
-      const interviewOneMatch = interview.interviewOneDate && 
+const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 'two') => {
+  const interviews = scheduledInterviews.filter(interview => {
+    if (interviewType === 'one') {
+      return interview.interviewOneDate && 
         interview.interviewOneTime === timeSlot && 
         interview.interviewOneDate.toDateString() === date.toDateString();
-      
-      const interviewTwoMatch = interview.interviewTwoDate && 
+    } else {
+      return interview.interviewTwoDate && 
         interview.interviewTwoTime === timeSlot && 
         interview.interviewTwoDate.toDateString() === date.toDateString();
-      
-      return interviewOneMatch || interviewTwoMatch;
-    });
-  };
+    }
+  });
+  
+  // Group Interview can have up to 5 people per slot
+  if (interviewType === 'one') {
+    return interviews.length >= 5;
+  }
+  
+  // Individual Interview remains 1 person per slot
+  return interviews.length >= 1;
+};
 
   const getCandidateInterview = (candidateId: string): ScheduledInterview | null => {
     return scheduledInterviews.find(interview => interview.candidateId === candidateId) || null;
@@ -333,7 +341,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     );
   };
 
-const handleScheduleInterview = async (candidate: ApplicationData, interviewType: 'one' | 'two') => {
+  const handleScheduleInterview = async (candidate: ApplicationData, interviewType: 'one' | 'two') => {
     if (!selectedDate || !selectedTimeSlot) {
       toast({
         title: "Missing Information",
@@ -352,10 +360,11 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
     //   return;
     // }
 
-    if (isTimeSlotTaken(selectedTimeSlot, selectedDate)) {
+    if (isTimeSlotTaken(selectedTimeSlot, selectedDate, interviewType)) {
+      const maxCandidates = interviewType === 'one' ? 5 : 1;
       toast({
         title: "Time Slot Unavailable",
-        description: "This time slot is already booked. Please select another time.",
+        description: `This time slot is full (${maxCandidates} candidate${maxCandidates > 1 ? 's' : ''} max). Please select another time.`,
         variant: "destructive",
       });
       return;
@@ -412,7 +421,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
         executives.find(exec => exec.id === id)?.name
       ).join(', ');
       
-      const interviewLabel = interviewType === 'one' ? 'Interview One' : 'Interview Two';
+      const interviewLabel = interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
       
       toast({
         title: `${interviewLabel} Scheduled`,
@@ -453,7 +462,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
         );
       }
       
-      const interviewLabel = interviewType === 'one' ? 'Interview One' : 'Interview Two';
+      const interviewLabel = interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
       
       toast({
         title: `${interviewLabel} Removed`,
@@ -704,24 +713,24 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                           <div className="space-y-1">
                             {candidateInterview?.interviewOneDate ? (
                               <div className="text-xs">
-                                <Badge variant="default" className="mb-1">Interview One</Badge>
+                                <Badge variant="default" className="mb-1">Group Interview</Badge>
                                 <div className="text-gray-600">
                                   {candidateInterview.interviewOneDate.toLocaleDateString()} at {candidateInterview.interviewOneTime}
                                 </div>
                               </div>
                             ) : (
-                              <Badge variant="secondary" className="text-xs">Interview One: Pending</Badge>
+                              <Badge variant="secondary" className="text-xs">Group Interview: Pending</Badge>
                             )}
                             
                             {candidateInterview?.interviewTwoDate ? (
                               <div className="text-xs">
-                                <Badge variant="default" className="mb-1">Interview Two</Badge>
+                                <Badge variant="default" className="mb-1">Individual Interview</Badge>
                                 <div className="text-gray-600">
                                   {candidateInterview.interviewTwoDate.toLocaleDateString()} at {candidateInterview.interviewTwoTime}
                                 </div>
                               </div>
                             ) : (
-                              <Badge variant="secondary" className="text-xs">Interview Two: Pending</Badge>
+                              <Badge variant="secondary" className="text-xs">Individual Interview: Pending</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -759,7 +768,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                             
                             {application.status === 'submitted' && (
                               <div className="space-y-1">
-                                {/* Interview One Actions */}
+                                {/* Group Interview Actions */}
                                 {!candidateInterview?.interviewOneDate ? (
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -773,14 +782,14 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                                       >
                                         <CalendarIcon className="h-4 w-4 mr-1" />
-                                        Schedule Interview One
+                                        Schedule Group Interview
                                       </Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-md">
                                       <DialogHeader>
-                                        <DialogTitle>Schedule Interview One</DialogTitle>
+                                        <DialogTitle>Schedule Group Interview</DialogTitle>
                                         <DialogDescription>
-                                          Schedule Interview One for {application.userProfile?.fullName}
+                                          Schedule Group Interview for {application.userProfile?.fullName}
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="space-y-4">
@@ -809,14 +818,29 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                               </SelectTrigger>
                                               <SelectContent>
                                                 {timeSlots.map((time) => {
-                                                  const isTaken = isTimeSlotTaken(time, selectedDate);
+                                                  const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
+                                                  const currentBookings = scheduledInterviews.filter(interview => {
+                                                    if (schedulingInterviewType === 'one') {
+                                                      return interview.interviewOneDate && 
+                                                        interview.interviewOneTime === time && 
+                                                        interview.interviewOneDate.toDateString() === selectedDate.toDateString();
+                                                    } else {
+                                                      return interview.interviewTwoDate && 
+                                                        interview.interviewTwoTime === time && 
+                                                        interview.interviewTwoDate.toDateString() === selectedDate.toDateString();
+                                                    }
+                                                  }).length;
+                                                  
+                                                  const maxSlots = schedulingInterviewType === 'one' ? 5 : 1;
+                                                  const slotsText = schedulingInterviewType === 'one' ? ` (${currentBookings}/${maxSlots})` : '';
+                                                  
                                                   return (
                                                     <SelectItem 
                                                       key={time} 
                                                       value={time}
                                                       disabled={isTaken}
                                                     >
-                                                      {time} {isTaken && '(Taken)'}
+                                                      {time}{slotsText} {isTaken && '(Full)'}
                                                     </SelectItem>
                                                   );
                                                 })}
@@ -850,7 +874,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                           className="w-full"
                                         >
                                           <CheckCircle className="h-4 w-4 mr-2" />
-                                          Schedule Interview One
+                                          Schedule Group Interview
                                         </Button>
                                       </div>
                                     </DialogContent>
@@ -869,7 +893,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                   </div>
                                 )}
 
-                                {/* Interview Two Actions */}
+                                {/* Individual Interview Actions */}
                                 {!candidateInterview?.interviewTwoDate ? (
                                   <Dialog>
                                     <DialogTrigger asChild>
@@ -883,14 +907,14 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                         className="w-full bg-green-600 hover:bg-green-700 text-white"
                                       >
                                         <CalendarIcon className="h-4 w-4 mr-1" />
-                                        Schedule Interview Two
+                                        Schedule Individual Interview
                                       </Button>
                                     </DialogTrigger>
                                     <DialogContent className="max-w-md">
                                       <DialogHeader>
-                                        <DialogTitle>Schedule Interview Two</DialogTitle>
+                                        <DialogTitle>Schedule Individual Interview</DialogTitle>
                                         <DialogDescription>
-                                          Schedule Interview Two for {application.userProfile?.fullName}
+                                          Schedule Individual Interview for {application.userProfile?.fullName}
                                         </DialogDescription>
                                       </DialogHeader>
                                       <div className="space-y-4">
@@ -919,7 +943,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                               </SelectTrigger>
                                               <SelectContent>
                                                 {timeSlots.map((time) => {
-                                                  const isTaken = isTimeSlotTaken(time, selectedDate);
+                                                  const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
                                                   return (
                                                     <SelectItem 
                                                       key={time} 
@@ -960,7 +984,7 @@ const handleScheduleInterview = async (candidate: ApplicationData, interviewType
                                           className="w-full"
                                         >
                                           <CheckCircle className="h-4 w-4 mr-2" />
-                                          Schedule Interview Two
+                                          Schedule Individual Interview
                                         </Button>
                                       </div>
                                     </DialogContent>

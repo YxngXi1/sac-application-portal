@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, User, Star, CheckCircle, Users } from 'lucide-react';
+import { ArrowLeft, User, Star, CheckCircle, Users, Shuffle } from 'lucide-react';
 import { ApplicationData } from '@/services/applicationService';
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -31,6 +31,7 @@ interface PanelMemberGrade {
   checkboxes: InterviewCheckboxes;
   feedback: string;
   submittedAt: Date;
+  selectedQuestions?: string[]; // Track which questions were selected for this grader
 }
 
 interface InterviewGrades {
@@ -38,6 +39,7 @@ interface InterviewGrades {
   interviewType: 'one' | 'two';
   panelGrades: PanelMemberGrade[];
   averageScore: number;
+  masterQuestions?: string[]; // Master set of questions for this interview session
 }
 
 const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewType, onBack }) => {
@@ -54,49 +56,134 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
   const [submitting, setSubmitting] = useState(false);
   const [panelGrades, setPanelGrades] = useState<PanelMemberGrade[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
 
-  const getQuestionsForPosition = (position: string, interviewType: 'one' | 'two') => {
-    const questionSets: Record<string, { one: string[], two: string[] }> = {
+  const getQuestionPools = (position: string) => {
+    // Define question pools - Interview One has fixed questions, Interview Two has randomized pools
+    const questionPools: Record<string, { 
+      interviewOne: string[],
+      pool1: string[], 
+      pool2: string[], 
+      pool3: string[]
+    }> = {
       'Honourary Member': {
-        one: [
-          'no idea what to put for the questions but this is for interview one',
-          'no idea what to put for the questions but this is for interview one',
-          'no idea what to put for the questions but this is for interview one',
+        interviewOne: [
+          "Tell us about yourself and why you're interested in joining the Student Council.",
+          "How would you handle a situation where students have conflicting opinions about a school event?",
+          "What specific ideas do you have to improve student life at our school?"
         ],
-        two: [
-          'no idea what to put for the questions but this is for interview two',
-          'no idea what to put for the questions but this is for interview two',
-          'no idea what to put for the questions but this is for interview two',
+        pool1: [
+          "What specific contributions do you hope to make to the student council throughout the year?",
+          "How do you plan to balance your council responsibilities with your academic commitments?",
+          "Describe a time when you went above and beyond in a leadership or service role."
+        ],
+        pool2: [
+          "How would you handle a challenging situation with a difficult team member?",
+          "Describe a project you led and what you learned from the experience.",
+          "What would you do if you had to implement an unpopular but necessary decision?"
+        ],
+        pool3: [
+          "How do you stay motivated when facing setbacks or obstacles?",
+          "What innovative ideas do you have for improving student engagement?",
+          "How would you work to bridge divides between different student groups?"
         ]
       },
+      'President': {
+        interviewOne: [
+          "What leadership experience do you have that qualifies you for the role of President?",
+          "How would you handle conflicts between different student groups or council members?",
+          "What is your vision for the student body during your term as President?"
+        ],
+        pool1: [
+          "How do you plan to work with school administration to advocate for student needs?",
+          "What strategies would you use to ensure all student voices are heard and represented?",
+          "Describe how you would handle the pressure and responsibility of being Student Council President."
+        ],
+        pool2: [
+          "How would you manage competing priorities and limited resources as President?",
+          "Describe your approach to building consensus among diverse stakeholder groups.",
+          "What would you do if the administration rejected a major student initiative you supported?"
+        ],
+        pool3: [
+          "How would you ensure transparency and accountability in student government?",
+          "What legacy do you hope to leave as Student Council President?",
+          "How would you handle criticism or opposition to your leadership decisions?"
+        ]
+      }
     };
 
-    const positionQuestions = questionSets[position];
-    if (!positionQuestions) {
-      // Default questions if position not found
-      return interviewType === 'one' 
-        ? [
-            "Tell us about yourself and why you are interested in this position.",
-            "How would you handle challenges in this role?",
-            "What makes you a good fit for this position?"
-          ]
-        : [
-            "What specific contributions do you hope to make to the student council?",
-            "How do you plan to stay engaged and active throughout the year?",
-            "Describe a time when you went above and beyond in a leadership or service role."
-          ];
-    }
-
-    return positionQuestions[interviewType];
+    return questionPools[position] || questionPools['Honourary Member']; // Default fallback
   };
 
-  const questions = getQuestionsForPosition(candidate.position, interviewType);
+  // Function to randomly select one question from each pool for Interview Two
+  const generateInterviewTwoQuestions = (position: string): string[] => {
+    const pools = getQuestionPools(position);
+    
+    // Randomly select one question from each pool
+    const question1 = pools.pool1[Math.floor(Math.random() * pools.pool1.length)];
+    const question2 = pools.pool2[Math.floor(Math.random() * pools.pool2.length)];
+    const question3 = pools.pool3[Math.floor(Math.random() * pools.pool3.length)];
+    
+    return [question1, question2, question3];
+  };
 
-  // ...existing code remains the same...
+  // Function to get questions for the interview
+  const getQuestionsForInterview = async (position: string, interviewType: 'one' | 'two'): Promise<string[]> => {
+    if (interviewType === 'one') {
+      // Interview One always uses fixed questions
+      const pools = getQuestionPools(position);
+      return pools.interviewOne;
+    }
+
+    // For Interview Two, check if master questions already exist
+    const gradeDocId = `${candidate.id}_interview_two`;
+    const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
+    
+    if (gradeDoc.exists()) {
+      const data = gradeDoc.data() as InterviewGrades;
+      if (data.masterQuestions && data.masterQuestions.length === 3) {
+        // Use existing master questions to ensure consistency across all panel members
+        return data.masterQuestions;
+      }
+    }
+    
+    // Generate new questions for Interview Two if none exist
+    const newQuestions = generateInterviewTwoQuestions(position);
+    
+    // Save these as master questions for this interview session
+    try {
+      const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
+      const existingDoc = await getDoc(gradeDocRef);
+      
+      if (existingDoc.exists()) {
+        await updateDoc(gradeDocRef, {
+          masterQuestions: newQuestions
+        });
+      } else {
+        await setDoc(gradeDocRef, {
+          candidateId: candidate.id,
+          interviewType: 'two',
+          panelGrades: [],
+          averageScore: 0,
+          masterQuestions: newQuestions
+        });
+      }
+    } catch (error) {
+      console.error('Error saving master questions:', error);
+    }
+    
+    return newQuestions;
+  };
+
+  // Load questions and existing grades
   useEffect(() => {
-    const loadExistingGrades = async () => {
+    const loadData = async () => {
       try {
-        // Use separate document IDs for each interview type
+        // Load questions
+        const questions = await getQuestionsForInterview(candidate.position, interviewType);
+        setSelectedQuestions(questions);
+
+        // Load existing grades
         const gradeDocId = `${candidate.id}_interview_${interviewType}`;
         const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
         
@@ -114,14 +201,17 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
           }
         }
       } catch (error) {
-        console.error('Error loading existing grades:', error);
+        console.error('Error loading data:', error);
+        // Fallback to default questions if there's an error
+        const pools = getQuestionPools(candidate.position);
+        setSelectedQuestions(interviewType === 'one' ? pools.interviewOne : generateInterviewTwoQuestions(candidate.position));
       }
     };
 
     if (user) {
-      loadExistingGrades();
+      loadData();
     }
-  }, [candidate.id, interviewType, user]);
+  }, [candidate.id, candidate.position, interviewType, user]);
 
   const handleGradeChange = (questionIndex: number, score: number) => {
     setGrades(prev => ({
@@ -148,19 +238,22 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         grades,
         checkboxes,
         feedback,
-        submittedAt: new Date()
+        submittedAt: new Date(),
+        selectedQuestions: selectedQuestions // Track which questions this grader used
       };
 
-      // Update or create the interview grades document with separate ID for each interview
+      // Update or create the interview grades document
       const gradeDocId = `${candidate.id}_interview_${interviewType}`;
       const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
       const existingDoc = await getDoc(gradeDocRef);
 
       let updatedPanelGrades: PanelMemberGrade[];
+      let masterQuestions = selectedQuestions;
       
       if (existingDoc.exists()) {
         const existingData = existingDoc.data() as InterviewGrades;
         updatedPanelGrades = existingData.panelGrades || [];
+        masterQuestions = existingData.masterQuestions || selectedQuestions;
         
         // Remove existing grade from this panel member if it exists
         updatedPanelGrades = updatedPanelGrades.filter(pg => pg.panelMemberId !== user.uid);
@@ -181,7 +274,8 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         candidateId: candidate.id,
         interviewType,
         panelGrades: updatedPanelGrades,
-        averageScore
+        averageScore,
+        masterQuestions: masterQuestions // Save the master questions used for this interview
       };
 
       await setDoc(gradeDocRef, interviewGradeData);
@@ -200,7 +294,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
   };
 
   const isFormComplete = () => {
-    const hasAllGrades = questions.every((_, index) => 
+    const hasAllGrades = selectedQuestions.every((_, index) => 
       grades[`question_${index}`] !== undefined && grades[`question_${index}`] > 0
     );
     return hasAllGrades && feedback.trim().length > 0;
@@ -230,6 +324,18 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       </div>
     );
   };
+
+  // Show loading state while questions are being loaded
+  if (selectedQuestions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading interview questions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -266,6 +372,12 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                 >
                   Interview {interviewType === 'one' ? 'One' : 'Two'}
                 </Badge>
+                {interviewType === 'two' && (
+                  <Badge variant="outline" className="border-orange-300 text-orange-700 bg-orange-50">
+                    <Shuffle className="h-3 w-3 mr-1" />
+                    Randomized Questions
+                  </Badge>
+                )}
               </div>
             </div>
             {hasSubmitted && (
@@ -282,7 +394,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Add a notice about which interview this is */}
+            {/* Interview Type Info Card */}
             <Card className={`border-2 shadow-sm ${
               interviewType === 'one' 
                 ? 'border-blue-200 bg-blue-50' 
@@ -295,7 +407,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                   }`}>
                     {interviewType === 'one' ? '1' : '2'}
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className={`font-semibold ${
                       interviewType === 'one' ? 'text-blue-800' : 'text-green-800'
                     }`}>
@@ -304,17 +416,22 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                     <p className={`text-sm ${
                       interviewType === 'one' ? 'text-blue-600' : 'text-green-600'
                     }`}>
-                      This is the {interviewType === 'one' ? 'first' : 'second'} interview session for this candidate. 
-                      Each interview has different questions to assess different aspects.
+                      {interviewType === 'one' 
+                        ? 'This is the first interview session with standardized questions to assess basic qualifications and motivation.'
+                        : 'This interview uses randomly selected questions from predefined pools to ensure variety while maintaining fairness. All panel members will see the same questions for this candidate.'
+                      }
                     </p>
                   </div>
+                  {interviewType === 'two' && (
+                    <Shuffle className="h-5 w-5 text-green-600" />
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* Interview Questions */}
             <div className="space-y-6">
-              {questions.map((question, index) => (
+              {selectedQuestions.map((question, index) => (
                 <Card key={index} className="border shadow-sm bg-white hover:shadow-md transition-shadow">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
@@ -325,6 +442,9 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                           {index + 1}
                         </div>
                         Question {index + 1} ({interviewType === 'one' ? 'Interview 1' : 'Interview 2'})
+                        {interviewType === 'two' && (
+                          <Shuffle className="h-4 w-4 text-orange-500"/>
+                        )}
                       </CardTitle>
                       <Badge variant="outline" className={`${
                         interviewType === 'one' 

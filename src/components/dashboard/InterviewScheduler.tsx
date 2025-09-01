@@ -14,6 +14,7 @@ import { db } from '@/lib/firebase';
 
 interface InterviewSchedulerProps {
   positionName: string;
+  selectedGrade?: string;
   onBack: () => void;
   onGoToCalendar: () => void;
 }
@@ -40,6 +41,7 @@ interface ScheduledInterview {
 
 const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   positionName,
+  selectedGrade,
   onBack,
   onGoToCalendar
 }) => {
@@ -250,11 +252,16 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     const loadQualifiedApplications = async () => {
       try {
         const applications = await getAllApplications();
-        // Show all submitted applications for the position, regardless of score
-        const qualified = applications.filter(app => 
+        // Filter by position and status, and now also by grade if specified
+        let qualified = applications.filter(app => 
           app.position === positionName && 
           app.status === 'submitted'
         );
+        
+        // If a specific grade is selected, filter by that grade
+        if (selectedGrade) {
+          qualified = qualified.filter(app => app.userProfile?.grade === selectedGrade);
+        }
         
         // Sort by score if available, otherwise by submission date
         const sortedQualified = qualified.sort((a, b) => {
@@ -269,7 +276,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
           return bDate.getTime() - aDate.getTime();
         });
         
-        console.log(`Found ${qualified.length} applications for ${positionName}:`, qualified);
+        console.log(`Found ${qualified.length} applications for ${positionName}${selectedGrade ? ` (Grade ${selectedGrade})` : ''}:`, qualified);
         setQualifiedApplications(sortedQualified);
         
         // Load scheduled interviews
@@ -283,20 +290,28 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     };
 
     loadQualifiedApplications();
-  }, [positionName]);
+  }, [positionName, selectedGrade]); 
 
-  const isTimeSlotTaken = (timeSlot: string, date: Date) => {
-    return scheduledInterviews.some(interview => {
-      const interviewOneMatch = interview.interviewOneDate && 
-        interview.interviewOneTime === timeSlot && 
-        interview.interviewOneDate.toDateString() === date.toDateString();
-      
-      const interviewTwoMatch = interview.interviewTwoDate && 
-        interview.interviewTwoTime === timeSlot && 
-        interview.interviewTwoDate.toDateString() === date.toDateString();
-      
-      return interviewOneMatch || interviewTwoMatch;
+  const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 'two') => {
+    const interviews = scheduledInterviews.filter(interview => {
+      if (interviewType === 'one') {
+        return interview.interviewOneDate && 
+          interview.interviewOneTime === timeSlot && 
+          interview.interviewOneDate.toDateString() === date.toDateString();
+      } else {
+        return interview.interviewTwoDate && 
+          interview.interviewTwoTime === timeSlot && 
+          interview.interviewTwoDate.toDateString() === date.toDateString();
+      }
     });
+    
+    // Group Interview can have up to 5 people per slot
+    if (interviewType === 'one') {
+      return interviews.length >= 5;
+    }
+    
+    // Individual Interview remains 1 person per slot
+    return interviews.length >= 1;
   };
 
   const getCandidateInterview = (candidateId: string): ScheduledInterview | null => {
@@ -331,7 +346,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     //   return;
     // }
 
-    if (isTimeSlotTaken(selectedTimeSlot, selectedDate)) {
+    if (isTimeSlotTaken(selectedTimeSlot, selectedDate, interviewType)) {
       toast({
         title: "Time Slot Unavailable",
         description: "This time slot is already booked. Please select another time.",
@@ -388,7 +403,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         executives.find(exec => exec.id === id)?.name
       ).join(', ');
       
-      const interviewLabel = interviewType === 'one' ? 'Interview One' : 'Interview Two';
+      const interviewLabel = interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
       
       toast({
         title: `${interviewLabel} Scheduled`,
@@ -430,7 +445,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       }
       
       const candidateName = qualifiedApplications.find(app => app.id === candidateId)?.userProfile?.fullName || 'Unknown';
-      const interviewLabel = interviewType === 'one' ? 'Interview One' : 'Interview Two';
+      const interviewLabel = interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
       
       toast({
         title: `${interviewLabel} Removed`,
@@ -473,10 +488,10 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
             Back to Interview Dashboard
           </Button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Interview Scheduler - {positionName}
+            Interview Scheduler - {positionName}{selectedGrade ? ` (Grade ${selectedGrade})` : ''}
           </h1>
           <p className="text-gray-600">
-            Schedule two interviews for each qualified candidate
+            Schedule two interviews for each qualified candidate{selectedGrade ? ` in Grade ${selectedGrade}` : ''}
           </p>
         </div>
       </div>
@@ -484,9 +499,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       <div className="max-w-7xl mx-auto p-8">
         <Card className="border shadow-sm bg-white">
           <CardHeader>
-            <CardTitle>Candidates for {positionName}</CardTitle>
+            <CardTitle>Candidates for {positionName}{selectedGrade ? ` - Grade ${selectedGrade}` : ''}</CardTitle>
             <CardDescription>
-              {qualifiedApplications.length} submitted applications (sorted by grade) - Each candidate needs 2 interviews
+              {qualifiedApplications.length} submitted applications{selectedGrade ? ` from Grade ${selectedGrade}` : ''} (sorted by grade) - Each candidate needs 2 interviews
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -517,12 +532,12 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                       </div>
                     </div>
 
-                    {/* Interview One Display */}
+                    {/* Group Interview Display */}
                     {candidateInterview?.interviewOneDate && (
                       <div className="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
                         <div className="flex items-center text-sm text-blue-700 mb-1">
                           <Clock className="h-4 w-4 mr-2" />
-                          <span className="font-medium">Interview One Scheduled</span>
+                          <span className="font-medium">Group Interview Scheduled</span>
                         </div>
                         <p className="text-sm text-blue-600">
                           {formatDateEST(candidateInterview.interviewOneDate)} at {candidateInterview.interviewOneTime}
@@ -533,12 +548,12 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                       </div>
                     )}
 
-                    {/* Interview Two Display */}
+                    {/* Individual Interview Display */}
                     {candidateInterview?.interviewTwoDate && (
                       <div className="mb-3 p-3 bg-green-50 rounded border-l-4 border-green-400">
                         <div className="flex items-center text-sm text-green-700 mb-1">
                           <Clock className="h-4 w-4 mr-2" />
-                          <span className="font-medium">Interview Two Scheduled</span>
+                          <span className="font-medium">Individual Interview Scheduled</span>
                         </div>
                         <p className="text-sm text-green-600">
                           {formatDateEST(candidateInterview.interviewTwoDate)} at {candidateInterview.interviewTwoTime}
@@ -550,7 +565,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                     )}
 
                     <div className="flex space-x-2">
-                      {/* Interview One Actions */}
+                      {/* Group Interview Actions */}
                       {!candidateInterview?.interviewOneDate ? (
                         <Dialog>
                           <DialogTrigger asChild>
@@ -562,14 +577,14 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               className="flex-1"
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
-                              Schedule Interview One
+                              Schedule Group Interview
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-md">
                             <DialogHeader>
-                              <DialogTitle>Schedule Interview One</DialogTitle>
+                              <DialogTitle>Schedule Group Interview</DialogTitle>
                               <DialogDescription>
-                                Schedule Interview One for {application.userProfile?.fullName}
+                                Schedule Group Interview for {application.userProfile?.fullName}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
@@ -598,14 +613,29 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                                     </SelectTrigger>
                                     <SelectContent>
                                       {timeSlots.map((time) => {
-                                        const isTaken = isTimeSlotTaken(time, selectedDate);
+                                        const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
+                                        const currentBookings = scheduledInterviews.filter(interview => {
+                                          if (schedulingInterviewType === 'one') {
+                                            return interview.interviewOneDate && 
+                                              interview.interviewOneTime === time && 
+                                              interview.interviewOneDate.toDateString() === selectedDate.toDateString();
+                                          } else {
+                                            return interview.interviewTwoDate && 
+                                              interview.interviewTwoTime === time && 
+                                              interview.interviewTwoDate.toDateString() === selectedDate.toDateString();
+                                          }
+                                        }).length;
+                                        
+                                        const maxSlots = schedulingInterviewType === 'one' ? 5 : 1;
+                                        const slotsText = schedulingInterviewType === 'one' ? ` (${currentBookings}/${maxSlots})` : '';
+                                        
                                         return (
                                           <SelectItem 
                                             key={time} 
                                             value={time}
                                             disabled={isTaken}
                                           >
-                                            {time} {isTaken && '(Taken)'}
+                                            {time}{slotsText} {isTaken && '(Full)'}
                                           </SelectItem>
                                         );
                                       })}
@@ -639,7 +669,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                                 className="w-full"
                               >
                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                Schedule Interview One
+                                Schedule Group Interview
                               </Button>
                             </div>
                           </DialogContent>
@@ -655,14 +685,14 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               className="flex-1 bg-green-600 hover:bg-green-700"
                             >
                               <CheckCircle className="h-4 w-4 mr-2" />
-                              Schedule Interview Two
+                              Schedule Individual Interview
                             </Button>
                           </DialogTrigger>
                           <DialogContent className="max-w-md">
                             <DialogHeader>
-                              <DialogTitle>Schedule Interview Two</DialogTitle>
+                              <DialogTitle>Schedule Individual Interview</DialogTitle>
                               <DialogDescription>
-                                Schedule Interview Two for {application.userProfile?.fullName}
+                                Schedule Individual Interview for {application.userProfile?.fullName}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
@@ -691,7 +721,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                                     </SelectTrigger>
                                     <SelectContent>
                                       {timeSlots.map((time) => {
-                                        const isTaken = isTimeSlotTaken(time, selectedDate);
+                                        const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
                                         return (
                                           <SelectItem 
                                             key={time} 
@@ -732,7 +762,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                                 className="w-full"
                               >
                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                Schedule Interview Two
+                                Schedule Individual Interview
                               </Button>
                             </div>
                           </DialogContent>
