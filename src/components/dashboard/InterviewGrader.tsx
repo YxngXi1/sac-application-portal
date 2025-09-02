@@ -64,7 +64,8 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       interviewOne: string[],
       pool1: string[], 
       pool2: string[], 
-      pool3: string[]
+      pool3: string[],
+      pool4: string[]
     }> = {
       'Honourary Member': {
         interviewOne: [
@@ -73,43 +74,26 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
           "What specific ideas do you have to improve student life at our school?"
         ],
         pool1: [
-          "What specific contributions do you hope to make to the student council throughout the year?",
-          "How do you plan to balance your council responsibilities with your academic commitments?",
-          "Describe a time when you went above and beyond in a leadership or service role."
+          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
+          "How should an honorary member demonstrate their commitment to SAC and the student body?",
+          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
         ],
         pool2: [
-          "How would you handle a challenging situation with a difficult team member?",
-          "Describe a project you led and what you learned from the experience.",
-          "What would you do if you had to implement an unpopular but necessary decision?"
+          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
+          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
+          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
         ],
         pool3: [
-          "How do you stay motivated when facing setbacks or obstacles?",
-          "What innovative ideas do you have for improving student engagement?",
-          "How would you work to bridge divides between different student groups?"
+          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
+          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
+          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
+        ],
+        pool4: [
+          "Is there a person, either from real life or a story, who inspires you most? Why?",
+          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
+          "If you could describe yourself as any animal, which would you pick and why?"
         ]
       },
-      'President': {
-        interviewOne: [
-          "What leadership experience do you have that qualifies you for the role of President?",
-          "How would you handle conflicts between different student groups or council members?",
-          "What is your vision for the student body during your term as President?"
-        ],
-        pool1: [
-          "How do you plan to work with school administration to advocate for student needs?",
-          "What strategies would you use to ensure all student voices are heard and represented?",
-          "Describe how you would handle the pressure and responsibility of being Student Council President."
-        ],
-        pool2: [
-          "How would you manage competing priorities and limited resources as President?",
-          "Describe your approach to building consensus among diverse stakeholder groups.",
-          "What would you do if the administration rejected a major student initiative you supported?"
-        ],
-        pool3: [
-          "How would you ensure transparency and accountability in student government?",
-          "What legacy do you hope to leave as Student Council President?",
-          "How would you handle criticism or opposition to your leadership decisions?"
-        ]
-      }
     };
 
     return questionPools[position] || questionPools['Honourary Member']; // Default fallback
@@ -119,12 +103,13 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
   const generateInterviewTwoQuestions = (position: string): string[] => {
     const pools = getQuestionPools(position);
     
-    // Randomly select one question from each pool
+    // Randomly select one question from each pool (now 4 pools)
     const question1 = pools.pool1[Math.floor(Math.random() * pools.pool1.length)];
     const question2 = pools.pool2[Math.floor(Math.random() * pools.pool2.length)];
     const question3 = pools.pool3[Math.floor(Math.random() * pools.pool3.length)];
+    const question4 = pools.pool4[Math.floor(Math.random() * pools.pool4.length)];
     
-    return [question1, question2, question3];
+    return [question1, question2, question3, question4];
   };
 
   // Function to get questions for the interview
@@ -141,7 +126,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     
     if (gradeDoc.exists()) {
       const data = gradeDoc.data() as InterviewGrades;
-      if (data.masterQuestions && data.masterQuestions.length === 3) {
+      if (data.masterQuestions && data.masterQuestions.length === 4) {
         // Use existing master questions to ensure consistency across all panel members
         return data.masterQuestions;
       }

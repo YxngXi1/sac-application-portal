@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Settings, User, AlertTriangle, RotateCcw, CheckCircle, Clock, Briefcase } from 'lucide-react';
+import { Settings, User, AlertTriangle, RotateCcw, CheckCircle, Clock, Briefcase, CalendarX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress, saveApplicationProgress } from '@/services/applicationService';
 import ProfileEditDialog from './ProfileEditDialog';
@@ -35,6 +34,33 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
+  // Check if applications are open (September 3rd, 2025 at 12:00 AM EST)
+  const isApplicationsOpen = () => {
+    const now = new Date();
+    const openDate = new Date('2025-09-03T00:00:00-04:00'); // September 3rd, 2025 at 12:00 AM EST
+    return now >= openDate;
+  };
+
+  const getTimeUntilOpen = () => {
+    const now = new Date();
+    const openDate = new Date('2025-09-03T00:00:00-04:00');
+    const timeDiff = openDate.getTime() - now.getTime();
+    
+    if (timeDiff <= 0) return null;
+    
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) {
+      return `${days} day${days !== 1 ? 's' : ''}, ${hours} hour${hours !== 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours !== 1 ? 's' : ''}, ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    } else {
+      return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+  };
+
   React.useEffect(() => {
     const loadProgress = async () => {
       if (!userProfile?.uid) return;
@@ -66,14 +92,33 @@ const ApplicationDashboard = () => {
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
   const isApplicationSubmitted = applicationStatus === 'submitted';
+  const applicationsOpen = isApplicationsOpen();
 
   const handleStartApplication = () => {
+    if (!applicationsOpen) {
+      toast({
+        title: "Applications Not Open",
+        description: "Applications will open on September 3rd at 12:00 AM EST.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Set flag to start from beginning
     localStorage.setItem('applicationReset', 'true');
     window.location.href = '/apply';
   };
 
   const handleContinueApplication = () => {
+    if (!applicationsOpen) {
+      toast({
+        title: "Applications Not Open",
+        description: "Applications will open on September 3rd at 12:00 AM EST.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     window.location.href = '/apply';
   };
 
@@ -161,7 +206,29 @@ const ApplicationDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Main Application Section */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-              {!hasStartedApplication ? (
+              {!applicationsOpen ? (
+                <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-red-600 text-white">
+                  <CardContent className="p-6 sm:p-8 text-center">
+                    <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Not Yet Open</h2>
+                    <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
+                      SAC applications will open on <strong>September 3rd, 2025 at 12:00 AM EST</strong>
+                    </p>
+                    {getTimeUntilOpen() && (
+                      <p className="text-orange-100 mb-6 sm:mb-8 text-sm sm:text-base">
+                        Time remaining: <strong>{getTimeUntilOpen()}</strong>
+                      </p>
+                    )}
+                    <Button 
+                      disabled
+                      size="lg"
+                      className="bg-gray-500 text-gray-300 cursor-not-allowed px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-semibold w-full sm:w-auto"
+                    >
+                      Applications Closed
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : !hasStartedApplication ? (
                 <Card className="border-0 shadow-lg bg-gradient-to-r from-gray-800 to-black text-white">
                   <CardContent className="p-6 sm:p-8 text-center">
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Ready to Apply?</h2>
@@ -178,6 +245,7 @@ const ApplicationDashboard = () => {
                   </CardContent>
                 </Card>
               ) : isApplicationSubmitted ? (
+                // ...existing submitted application card...
                 <Card className="border-0 shadow-lg bg-white">
                   <CardHeader className="bg-gradient-to-r from-green-600 to-green-800 text-white rounded-t-lg p-4 sm:p-6">
                     <div className="flex items-center gap-3">
@@ -245,7 +313,8 @@ const ApplicationDashboard = () => {
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <Button
                         onClick={handleContinueApplication}
-                        className="bg-blue-600 hover:bg-blue-700 flex-1 text-sm sm:text-base"
+                        disabled={!applicationsOpen}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex-1 text-sm sm:text-base"
                       >
                         Continue Application
                       </Button>

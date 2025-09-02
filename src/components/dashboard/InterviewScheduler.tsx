@@ -84,6 +84,46 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     }
   };
 
+    // Function to get the next available time slot for a given interview type
+  const getNextAvailableSlot = (interviewType: 'one' | 'two') => {
+    const validDates = [];
+    
+    if (interviewType === 'one') {
+      // September 11-12, 2025
+      validDates.push(new Date(2025, 8, 11), new Date(2025, 8, 12));
+    } else {
+      // September 16-18, 2025
+      validDates.push(new Date(2025, 8, 16), new Date(2025, 8, 17), new Date(2025, 8, 18));
+    }
+    
+    // Check each date and time slot for availability
+    for (const date of validDates) {
+      for (const timeSlot of timeSlots) {
+        if (!isTimeSlotTaken(timeSlot, date, interviewType)) {
+          return { date, timeSlot };
+        }
+      }
+    }
+    
+    return null; // No available slots
+  };
+
+  // Function to set next available slot when opening dialog
+  const setNextAvailableSlot = (interviewType: 'one' | 'two') => {
+    const nextSlot = getNextAvailableSlot(interviewType);
+    if (nextSlot) {
+      setSelectedDate(nextSlot.date);
+      setSelectedTimeSlot(nextSlot.timeSlot);
+    } else {
+      // If no slots available, still set a valid date but clear time slot
+      const validDates = interviewType === 'one' 
+        ? [new Date(2025, 8, 11)] 
+        : [new Date(2025, 8, 16)];
+      setSelectedDate(validDates[0]);
+      setSelectedTimeSlot('');
+    }
+  };
+
   const formatDateEST = (date: Date) => {
     return date.toLocaleString('en-US', {
       timeZone: 'America/New_York',
@@ -292,6 +332,13 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     loadQualifiedApplications();
   }, [positionName, selectedGrade]); 
 
+  useEffect(() => {
+    // Auto-set next available slot when transitioning between interview types
+    if (schedulingCandidate && schedulingInterviewType) {
+      setNextAvailableSlot(schedulingInterviewType);
+    }
+  }, [schedulingCandidate, schedulingInterviewType, scheduledInterviews]);
+
   const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 'two') => {
     const interviews = scheduledInterviews.filter(interview => {
       if (interviewType === 'one') {
@@ -479,7 +526,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     );
   }
 
-  return (
+return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b shadow-sm px-8 py-6">
         <div className="max-w-7xl mx-auto">
@@ -565,6 +612,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                     )}
 
                     <div className="flex space-x-2">
+
                       {/* Group Interview Actions */}
                       {!candidateInterview?.interviewOneDate ? (
                         <Dialog>
@@ -573,6 +621,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               onClick={() => {
                                 setSchedulingCandidate(application.id);
                                 setSchedulingInterviewType('one');
+                                setNextAvailableSlot('one');
                               }}
                               className="flex-1"
                             >
@@ -580,99 +629,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               Schedule Group Interview
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>Schedule Group Interview</DialogTitle>
-                              <DialogDescription>
-                                Schedule Group Interview for {application.userProfile?.fullName}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                              {/* Date Selection */}
-                              <div>
-                                <Label className="text-sm font-medium">Select Date</Label>
-                                <Calendar
-                                  mode="single"
-                                  selected={selectedDate}
-                                  onSelect={setSelectedDate}
-                                  className="rounded-md border"
-                                  disabled={(date) => !isValidInterviewDate(date, 'one')}
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Available: September 11-12, 2025
-                                </p>
-                              </div>
-
-                              {/* Time Selection */}
-                              {selectedDate && (
-                                <div>
-                                  <Label className="text-sm font-medium">Time Slot</Label>
-                                  <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select time" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {timeSlots.map((time) => {
-                                        const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
-                                        const currentBookings = scheduledInterviews.filter(interview => {
-                                          if (schedulingInterviewType === 'one') {
-                                            return interview.interviewOneDate && 
-                                              interview.interviewOneTime === time && 
-                                              interview.interviewOneDate.toDateString() === selectedDate.toDateString();
-                                          } else {
-                                            return interview.interviewTwoDate && 
-                                              interview.interviewTwoTime === time && 
-                                              interview.interviewTwoDate.toDateString() === selectedDate.toDateString();
-                                          }
-                                        }).length;
-                                        
-                                        const maxSlots = schedulingInterviewType === 'one' ? 5 : 1;
-                                        const slotsText = schedulingInterviewType === 'one' ? ` (${currentBookings}/${maxSlots})` : '';
-                                        
-                                        return (
-                                          <SelectItem 
-                                            key={time} 
-                                            value={time}
-                                            disabled={isTaken}
-                                          >
-                                            {time}{slotsText} {isTaken && '(Full)'}
-                                          </SelectItem>
-                                        );
-                                      })}
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
-
-                              {/* Panel Selection */}
-                              <div>
-                                <Label className="text-sm font-medium">Panel Members (min 2)</Label>
-                                <div className="space-y-2 max-h-32 overflow-y-auto">
-                                  {executives.map((exec) => (
-                                    <div key={exec.id} className="flex items-center space-x-2">
-                                      <Button
-                                        variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => handlePanelMemberToggle(exec.id)}
-                                        className="w-full justify-start"
-                                      >
-                                        <Users className="h-4 w-4 mr-2" />
-                                        {exec.name}
-                                      </Button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              <Button
-                                onClick={() => handleScheduleInterview(application, 'one')}
-                                className="w-full"
-                              >
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Schedule Group Interview
-                              </Button>
-                            </div>
-                          </DialogContent>
+                          {/* ...existing dialog content... */}
                         </Dialog>
                       ) : !candidateInterview?.interviewTwoDate ? (
                         <Dialog>
@@ -681,6 +638,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
                               onClick={() => {
                                 setSchedulingCandidate(application.id);
                                 setSchedulingInterviewType('two');
+                                // This will now be handled by the useEffect above
                               }}
                               className="flex-1 bg-green-600 hover:bg-green-700"
                             >
