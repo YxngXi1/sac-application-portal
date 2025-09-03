@@ -149,7 +149,6 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
 
   const getUpcomingInterviews = () => {
     const now = new Date();
-    // const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     
     return scheduledInterviews
       .filter(interview => {
@@ -166,15 +165,6 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
         
         const interviewDateTime = new Date(interview.date);
         interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
-        
-        // // Always check the 24-hour window first
-        // const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        // const isWithin24Hours = interviewDateTime >= twentyFourHoursAgo && interviewDateTime <= twentyFourHoursFromNow;
-        
-        // // Only show interviews within 24 hours
-        // if (!isWithin24Hours) {
-        //   return false;
-        // }
         
         // If no grades have been submitted, show with a 5-minute grace period after start
         if (!interview.hasGrades) {
@@ -406,7 +396,7 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
               Scheduled interviews that haven't been completed yet 
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="max-h-96 overflow-y-auto">
             {upcomingInterviews.length === 0 ? (
               <p className="text-gray-500 text-center py-8">
                 No upcoming interviews scheduled
@@ -430,13 +420,12 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
                   interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
                   
                   // Allow starting 5 minutes before interview time
-                  // const fiveMinutesBefore = new Date(interviewDateTime.getTime() - 5 * 60 * 1000);
-                  // const canStartInterview = now >= fiveMinutesBefore;
-                  const canStartInterview = true; // Allow starting anytime for now
+                  const fiveMinutesBefore = new Date(interviewDateTime.getTime() - 5 * 60 * 1000);
+                  const canStartInterview = now >= fiveMinutesBefore;
                   
                   // Calculate time until interview can be started
-                  // const timeUntilStart = fiveMinutesBefore.getTime() - now.getTime();
-                  // const minutesUntilStart = Math.ceil(timeUntilStart / (60 * 1000));
+                  const timeUntilStart = fiveMinutesBefore.getTime() - now.getTime();
+                  const minutesUntilStart = Math.ceil(timeUntilStart / (60 * 1000));
                   
                   return (
                     <div key={interview.candidateId} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
@@ -450,11 +439,11 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
                         <p className="text-sm text-blue-600 font-medium">
                           {formatDate(interview.date)} {interview.timeSlot} - {interview.endTime}
                         </p>
-                        {/* {!canStartInterview && minutesUntilStart > 0 && (
+                        {!canStartInterview && minutesUntilStart > 0 && (
                           <p className="text-xs text-orange-600 mt-1">
                             Available in {minutesUntilStart} minute{minutesUntilStart !== 1 ? 's' : ''}
                           </p>
-                        )} */}
+                        )}
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <Button
@@ -473,7 +462,7 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
                             }
                           }}
                           size="sm"
-                          // disabled={!canStartInterview}
+                          disabled={!canStartInterview}
                           className={`${
                             canStartInterview 
                               ? 'bg-blue-600 hover:bg-blue-700 text-white' 
@@ -482,11 +471,11 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
                         >
                           {canStartInterview ? 'Start Interview' : 'Not Available'}
                         </Button>
-                        {/* {!canStartInterview && (
+                        {!canStartInterview && (
                           <span className="text-xs text-gray-500">
                             Available 5min before
                           </span>
-                        )} */}
+                        )}
                       </div>
                     </div>
                   );

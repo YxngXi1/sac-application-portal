@@ -34,16 +34,16 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
-  // Check if applications are open (September 3rd, 2025 at 12:00 AM EST)
+  // Check if applications are open (September 3rd, 2025 at 2:46 PM EST)
   const isApplicationsOpen = () => {
     const now = new Date();
-    const openDate = new Date('2025-09-03T00:00:00-04:00'); // September 3rd, 2025 at 12:00 AM EST
+    const openDate = new Date('2025-09-03T14:46:00-04:00'); // September 3rd, 2025 at 2:46 PM EST
     return now >= openDate;
   };
 
   const getTimeUntilOpen = () => {
     const now = new Date();
-    const openDate = new Date('2025-09-03T00:00:00-04:00');
+    const openDate = new Date('2025-09-03T14:46:00-04:00');
     const timeDiff = openDate.getTime() - now.getTime();
     
     if (timeDiff <= 0) return null;
@@ -86,7 +86,7 @@ const ApplicationDashboard = () => {
   const availablePositions = [
     {
       title: "Honourary Member",
-      description: "Volunteer to assist with all SAC event execution, increase school spirit and attend general meetings."
+      description: "Support event execution, attend weekly meetings, stay active on Slack, promote school spirit and SAC initiatives, and participate in sub-committees."
     }
   ];
 
@@ -94,11 +94,11 @@ const ApplicationDashboard = () => {
   const isApplicationSubmitted = applicationStatus === 'submitted';
   const applicationsOpen = isApplicationsOpen();
 
-  const handleStartApplication = () => {
+ const handleStartApplication = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on September 3rd at 12:00 AM EST.",
+        description: "Applications will open on September 3rd at 2:46 PM EST.",
         variant: "destructive",
       });
       return;
@@ -113,7 +113,7 @@ const ApplicationDashboard = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on September 3rd at 12:00 AM EST.",
+        description: "Applications will open on September 3rd at 2:46 PM EST.",
         variant: "destructive",
       });
       return;
@@ -212,7 +212,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Not Yet Open</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      SAC applications will open on <strong>September 3rd, 2025 at 12:00 AM EST</strong>
+                      SAC applications will open on <strong>September 3rd, 2025 at 2:46 PM EST</strong>
                     </p>
                     {getTimeUntilOpen() && (
                       <p className="text-orange-100 mb-6 sm:mb-8 text-sm sm:text-base">
@@ -228,7 +228,7 @@ const ApplicationDashboard = () => {
                     </Button>
                   </CardContent>
                 </Card>
-              ) : !hasStartedApplication ? (
+              ): !hasStartedApplication ? (
                 <Card className="border-0 shadow-lg bg-gradient-to-r from-gray-800 to-black text-white">
                   <CardContent className="p-6 sm:p-8 text-center">
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Ready to Apply?</h2>
