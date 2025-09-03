@@ -34,16 +34,16 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
-  // Check if applications are open (September 3rd, 2025 at 2:46 PM EST)
+  // Check if applications are open (September 3rd, 2025 at 8:00 AM EST)
   const isApplicationsOpen = () => {
     const now = new Date();
-    const openDate = new Date('2025-09-03T14:46:00-04:00'); // September 3rd, 2025 at 2:46 PM EST
+    const openDate = new Date('2025-09-03T08:00:00-04:00'); // September 3rd, 2025 at 8:00 AM EST
     return now >= openDate;
   };
 
   const getTimeUntilOpen = () => {
     const now = new Date();
-    const openDate = new Date('2025-09-03T14:46:00-04:00');
+    const openDate = new Date('2025-09-03T08:00:00-04:00');
     const timeDiff = openDate.getTime() - now.getTime();
     
     if (timeDiff <= 0) return null;
@@ -94,11 +94,11 @@ const ApplicationDashboard = () => {
   const isApplicationSubmitted = applicationStatus === 'submitted';
   const applicationsOpen = isApplicationsOpen();
 
- const handleStartApplication = () => {
+  const handleStartApplication = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on September 3rd at 2:46 PM EST.",
+        description: "Applications will open on September 3rd at 8:00 AM EST.",
         variant: "destructive",
       });
       return;
@@ -113,7 +113,7 @@ const ApplicationDashboard = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on September 3rd at 2:46 PM EST.",
+        description: "Applications will open on September 3rd at 8:00 AM EST.",
         variant: "destructive",
       });
       return;
@@ -212,7 +212,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Not Yet Open</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      SAC applications will open on <strong>September 3rd, 2025 at 2:46 PM EST</strong>
+                      SAC applications will open on <strong>September 3rd, 2025 at 8:00 AM EST</strong>
                     </p>
                     {getTimeUntilOpen() && (
                       <p className="text-orange-100 mb-6 sm:mb-8 text-sm sm:text-base">
@@ -245,7 +245,6 @@ const ApplicationDashboard = () => {
                   </CardContent>
                 </Card>
               ) : isApplicationSubmitted ? (
-                // ...existing submitted application card...
                 <Card className="border-0 shadow-lg bg-white">
                   <CardHeader className="bg-gradient-to-r from-green-600 to-green-800 text-white rounded-t-lg p-4 sm:p-6">
                     <div className="flex items-center gap-3">
