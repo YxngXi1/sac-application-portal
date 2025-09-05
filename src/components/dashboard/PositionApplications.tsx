@@ -43,6 +43,17 @@ interface ScheduledInterview {
   updatedAt: Date;
 }
 
+const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>> = {
+  'Honourary Member': [
+    { question: 'Tell us your "why" - why do you want to be a part of the Student Activity Council for the 2025-26 school year?', key: 'honorary_1' },
+    { question: 'What unique qualities, skills, or assets make you a very valuable member to the council? In other words, why should we choose you over other applicants?', key: 'honorary_2' },
+    { question: "Describe a time when your group's 'perfect plan' faced a setback. How did your group overcome this obstacle and what was your role in doing so?", key: 'honorary_3' },
+    { question: "Imagine you're given a magic wand that instantly makes only TWO changes to school life. What are your two spells and how would it benefit life at John Fraser. Be specific by also including the overall goal and impact of your changes.", key: 'honorary_4' },
+    { question: 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.', key: 'honorary_5' },
+    { question: 'Do you know anyone currently on the SAC Executive Council?', key: 'honorary_6' }
+  ]
+};
+
 const PositionApplications: React.FC<PositionApplicationsProps> = ({
   positionId,
   positionName,
@@ -483,7 +494,6 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
     setViewMode(true);
   };
 
-  // ...existing code for remaining component logic...
   if (selectedApplicant && gradeMode) {
     return (
       <ApplicationGrader
@@ -559,14 +569,34 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
               <div>
                 <h3 className="text-lg font-semibold mb-4">Application Responses</h3>
                 {selectedApplicant.answers && Object.keys(selectedApplicant.answers).length > 0 ? (
-                  Object.entries(selectedApplicant.answers).map(([key, answer], index) => (
-                    <div key={key} className="mb-6 p-4 border rounded-lg">
-                      <h4 className="font-medium mb-2">Question {index + 1}</h4>
-                      <div className="bg-gray-50 p-3 rounded">
-                        <p className="text-gray-800">{answer as string}</p>
-                      </div>
-                    </div>
-                  ))
+                  (() => {
+                    // Get position-specific questions with proper mapping
+                    const positionQuestions = POSITION_QUESTIONS[positionName] || [
+                      { question: 'Tell us your "why" - why do you want to be a part of the Student Activity Council for the 2025-26 school year?', key: 'honorary_1' },
+                      { question: 'What unique qualities, skills, or assets make you a very valuable member to the council? In other words, why should we choose you over other applicants?', key: 'honorary_2' },
+                      { question: "Describe a time when your group's 'perfect plan' faced a setback. How did your group overcome this obstacle and what was your role in doing so?", key: 'honorary_3' },
+                      { question: "Imagine you're given a magic wand that instantly makes only TWO changes to school life. What are your two spells and how would it benefit life at John Fraser. Be specific by also including the overall goal and impact of your changes.", key: 'honorary_4' },
+                      { question: 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.', key: 'honorary_5' },
+                      { question: 'Do you know anyone currently on the SAC Executive Council?', key: 'honorary_6' }
+                    ];
+
+                    // Map questions in the correct order
+                    return positionQuestions.map((questionData, index) => {
+                      const answer = selectedApplicant.answers?.[questionData.key];
+                      if (!answer) return null;
+
+                      return (
+                        <div key={questionData.key} className="mb-6 p-4 border rounded-lg">
+                          <h4 className="font-medium mb-2">
+                            Question {index + 1}: {questionData.question}
+                          </h4>
+                          <div className="bg-gray-50 p-3 rounded">
+                            <p className="text-gray-800 whitespace-pre-wrap">{answer as string}</p>
+                          </div>
+                        </div>
+                      );
+                    }).filter(Boolean);
+                  })()
                 ) : (
                   <p className="text-gray-500">No responses found</p>
                 )}
