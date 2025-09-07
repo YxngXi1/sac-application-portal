@@ -1,10 +1,9 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Analytics } from "@vercel/analytics/next"
+import { inject } from "@vercel/analytics"
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +12,11 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, userProfile, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Initialize Vercel Analytics
+  useEffect(() => {
+    inject();
+  }, []);
 
   // Display "exec" for both exec and superadmin roles
   const displayRole = userProfile?.role === 'superadmin' ? 'exec' : userProfile?.role;
