@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Analytics } from "@vercel/analytics/next"
 
 interface LayoutProps {
   children: React.ReactNode;
