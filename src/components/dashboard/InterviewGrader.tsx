@@ -31,7 +31,7 @@ interface PanelMemberGrade {
   checkboxes: InterviewCheckboxes;
   feedback: string;
   submittedAt: Date;
-  selectedQuestions?: string[]; // Track which questions were selected for this grader
+  selectedQuestions?: string[];
 }
 
 interface InterviewGrades {
@@ -39,27 +39,128 @@ interface InterviewGrades {
   interviewType: 'one' | 'two';
   panelGrades: PanelMemberGrade[];
   averageScore: number;
-  masterQuestions?: string[]; // Master set of questions for this interview session
+  masterQuestions?: string[];
+}
+
+// State for tracking grades across all group candidates
+interface CandidateGradeState {
+  grades: Record<string, number>;
+  feedback: string;
+  checkboxes: InterviewCheckboxes;
 }
 
 const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewType, onBack }) => {
   const { user } = useAuth();
-  const [grades, setGrades] = useState<Record<string, number>>({});
-  const [feedback, setFeedback] = useState('');
-  const [checkboxes, setCheckboxes] = useState<InterviewCheckboxes>({
-    pastExperience: false,
-    roleKnowledge: false,
-    leadershipSkills: false,
-    creativeOutlook: false,
-    timeManagement: false
-  });
+  const [currentCandidate, setCurrentCandidate] = useState<ApplicationData>(candidate);
+  const [groupSlotCandidates, setGroupSlotCandidates] = useState<ApplicationData[]>([]);
+  const [allCandidateGrades, setAllCandidateGrades] = useState<Record<string, CandidateGradeState>>({});
   const [submitting, setSubmitting] = useState(false);
   const [panelGrades, setPanelGrades] = useState<PanelMemberGrade[]>([]);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
 
+  useEffect(() => {
+    setCurrentCandidate(candidate);
+  }, [candidate]);
+
+  const getCandidateGroupSlot = (c: ApplicationData) => {
+    return (
+      (c as any).groupInterviewSlot ||
+      (c as any).interviewOne?.slot ||
+      (c as any).interviewOneSlot ||
+      (c as any).groupInterviewTime ||
+      (c as any).interviewOneTime ||
+      null
+    );
+  };
+
+  const fetchGroupSlotCandidates = async (c: ApplicationData) => {
+    try {
+      const scheduledQ = query(
+        collection(db, 'scheduledInterviews'),
+        where('candidateId', '==', c.id)
+      );
+      const scheduledSnap = await getDocs(scheduledQ);
+
+      if (!scheduledSnap.empty) {
+        const scheduledDoc = scheduledSnap.docs[0];
+        const scheduledData: any = scheduledDoc.data();
+
+        const interviewDate = scheduledData.interviewOneDate;
+        const interviewTime = scheduledData.interviewOneTime;
+
+        if (interviewDate && interviewTime) {
+          const peersQ = query(
+            collection(db, 'scheduledInterviews'),
+            where('interviewOneDate', '==', interviewDate),
+            where('interviewOneTime', '==', interviewTime)
+          );
+          const peersSnap = await getDocs(peersQ);
+
+          if (!peersSnap.empty) {
+            const candidateIds = peersSnap.docs.map(d => (d.data() as any).candidateId).filter(Boolean) as string[];
+            const uniqueIds = Array.from(new Set(candidateIds)).slice(0, 5);
+
+            const apps: ApplicationData[] = [];
+            for (const id of uniqueIds) {
+              try {
+                const appDoc = await getDoc(doc(db, 'applications', id));
+                if (appDoc.exists()) {
+                  apps.push({ ...(appDoc.data() as ApplicationData), id: appDoc.id });
+                }
+              } catch (e) {
+                console.debug('error fetching application', id, e);
+              }
+            }
+
+            apps.sort((a, b) => {
+              const nameA = a.userProfile?.fullName || '';
+              const nameB = b.userProfile?.fullName || '';
+              return nameA.localeCompare(nameB);
+            });
+
+            setGroupSlotCandidates(apps);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.debug('scheduledInterviews lookup failed, falling back to applications query', err);
+    }
+
+    const slot = getCandidateGroupSlot(c);
+    if (!slot) {
+      setGroupSlotCandidates([]);
+      return;
+    }
+
+    try {
+      const possibleFieldPaths = ['groupInterviewSlot', 'interviewOne.slot', 'interviewOneSlot', 'groupInterviewTime', 'interviewOneTime'];
+      let results: ApplicationData[] = [];
+
+      for (const fieldPath of possibleFieldPaths) {
+        const q = query(collection(db, 'applications'), where(fieldPath, '==', slot));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          results = snap.docs.map(d => ({ ...(d.data() as ApplicationData), id: d.id }));
+          break;
+        }
+      }
+
+      results.sort((a, b) => {
+        const nameA = a.userProfile?.fullName || '';
+        const nameB = b.userProfile?.fullName || '';
+        return nameA.localeCompare(nameB);
+      });
+      const combined = results.slice(0, 5);
+      setGroupSlotCandidates(combined);
+    } catch (err) {
+      console.error('Error fetching group slot candidates (fallback):', err);
+      setGroupSlotCandidates([]);
+    }
+  };
+
   const getQuestionPools = (position: string) => {
-    // Define question pools - Interview One has fixed questions, Interview Two has randomized pools
     const questionPools: Record<string, { 
       interviewOne: string[],
       pool1: string[], 
@@ -69,9 +170,10 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     }> = {
       'Honourary Member': {
         interviewOne: [
-          "Tell us about yourself and why you're interested in joining the Student Council.",
-          "How would you handle a situation where students have conflicting opinions about a school event?",
-          "What specific ideas do you have to improve student life at our school?"
+          "Collaboration",
+          "Confidence",
+          "Participation",
+          "Overall Impression"
         ],
         pool1: [
           "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
@@ -96,14 +198,12 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       },
     };
 
-    return questionPools[position] || questionPools['Honourary Member']; // Default fallback
+    return questionPools[position] || questionPools['Honourary Member'];
   };
 
-  // Function to randomly select one question from each pool for Interview Two
   const generateInterviewTwoQuestions = (position: string): string[] => {
     const pools = getQuestionPools(position);
     
-    // Randomly select one question from each pool (now 4 pools)
     const question1 = pools.pool1[Math.floor(Math.random() * pools.pool1.length)];
     const question2 = pools.pool2[Math.floor(Math.random() * pools.pool2.length)];
     const question3 = pools.pool3[Math.floor(Math.random() * pools.pool3.length)];
@@ -112,30 +212,24 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     return [question1, question2, question3, question4];
   };
 
-  // Function to get questions for the interview
   const getQuestionsForInterview = async (position: string, interviewType: 'one' | 'two'): Promise<string[]> => {
     if (interviewType === 'one') {
-      // Interview One always uses fixed questions
       const pools = getQuestionPools(position);
       return pools.interviewOne;
     }
 
-    // For Interview Two, check if master questions already exist
-    const gradeDocId = `${candidate.id}_interview_two`;
+    const gradeDocId = `${currentCandidate.id}_interview_two`;
     const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
     
     if (gradeDoc.exists()) {
       const data = gradeDoc.data() as InterviewGrades;
       if (data.masterQuestions && data.masterQuestions.length === 4) {
-        // Use existing master questions to ensure consistency across all panel members
         return data.masterQuestions;
       }
     }
     
-    // Generate new questions for Interview Two if none exist
     const newQuestions = generateInterviewTwoQuestions(position);
     
-    // Save these as master questions for this interview session
     try {
       const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
       const existingDoc = await getDoc(gradeDocRef);
@@ -146,7 +240,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         });
       } else {
         await setDoc(gradeDocRef, {
-          candidateId: candidate.id,
+          candidateId: currentCandidate.id,
           interviewType: 'two',
           panelGrades: [],
           averageScore: 0,
@@ -160,56 +254,114 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     return newQuestions;
   };
 
-  // Load questions and existing grades
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load questions
-        const questions = await getQuestionsForInterview(candidate.position, interviewType);
+        if (interviewType === 'one') {
+          await fetchGroupSlotCandidates(currentCandidate);
+        } else {
+          setGroupSlotCandidates([]);
+        }
+
+        const questions = await getQuestionsForInterview(currentCandidate.position, interviewType);
         setSelectedQuestions(questions);
 
-        // Load existing grades
-        const gradeDocId = `${candidate.id}_interview_${interviewType}`;
-        const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
-        
-        if (gradeDoc.exists()) {
-          const data = gradeDoc.data() as InterviewGrades;
-          setPanelGrades(data.panelGrades || []);
+        // Check if user has already submitted for this session
+        if (interviewType === 'one' && groupSlotCandidates.length > 0) {
+          // For group interviews, check any candidate in the group to see if user has submitted
+          const firstCandidateId = groupSlotCandidates[0]?.id || currentCandidate.id;
+          const gradeDocId = `${firstCandidateId}_interview_${interviewType}`;
+          const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
           
-          // Check if current user has already submitted
-          const existingGrade = data.panelGrades?.find(pg => pg.panelMemberId === user?.uid);
-          if (existingGrade) {
-            setGrades(existingGrade.grades);
-            setCheckboxes(existingGrade.checkboxes);
-            setFeedback(existingGrade.feedback);
-            setHasSubmitted(true);
+          if (gradeDoc.exists()) {
+            const data = gradeDoc.data() as InterviewGrades;
+            const existingGrade = data.panelGrades?.find(pg => pg.panelMemberId === user?.uid);
+            if (existingGrade) {
+              setHasSubmitted(true);
+            }
+          }
+        } else {
+          // For individual interviews, check the specific candidate
+          const gradeDocId = `${currentCandidate.id}_interview_${interviewType}`;
+          const gradeDoc = await getDoc(doc(db, 'interviewGrades', gradeDocId));
+          
+          if (gradeDoc.exists()) {
+            const data = gradeDoc.data() as InterviewGrades;
+            setPanelGrades(data.panelGrades || []);
+            
+            const existingGrade = data.panelGrades?.find(pg => pg.panelMemberId === user?.uid);
+            if (existingGrade) {
+              // Load existing grades for individual interview
+              const candidateState: CandidateGradeState = {
+                grades: existingGrade.grades,
+                feedback: existingGrade.feedback,
+                checkboxes: existingGrade.checkboxes
+              };
+              setAllCandidateGrades({ [currentCandidate.id]: candidateState });
+              setHasSubmitted(true);
+            }
           }
         }
       } catch (error) {
         console.error('Error loading data:', error);
-        // Fallback to default questions if there's an error
-        const pools = getQuestionPools(candidate.position);
-        setSelectedQuestions(interviewType === 'one' ? pools.interviewOne : generateInterviewTwoQuestions(candidate.position));
+        const pools = getQuestionPools(currentCandidate.position);
+        setSelectedQuestions(interviewType === 'one' ? pools.interviewOne : generateInterviewTwoQuestions(currentCandidate.position));
       }
     };
 
-    if (user) {
+    if (user && currentCandidate) {
       loadData();
     }
-  }, [candidate.id, candidate.position, interviewType, user]);
+  }, [currentCandidate, interviewType, user, groupSlotCandidates.length]);
 
-  const handleGradeChange = (questionIndex: number, score: number) => {
-    setGrades(prev => ({
+  // Get current candidate's grade state
+  const getCurrentCandidateState = (): CandidateGradeState => {
+    return allCandidateGrades[currentCandidate.id] || {
+      grades: {},
+      feedback: '',
+      checkboxes: {
+        pastExperience: false,
+        roleKnowledge: false,
+        leadershipSkills: false,
+        creativeOutlook: false,
+        timeManagement: false
+      }
+    };
+  };
+
+  // Update current candidate's state
+  const updateCurrentCandidateState = (updates: Partial<CandidateGradeState>) => {
+    setAllCandidateGrades(prev => ({
       ...prev,
-      [`question_${questionIndex}`]: score
+      [currentCandidate.id]: {
+        ...getCurrentCandidateState(),
+        ...updates
+      }
     }));
   };
 
+  const handleGradeChange = (questionIndex: number, score: number) => {
+    const currentState = getCurrentCandidateState();
+    updateCurrentCandidateState({
+      grades: {
+        ...currentState.grades,
+        [`question_${questionIndex}`]: score
+      }
+    });
+  };
+
   const handleCheckboxChange = (key: keyof InterviewCheckboxes, checked: boolean) => {
-    setCheckboxes(prev => ({
-      ...prev,
-      [key]: checked
-    }));
+    const currentState = getCurrentCandidateState();
+    updateCurrentCandidateState({
+      checkboxes: {
+        ...currentState.checkboxes,
+        [key]: checked
+      }
+    });
+  };
+
+  const handleFeedbackChange = (feedback: string) => {
+    updateCurrentCandidateState({ feedback });
   };
 
   const handleSubmit = async () => {
@@ -217,58 +369,110 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
 
     setSubmitting(true);
     try {
-      const newGrade: PanelMemberGrade = {
-        panelMemberId: user.uid,
-        panelMemberName: user.displayName || user.email || 'Unknown',
-        grades,
-        checkboxes,
-        feedback,
-        submittedAt: new Date(),
-        selectedQuestions: selectedQuestions // Track which questions this grader used
-      };
+      if (interviewType === 'one') {
+        // Submit grades for all candidates in the group
+        for (const candidateToGrade of groupSlotCandidates) {
+          const candidateState = allCandidateGrades[candidateToGrade.id];
+          if (!candidateState) continue;
 
-      // Update or create the interview grades document
-      const gradeDocId = `${candidate.id}_interview_${interviewType}`;
-      const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
-      const existingDoc = await getDoc(gradeDocRef);
+          const newGrade: PanelMemberGrade = {
+            panelMemberId: user.uid,
+            panelMemberName: user.displayName || user.email || 'Unknown',
+            grades: candidateState.grades,
+            checkboxes: candidateState.checkboxes,
+            feedback: candidateState.feedback,
+            submittedAt: new Date(),
+            selectedQuestions: selectedQuestions
+          };
 
-      let updatedPanelGrades: PanelMemberGrade[];
-      let masterQuestions = selectedQuestions;
-      
-      if (existingDoc.exists()) {
-        const existingData = existingDoc.data() as InterviewGrades;
-        updatedPanelGrades = existingData.panelGrades || [];
-        masterQuestions = existingData.masterQuestions || selectedQuestions;
-        
-        // Remove existing grade from this panel member if it exists
-        updatedPanelGrades = updatedPanelGrades.filter(pg => pg.panelMemberId !== user.uid);
-        updatedPanelGrades.push(newGrade);
+          const gradeDocId = `${candidateToGrade.id}_interview_${interviewType}`;
+          const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
+          const existingDoc = await getDoc(gradeDocRef);
+
+          let updatedPanelGrades: PanelMemberGrade[];
+          let masterQuestions = selectedQuestions;
+          
+          if (existingDoc.exists()) {
+            const existingData = existingDoc.data() as InterviewGrades;
+            updatedPanelGrades = existingData.panelGrades || [];
+            masterQuestions = existingData.masterQuestions || selectedQuestions;
+            
+            updatedPanelGrades = updatedPanelGrades.filter(pg => pg.panelMemberId !== user.uid);
+            updatedPanelGrades.push(newGrade);
+          } else {
+            updatedPanelGrades = [newGrade];
+          }
+
+          const allScores = updatedPanelGrades.map(panelGrade => {
+            const scores = Object.values(panelGrade.grades).filter(s => s > 0);
+            return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+          });
+          
+          const averageScore = allScores.length > 0 ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length : 0;
+
+          const interviewGradeData: InterviewGrades = {
+            candidateId: candidateToGrade.id,
+            interviewType,
+            panelGrades: updatedPanelGrades,
+            averageScore,
+            masterQuestions: masterQuestions
+          };
+
+          await setDoc(gradeDocRef, interviewGradeData);
+        }
       } else {
-        updatedPanelGrades = [newGrade];
+        // Submit grades for individual interview (current candidate only)
+        const candidateState = getCurrentCandidateState();
+        
+        const newGrade: PanelMemberGrade = {
+          panelMemberId: user.uid,
+          panelMemberName: user.displayName || user.email || 'Unknown',
+          grades: candidateState.grades,
+          checkboxes: candidateState.checkboxes,
+          feedback: candidateState.feedback,
+          submittedAt: new Date(),
+          selectedQuestions: selectedQuestions
+        };
+
+        const gradeDocId = `${currentCandidate.id}_interview_${interviewType}`;
+        const gradeDocRef = doc(db, 'interviewGrades', gradeDocId);
+        const existingDoc = await getDoc(gradeDocRef);
+
+        let updatedPanelGrades: PanelMemberGrade[];
+        let masterQuestions = selectedQuestions;
+        
+        if (existingDoc.exists()) {
+          const existingData = existingDoc.data() as InterviewGrades;
+          updatedPanelGrades = existingData.panelGrades || [];
+          masterQuestions = existingData.masterQuestions || selectedQuestions;
+          
+          updatedPanelGrades = updatedPanelGrades.filter(pg => pg.panelMemberId !== user.uid);
+          updatedPanelGrades.push(newGrade);
+        } else {
+          updatedPanelGrades = [newGrade];
+        }
+
+        const allScores = updatedPanelGrades.map(panelGrade => {
+          const scores = Object.values(panelGrade.grades).filter(s => s > 0);
+          return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+        });
+        
+        const averageScore = allScores.length > 0 ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length : 0;
+
+        const interviewGradeData: InterviewGrades = {
+          candidateId: currentCandidate.id,
+          interviewType,
+          panelGrades: updatedPanelGrades,
+          averageScore,
+          masterQuestions: masterQuestions
+        };
+
+        await setDoc(gradeDocRef, interviewGradeData);
+        setPanelGrades(updatedPanelGrades);
       }
-
-      // Calculate average score
-      const allScores = updatedPanelGrades.map(panelGrade => {
-        const scores = Object.values(panelGrade.grades).filter(s => s > 0);
-        return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
-      });
       
-      const averageScore = allScores.length > 0 ? allScores.reduce((sum, s) => sum + s, 0) / allScores.length : 0;
-
-      const interviewGradeData: InterviewGrades = {
-        candidateId: candidate.id,
-        interviewType,
-        panelGrades: updatedPanelGrades,
-        averageScore,
-        masterQuestions: masterQuestions // Save the master questions used for this interview
-      };
-
-      await setDoc(gradeDocRef, interviewGradeData);
-      
-      setPanelGrades(updatedPanelGrades);
       setHasSubmitted(true);
       
-      // Show success feedback
       alert(`Interview ${interviewType === 'one' ? 'One' : 'Two'} grades submitted successfully!`);
     } catch (error) {
       console.error('Error submitting grades:', error);
@@ -279,14 +483,32 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
   };
 
   const isFormComplete = () => {
-    const hasAllGrades = selectedQuestions.every((_, index) => 
-      grades[`question_${index}`] !== undefined && grades[`question_${index}`] > 0
-    );
-    return hasAllGrades && feedback.trim().length > 0;
+    if (interviewType === 'one') {
+      // For group interviews, check that all candidates have complete grades
+      const candidatesToCheck = groupSlotCandidates.length > 0 ? groupSlotCandidates : [currentCandidate];
+      
+      return candidatesToCheck.every(candidate => {
+        const candidateState = allCandidateGrades[candidate.id];
+        if (!candidateState) return false;
+        
+        const hasAllGrades = selectedQuestions.every((_, index) => 
+          candidateState.grades[`question_${index}`] !== undefined && candidateState.grades[`question_${index}`] > 0
+        );
+        return hasAllGrades && candidateState.feedback.trim().length > 0;
+      });
+    } else {
+      // For individual interviews, check current candidate only
+      const candidateState = getCurrentCandidateState();
+      const hasAllGrades = selectedQuestions.every((_, index) => 
+        candidateState.grades[`question_${index}`] !== undefined && candidateState.grades[`question_${index}`] > 0
+      );
+      return hasAllGrades && candidateState.feedback.trim().length > 0;
+    }
   };
 
   const renderScoreButtons = (questionIndex: number) => {
-    const currentScore = grades[`question_${questionIndex}`] || 0;
+    const currentState = getCurrentCandidateState();
+    const currentScore = currentState.grades[`question_${questionIndex}`] || 0;
     
     return (
       <div className="grid grid-cols-11 gap-2 mt-4">
@@ -310,7 +532,6 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     );
   };
 
-  // Show loading state while questions are being loaded
   if (selectedQuestions.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -322,10 +543,49 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     );
   }
 
+  const currentState = getCurrentCandidateState();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Fixed Header */}
+      {interviewType === 'one' && groupSlotCandidates.length > 1 && (
+        <div className="fixed right-6 top-28 z-40 flex flex-col gap-2" style={{ minWidth: '200px'}}>
+          {groupSlotCandidates.map((c) => {
+            const isActive = c.id === currentCandidate.id;
+            const candidateState = allCandidateGrades[c.id];
+            const isComplete = candidateState && 
+              selectedQuestions.every((_, index) => 
+                candidateState.grades[`question_${index}`] !== undefined && candidateState.grades[`question_${index}`] > 0
+              ) && candidateState.feedback.trim().length > 0;
+            
+            const rawName = c.userProfile?.fullName || 'N/A';
+            const displayName = String(rawName);
+            const initials = displayName.split(' ').map(s => s[0] || '').slice(0,2).join('').toUpperCase();
+            
+            return (
+              <button
+                key={c.id}
+                onClick={() => setCurrentCandidate(c)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg shadow-sm border transition-colors w-full min-h-[60px] ${
+                  isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-200 hover:scale-102'
+                }`}
+                title={displayName}
+              >
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${isActive ? 'bg-white text-blue-600' : 'bg-gray-100 text-gray-800'}`}>
+                  {initials}
+                </div>
+               <div className="text-left text-sm flex-1 min-w-0">
+                 <div className="font-medium leading-tight truncate">{displayName}</div>
+                 <div className="text-xs text-gray-500 truncate">{c.position}</div>
+                 {isComplete && (
+                   <div className="text-xs text-green-600 font-medium">✓ Complete</div>
+                 )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="bg-white border-b shadow-sm px-8 py-6 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto">
           <Button variant="ghost" onClick={onBack} className="mb-4 hover:bg-gray-100">
@@ -335,18 +595,18 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Grading
+                {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Grading - {currentCandidate.userProfile?.fullName || 'N/A'}
               </h1>
               <div className="flex items-center gap-4 text-gray-600">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  <span className="font-medium">{candidate.userProfile?.fullName || 'N/A'}</span>
+                  <span className="font-medium">{currentCandidate.userProfile?.fullName || 'N/A'}</span>
                 </div>
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                  {candidate.position}
+                  {currentCandidate.position}
                 </Badge>
                 <Badge variant="outline" className="border-gray-300">
-                  Grade {candidate.userProfile?.grade}
+                  Grade {currentCandidate.userProfile?.grade}
                 </Badge>
                 <Badge 
                   variant="outline" 
@@ -378,9 +638,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
 
       <div className="max-w-7xl mx-auto p-8 pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Interview Type Info Card */}
             <Card className={`border-2 shadow-sm ${
               interviewType === 'one' 
                 ? 'border-blue-200 bg-blue-50' 
@@ -403,7 +661,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
                       interviewType === 'one' ? 'text-blue-600' : 'text-green-600'
                     }`}>
                       {interviewType === 'one' 
-                        ? 'This is the group interview session with standardized questions to assess basic qualifications and motivation.'
+                        ? `This is the group interview session with standardized questions. ${groupSlotCandidates.length > 1 ? `You must grade all ${groupSlotCandidates.length} candidates in this time slot.` : ''}`
                         : 'This individual interview uses randomly selected questions from predefined pools to ensure variety while maintaining fairness. All panel members will see the same questions for this candidate.'
                       }
                     </p>
@@ -415,7 +673,6 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               </CardContent>
             </Card>
 
-            {/* Interview Questions */}
             <div className="space-y-6">
               {selectedQuestions.map((question, index) => (
                 <Card key={index} className="border shadow-sm bg-white hover:shadow-md transition-shadow">
@@ -457,49 +714,49 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               ))}
             </div>
 
-            {/* Assessment Criteria */}
-            <Card className="border shadow-sm bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  Assessment Criteria
-                </CardTitle>
-                <CardDescription>
-                  Check all criteria that apply to this candidate during the {interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { key: 'pastExperience', label: 'Past Experience or attendance at SAC events' },
-                    { key: 'roleKnowledge', label: 'Good knowledge of tasks involved for the role' },
-                    { key: 'leadershipSkills', label: 'Good leadership skills and leadership experience' },
-                    { key: 'creativeOutlook', label: 'Creative and energetic outlook for the tasks required for this role' },
-                    { key: 'timeManagement', label: 'Seems organized and manages time well' }
-                  ].map((criterion) => (
-                    <div key={criterion.key} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
-                      <Checkbox
-                        id={criterion.key}
-                        checked={checkboxes[criterion.key as keyof InterviewCheckboxes]}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange(criterion.key as keyof InterviewCheckboxes, checked as boolean)
-                        }
-                        disabled={hasSubmitted}
-                        className="mt-0.5"
-                      />
-                      <label 
-                        htmlFor={criterion.key} 
-                        className="text-sm text-gray-700 leading-relaxed cursor-pointer flex-1"
-                      >
-                        {criterion.label}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {interviewType === 'two' && (
+              <Card className="border shadow-sm bg-white">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    Assessment Criteria
+                  </CardTitle>
+                  <CardDescription>
+                    Check all criteria that apply to this candidate during the Individual Interview
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[
+                      { key: 'pastExperience', label: 'Past Experience or attendance at SAC events' },
+                      { key: 'roleKnowledge', label: 'Good knowledge of tasks involved for the role' },
+                      { key: 'leadershipSkills', label: 'Good leadership skills and leadership experience' },
+                      { key: 'creativeOutlook', label: 'Creative and energetic outlook for the tasks required for this role' },
+                      { key: 'timeManagement', label: 'Seems organized and manages time well' }
+                    ].map((criterion) => (
+                      <div key={criterion.key} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 transition-colors">
+                        <Checkbox
+                          id={criterion.key}
+                          checked={currentState.checkboxes[criterion.key as keyof InterviewCheckboxes]}
+                          onCheckedChange={(checked) => 
+                            handleCheckboxChange(criterion.key as keyof InterviewCheckboxes, checked as boolean)
+                          }
+                          disabled={hasSubmitted}
+                          className="mt-0.5"
+                        />
+                        <label 
+                          htmlFor={criterion.key} 
+                          className="text-sm text-gray-700 leading-relaxed cursor-pointer flex-1"
+                        >
+                          {criterion.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Feedback Section */}
             <Card className="border shadow-sm bg-white">
               <CardHeader>
                 <CardTitle>{interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} Feedback</CardTitle>
@@ -510,8 +767,8 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               <CardContent>
                 <Textarea
                   placeholder={`Enter your detailed feedback about the candidate's responses during the ${interviewType === 'one' ? 'Group Interview' : 'Individual Interview'}, communication skills, and overall impression...`}
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
+                  value={currentState.feedback}
+                  onChange={(e) => handleFeedbackChange(e.target.value)}
                   className="min-h-32 resize-none border-gray-200 focus:border-blue-300 focus:ring-blue-200"
                   disabled={hasSubmitted}
                 />
@@ -519,10 +776,8 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-32 space-y-6">
-              {/* Interview Panel */}
               <Card className="border shadow-sm bg-white">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -572,7 +827,6 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         </div>
       </div>
 
-      {/* Fixed Submit Button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-20">
         <div className="max-w-7xl mx-auto p-6">
           <div className="flex items-center justify-between">
@@ -580,8 +834,12 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               {isFormComplete() 
                 ? hasSubmitted 
                   ? `✅ ${interviewType === 'one' ? 'Group Interview' : 'Individual Interview'} grades submitted successfully` 
-                  : "✅ All fields completed - ready to submit"
-                : "⚠️ Please complete all questions and provide feedback"
+                  : interviewType === 'one' && groupSlotCandidates.length > 1
+                    ? `✅ All ${groupSlotCandidates.length} candidates completed - ready to submit`
+                    : "✅ All fields completed - ready to submit"
+                : interviewType === 'one' && groupSlotCandidates.length > 1
+                  ? "⚠️ Please complete grades and feedback for all candidates in this group"
+                  : "⚠️ Please complete all questions and provide feedback"
               }
             </div>
             <Button

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +10,7 @@ import { getAllApplications, updateInterviewStatus, ApplicationData } from '@/se
 import { useToast } from '@/hooks/use-toast';
 import { collection, getDocs, query, where, doc, updateDoc, deleteField } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Badge } from '@/components/ui/badge';
 
 interface InterviewCalendarViewProps {
   onBack: () => void;
@@ -19,6 +19,7 @@ interface InterviewCalendarViewProps {
 interface Executive {
   id: string;
   name: string;
+  fullName: string;
   email: string;
 }
 
@@ -114,7 +115,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
         // Fetch both executives and superadmins
         const executivesQuery = query(
           collection(db, 'users'),
-          where('role', '==', 'executive')
+          where('role', '==', 'exec')
         );
         const superadminsQuery = query(
           collection(db, 'users'),
@@ -131,9 +132,11 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
         // Add executives
         executivesSnapshot.forEach((doc) => {
           const userData = doc.data();
+          const resolvedName = userData.fullName;
           allExecutives.push({
             id: doc.id,
-            name: userData.name || userData.fullName || 'Unnamed User',
+            name: String(resolvedName),
+            fullName: String(resolvedName),
             email: userData.email || ''
           });
         });
@@ -141,9 +144,11 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
         // Add superadmins
         superadminsSnapshot.forEach((doc) => {
           const userData = doc.data();
+          const resolvedName = userData.fullName;
           allExecutives.push({
             id: doc.id,
-            name: userData.name || userData.fullName || 'Unnamed User',
+            name: String(resolvedName),
+            fullName: String(resolvedName),
             email: userData.email || ''
           });
         });
@@ -342,7 +347,7 @@ const InterviewCalendarView: React.FC<InterviewCalendarViewProps> = ({ onBack })
       );
 
       const panelMemberNames = newPanelMembers.map(id => 
-        executives.find(exec => exec.id === id)?.name
+        executives.find(exec => exec.id === id)?.fullName
       ).join(', ');
 
       toast({

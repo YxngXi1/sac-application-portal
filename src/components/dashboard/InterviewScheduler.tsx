@@ -22,6 +22,7 @@ interface InterviewSchedulerProps {
 interface Executive {
   id: string;
   name: string;
+  fullName: string;
   email: string;
 }
 
@@ -245,7 +246,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         // Fetch both executives and superadmins
         const executivesQuery = query(
           collection(db, 'users'),
-          where('role', '==', 'executive')
+          where('role', '==', 'exec')
         );
         const superadminsQuery = query(
           collection(db, 'users'),
@@ -262,9 +263,11 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         // Add executives
         executivesSnapshot.forEach((doc) => {
           const userData = doc.data();
+          const resolvedName = userData.fullName;
           allExecutives.push({
             id: doc.id,
-            name: userData.name || userData.fullName || 'Unnamed User',
+            name: String(resolvedName),
+            fullName: String(resolvedName),
             email: userData.email || ''
           });
         });
@@ -272,9 +275,11 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         // Add superadmins
         superadminsSnapshot.forEach((doc) => {
           const userData = doc.data();
+          const resolvedName = userData.fullName;
           allExecutives.push({
             id: doc.id,
-            name: userData.name || userData.fullName || 'Unnamed User',
+            name: String(resolvedName),
+            fullName: String(resolvedName),
             email: userData.email || ''
           });
         });
@@ -335,6 +340,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   useEffect(() => {
     // Auto-set next available slot when transitioning between interview types
     if (schedulingCandidate && schedulingInterviewType) {
+      // Always set the next available slot for the current interview type
       setNextAvailableSlot(schedulingInterviewType);
     }
   }, [schedulingCandidate, schedulingInterviewType, scheduledInterviews]);
@@ -383,15 +389,14 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       return;
     }
 
-    // MAKE SURE TO CHANGE WHEN ACTUALLY DEPLOYING
-    // if (selectedPanelMembers.length < 2) {
-    //   toast({
-    //     title: "Panel Members Required",
-    //     description: "Please select at least 2 panel members for the interview",
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
+    if (selectedPanelMembers.length < 2) {
+      toast({
+        title: "Panel Members Required",
+        description: "Please select at least 2 panel members for the interview",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (isTimeSlotTaken(selectedTimeSlot, selectedDate, interviewType)) {
       toast({
@@ -443,8 +448,17 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         );
       }
       
+      // Clear current scheduling state
       setSelectedTimeSlot('');
       setSelectedPanelMembers([]);
+      
+      // If we just scheduled a group interview (type 'one'), automatically prepare for individual interview
+      if (interviewType === 'one') {
+        // Set up for individual interview scheduling
+        setTimeout(() => {
+          setNextAvailableSlot('two');
+        }, 100); // Small delay to ensure state updates properly
+      }
       
       const panelMemberNames = selectedPanelMembers.map(id => 
         executives.find(exec => exec.id === id)?.name
@@ -510,7 +524,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
   const getPanelMemberNames = (panelMemberIds: string[]) => {
     return panelMemberIds
-      .map(id => executives.find(exec => exec.id === id)?.name)
+      .map(id => executives.find(exec => exec.id === id)?.fullName)
       .filter(Boolean)
       .join(', ');
   };
@@ -629,7 +643,101 @@ return (
                               Schedule Group Interview
                             </Button>
                           </DialogTrigger>
-                          {/* ...existing dialog content... */}
+
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Schedule Group Interview</DialogTitle>
+                              <DialogDescription>
+                                Schedule Group Interview for {application.userProfile?.fullName}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              {/* Date Selection */}
+                              <div>
+                                <Label className="text-sm font-medium">Select Date</Label>
+                                <Calendar
+                                  mode="single"
+                                  selected={selectedDate}
+                                  onSelect={setSelectedDate}
+                                  className="rounded-md border"
+                                  disabled={(date) => !isValidInterviewDate(date, 'one')}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Available: September 11-12, 2025
+                                </p>
+                              </div>
+
+                              {/* Time Selection */}
+                              {selectedDate && (
+                                <div>
+                                  <Label className="text-sm font-medium">Time Slot</Label>
+                                  <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select time" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {timeSlots.map((time) => {
+                                        const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
+                                        const currentBookings = scheduledInterviews.filter(interview => {
+                                          if (schedulingInterviewType === 'one') {
+                                            return interview.interviewOneDate && 
+                                              interview.interviewOneTime === time && 
+                                              interview.interviewOneDate.toDateString() === selectedDate.toDateString();
+                                          } else {
+                                            return interview.interviewTwoDate && 
+                                              interview.interviewTwoTime === time && 
+                                              interview.interviewTwoDate.toDateString() === selectedDate.toDateString();
+                                          }
+                                        }).length;
+                                        
+                                        const maxSlots = schedulingInterviewType === 'one' ? 5 : 1;
+                                        const slotsText = schedulingInterviewType === 'one' ? ` (${currentBookings}/${maxSlots})` : '';
+                                        
+                                        return (
+                                          <SelectItem 
+                                            key={time} 
+                                            value={time}
+                                            disabled={isTaken}
+                                          >
+                                            {time}{slotsText} {isTaken && '(Full)'}
+                                          </SelectItem>
+                                        );
+                                      })}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+
+                              {/* Panel Selection */}
+                              <div>
+                                <Label className="text-sm font-medium">Panel Members (min 2)</Label>
+                                <div className="space-y-2 max-h-32 overflow-y-auto">
+                                  {executives.map((exec) => (
+                                    <div key={exec.id} className="flex items-center space-x-2">
+                                      <Button
+                                        variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => handlePanelMemberToggle(exec.id)}
+                                        className="w-full justify-start"
+                                      >
+                                        <Users className="h-4 w-4 mr-2" />
+                                        {exec.name}
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <Button
+                                onClick={() => handleScheduleInterview(application, 'one')}
+                                className="w-full"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Schedule Group Interview
+                              </Button>
+                            </div>
+                          </DialogContent>
+
                         </Dialog>
                       ) : !candidateInterview?.interviewTwoDate ? (
                         <Dialog>

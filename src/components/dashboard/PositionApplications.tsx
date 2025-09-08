@@ -3,16 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Eye, Star, MessageSquare, Calendar as CalendarIcon, Clock, Users, CheckCircle, XCircle } from 'lucide-react';
-import { getAllApplicationsByPosition, updateInterviewStatus } from '@/services/applicationService';
+import { ArrowLeft, Eye, Star, MessageSquare } from 'lucide-react';
+import { getAllApplicationsByPosition } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
-import { useToast } from '@/hooks/use-toast';
-import { collection, getDocs, query, where, doc, setDoc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
 import ApplicationGrader from './ApplicationGrader';
 
 interface PositionApplicationsProps {
@@ -21,12 +18,6 @@ interface PositionApplicationsProps {
   onBack: () => void;
   filteredApplications?: ApplicationData[];
   gradeFilter?: string;
-}
-
-interface Executive {
-  id: string;
-  name: string;
-  email: string;
 }
 
 interface ScheduledInterview {
@@ -61,46 +52,28 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   filteredApplications,
   gradeFilter
 }) => {
+  const { userProfile } = useAuth();
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicationData | null>(null);
   const [gradeMode, setGradeMode] = useState(false);
   const [viewMode, setViewMode] = useState(false);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [executives, setExecutives] = useState<Executive[]>([]);
-  const [schedulingCandidate, setSchedulingCandidate] = useState<string | null>(null);
-  const [schedulingInterviewType, setSchedulingInterviewType] = useState<'one' | 'two'>('one');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
 
-  const { toast } = useToast();
+  const isExec = userProfile?.role === 'exec';
+  const isSuperAdmin = userProfile?.role === 'superadmin';
 
-  // Time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
-  const timeSlots = [
-    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
-    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
-  ];
-
-  // Function to check if a date is valid for interview scheduling
-  const isValidInterviewDate = (date: Date, interviewType: 'one' | 'two') => {
-    const year = 2025; // Assuming interviews are in 2024
-    
-    if (interviewType === 'one') {
-      // September 11-12, 2024
-      const sept11 = new Date(year, 8, 11); // Month is 0-indexed
-      const sept12 = new Date(year, 8, 12);
-      return (date.toDateString() === sept11.toDateString() || 
-              date.toDateString() === sept12.toDateString());
-    } else {
-      // September 15-18, 2024 (weekdays only: 16, 17, 18 since 15 is Sunday)
-      const sept16 = new Date(year, 8, 16); // Monday
-      const sept17 = new Date(year, 8, 17); // Tuesday
-      const sept18 = new Date(year, 8, 18); // Wednesday
-      return (date.toDateString() === sept16.toDateString() || 
-              date.toDateString() === sept17.toDateString() || 
-              date.toDateString() === sept18.toDateString());
+  // Helper function to anonymize names for exec users
+  const getDisplayName = (application: ApplicationData) => {
+    if (isSuperAdmin) {
+      return application.userProfile?.fullName || 'Unknown';
     }
+    if (isExec) {
+      // Create a consistent anonymous identifier based on application ID
+      const candidateNumber = applications.findIndex(app => app.id === application.id) + 1;
+      return `Candidate ${candidateNumber}`;
+    }
+    return application.userProfile?.fullName || 'Unknown';
   };
 
   // Helper function to format date in EST
@@ -115,82 +88,6 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       minute: '2-digit',
       hour12: true
     });
-  };
-
-  // Firebase operations
-  const saveScheduledInterview = async (interview: Partial<ScheduledInterview> & { candidateId: string; positionId: string }): Promise<string> => {
-    try {
-      const interviewRef = doc(db, 'scheduledInterviews', `${interview.candidateId}_${interview.positionId}`);
-      const existingDoc = await getDoc(interviewRef);
-      
-      // Only include defined fields to avoid undefined errors
-      const dataToSave: any = {
-        candidateId: interview.candidateId,
-        positionId: interview.positionId,
-        updatedAt: new Date(),
-      };
-      
-      // Only add fields that are defined
-      if (interview.interviewOneDate !== undefined) {
-        dataToSave.interviewOneDate = interview.interviewOneDate;
-      }
-      if (interview.interviewOneTime !== undefined) {
-        dataToSave.interviewOneTime = interview.interviewOneTime;
-      }
-      if (interview.interviewOnePanelMembers !== undefined) {
-        dataToSave.interviewOnePanelMembers = interview.interviewOnePanelMembers;
-      }
-      if (interview.interviewTwoDate !== undefined) {
-        dataToSave.interviewTwoDate = interview.interviewTwoDate;
-      }
-      if (interview.interviewTwoTime !== undefined) {
-        dataToSave.interviewTwoTime = interview.interviewTwoTime;
-      }
-      if (interview.interviewTwoPanelMembers !== undefined) {
-        dataToSave.interviewTwoPanelMembers = interview.interviewTwoPanelMembers;
-      }
-      
-      if (existingDoc.exists()) {
-        // Merge with existing data
-        const existingData = existingDoc.data();
-        const mergedData = { ...existingData, ...dataToSave };
-        await updateDoc(interviewRef, mergedData);
-        return interviewRef.id;
-      } else {
-        // Create new document
-        await setDoc(interviewRef, {
-          ...dataToSave,
-          createdAt: new Date(),
-        });
-        return interviewRef.id;
-      }
-    } catch (error) {
-      console.error('Error saving scheduled interview:', error);
-      throw error;
-    }
-  };
-
-  const getScheduledInterviewByCandidate = async (candidateId: string, positionId: string): Promise<ScheduledInterview | null> => {
-    try {
-      const interviewRef = doc(db, 'scheduledInterviews', `${candidateId}_${positionId}`);
-      const docSnap = await getDoc(interviewRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          ...data,
-          interviewOneDate: data.interviewOneDate?.toDate(),
-          interviewTwoDate: data.interviewTwoDate?.toDate(),
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-        } as ScheduledInterview;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error getting scheduled interview:', error);
-      throw error;
-    }
   };
 
   const getScheduledInterviewsByPosition = async (positionId: string): Promise<ScheduledInterview[]> => {
@@ -218,81 +115,6 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     }
   };
 
-  const clearSpecificInterview = async (candidateId: string, positionId: string, interviewType: 'one' | 'two'): Promise<void> => {
-    try {
-      const interviewRef = doc(db, 'scheduledInterviews', `${candidateId}_${positionId}`);
-      
-      if (interviewType === 'one') {
-        await updateDoc(interviewRef, {
-          interviewOneDate: deleteField(),
-          interviewOneTime: deleteField(),
-          interviewOnePanelMembers: deleteField(),
-          updatedAt: new Date(),
-        });
-      } else {
-        await updateDoc(interviewRef, {
-          interviewTwoDate: deleteField(),
-          interviewTwoTime: deleteField(),
-          interviewTwoPanelMembers: deleteField(),
-          updatedAt: new Date(),
-        });
-      }
-    } catch (error) {
-      console.error('Error clearing specific interview:', error);
-      throw error;
-    }
-  };
-
-  // Load executives from Firebase
-  useEffect(() => {
-    const loadExecutives = async () => {
-      try {
-        // Fetch both executives and superadmins like in the old version
-        const executivesQuery = query(
-          collection(db, 'users'),
-          where('role', '==', 'executive')
-        );
-        const superadminsQuery = query(
-          collection(db, 'users'),
-          where('role', '==', 'superadmin')
-        );
-        
-        const [executivesSnapshot, superadminsSnapshot] = await Promise.all([
-          getDocs(executivesQuery),
-          getDocs(superadminsQuery)
-        ]);
-        
-        const allExecutives: Executive[] = [];
-        
-        // Add executives
-        executivesSnapshot.forEach((doc) => {
-          const userData = doc.data();
-          allExecutives.push({
-            id: doc.id,
-            name: userData.name || userData.fullName || 'Unnamed User',
-            email: userData.email || ''
-          });
-        });
-        
-        // Add superadmins
-        superadminsSnapshot.forEach((doc) => {
-          const userData = doc.data();
-          allExecutives.push({
-            id: doc.id,
-            name: userData.name || userData.fullName || 'Unnamed User',
-            email: userData.email || ''
-          });
-        });
-        
-        setExecutives(allExecutives);
-      } catch (error) {
-        console.error('Error loading executives:', error);
-      }
-    };
-
-    loadExecutives();
-  }, []);
-
   // Load applications and scheduled interviews
   useEffect(() => {
     const loadData = async () => {
@@ -305,7 +127,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
           setApplications(submittedApps);
         }
 
-        // Load scheduled interviews
+        // Load scheduled interviews for display purposes only
         const interviews = await getScheduledInterviewsByPosition(positionId);
         setScheduledInterviews(interviews);
       } catch (error) {
@@ -318,175 +140,8 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     loadData();
   }, [positionId, filteredApplications]);
 
-const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 'two') => {
-  const interviews = scheduledInterviews.filter(interview => {
-    if (interviewType === 'one') {
-      return interview.interviewOneDate && 
-        interview.interviewOneTime === timeSlot && 
-        interview.interviewOneDate.toDateString() === date.toDateString();
-    } else {
-      return interview.interviewTwoDate && 
-        interview.interviewTwoTime === timeSlot && 
-        interview.interviewTwoDate.toDateString() === date.toDateString();
-    }
-  });
-  
-  // Group Interview can have up to 5 people per slot
-  if (interviewType === 'one') {
-    return interviews.length >= 5;
-  }
-  
-  // Individual Interview remains 1 person per slot
-  return interviews.length >= 1;
-};
-
   const getCandidateInterview = (candidateId: string): ScheduledInterview | null => {
     return scheduledInterviews.find(interview => interview.candidateId === candidateId) || null;
-  };
-
-  const handlePanelMemberToggle = (executiveId: string) => {
-    setSelectedPanelMembers(prev => 
-      prev.includes(executiveId)
-        ? prev.filter(id => id !== executiveId)
-        : [...prev, executiveId]
-    );
-  };
-
-  const handleScheduleInterview = async (candidate: ApplicationData, interviewType: 'one' | 'two') => {
-    if (!selectedDate || !selectedTimeSlot) {
-      toast({
-        title: "Missing Information",
-        description: "Please select both a date and time slot",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // if (selectedPanelMembers.length < 2) {
-    //   toast({
-    //     title: "Panel Members Required",
-    //     description: "Please select at least 2 panel members for the interview",
-    //     variant: "destructive",
-    //   });
-    //   return;
-    // }
-
-    if (isTimeSlotTaken(selectedTimeSlot, selectedDate, interviewType)) {
-      const maxCandidates = interviewType === 'one' ? 5 : 1;
-      toast({
-        title: "Time Slot Unavailable",
-        description: `This time slot is full (${maxCandidates} candidate${maxCandidates > 1 ? 's' : ''} max). Please select another time.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Prepare the interview data - only include the specific interview being scheduled
-      const interviewData: Partial<ScheduledInterview> & { candidateId: string; positionId: string } = {
-        candidateId: candidate.id,
-        positionId: positionId,
-      };
-      
-      // Only add the fields for the specific interview type
-      if (interviewType === 'one') {
-        interviewData.interviewOneDate = selectedDate;
-        interviewData.interviewOneTime = selectedTimeSlot;
-        interviewData.interviewOnePanelMembers = selectedPanelMembers;
-      } else {
-        interviewData.interviewTwoDate = selectedDate;
-        interviewData.interviewTwoTime = selectedTimeSlot;
-        interviewData.interviewTwoPanelMembers = selectedPanelMembers;
-      }
-
-      // Save to Firebase
-      await saveScheduledInterview(interviewData);
-      
-      // Reload interviews to get updated data
-      const updatedInterviews = await getScheduledInterviewsByPosition(positionId);
-      setScheduledInterviews(updatedInterviews);
-      
-      // Check if both interviews are now scheduled
-      const updatedCandidateInterview = updatedInterviews.find(int => int.candidateId === candidate.id);
-      const hasBothInterviews = updatedCandidateInterview?.interviewOneDate && updatedCandidateInterview?.interviewTwoDate;
-      
-      // Update interview status in applications
-      if (hasBothInterviews) {
-        await updateInterviewStatus(candidate.id, true);
-        setApplications(prev => 
-          prev.map(app => 
-            app.id === candidate.id 
-              ? { ...app, interviewScheduled: true }
-              : app
-          )
-        );
-      }
-      
-      // Reset scheduling state
-      setSchedulingCandidate(null);
-      setSchedulingInterviewType('one');
-      setSelectedTimeSlot('');
-      setSelectedPanelMembers([]);
-      
-      const panelMemberNames = selectedPanelMembers.map(id => 
-        executives.find(exec => exec.id === id)?.name
-      ).join(', ');
-      
-      const interviewLabel = interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
-      
-      toast({
-        title: `${interviewLabel} Scheduled`,
-        description: `${interviewLabel} scheduled for ${candidate.userProfile?.fullName} on ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot} with panel: ${panelMemberNames}`,
-      });
-    } catch (error) {
-      console.error('Error scheduling interview:', error);
-      toast({
-        title: "Error",
-        description: "Failed to schedule interview",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRemoveInterview = async (applicationId: string, interviewType: 'one' | 'two') => {
-    try {
-      // Clear the specific interview
-      await clearSpecificInterview(applicationId, positionId, interviewType);
-      
-      // Reload interviews
-      const updatedInterviews = await getScheduledInterviewsByPosition(positionId);
-      setScheduledInterviews(updatedInterviews);
-      
-      // Check if candidate still has any interviews
-      const candidateInterview = updatedInterviews.find(int => int.candidateId === applicationId);
-      const hasAnyInterview = candidateInterview?.interviewOneDate || candidateInterview?.interviewTwoDate;
-      
-      // Update interview status if no interviews remain
-      if (!hasAnyInterview) {
-        await updateInterviewStatus(applicationId, false);
-        setApplications(prev => 
-          prev.map(app => 
-            app.id === applicationId 
-              ? { ...app, interviewScheduled: false }
-              : app
-          )
-        );
-      }
-      
-      const interviewLabel = interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
-      
-      toast({
-        title: `${interviewLabel} Removed`,
-        description: `${interviewLabel} has been removed successfully`,
-      });
-    } catch (error) {
-      console.error('Error removing interview:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove interview",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleViewApplication = (application: ApplicationData) => {
@@ -526,7 +181,7 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
               </Button>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {selectedApplicant.userProfile?.fullName || 'Unknown Applicant'}
+              {getDisplayName(selectedApplicant)}
             </h1>
             <p className="text-gray-600">
               Position: {positionName} • Status: {selectedApplicant.status}
@@ -548,7 +203,7 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Full Name</Label>
                   <p className="text-lg font-semibold text-gray-900">
-                    {selectedApplicant.userProfile?.fullName || 'Not provided'}
+                    {getDisplayName(selectedApplicant)}
                   </p>
                 </div>
                 <div>
@@ -560,7 +215,7 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Student Number</Label>
                   <p className="text-lg font-semibold text-gray-900">
-                    {selectedApplicant.userProfile?.studentNumber || 'Not provided'}
+                    {isSuperAdmin ? (selectedApplicant.userProfile?.studentNumber || 'Not provided') : '████████'}
                   </p>
                 </div>
               </div>
@@ -637,6 +292,11 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{positionName}</h1>
           <p className="text-gray-600">
             {gradeFilter ? `Applications with grade: ${gradeFilter}` : 'All applications for this position'}
+            {isExec && (
+              <span className="ml-2 text-orange-600 font-medium">
+                • Anonymous Mode (Executive View)
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -678,6 +338,11 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
                 <CardTitle>Applications</CardTitle>
                 <CardDescription>
                   Click on an applicant to view details or enter grade mode
+                  {isExec && (
+                    <span className="block text-orange-600 font-medium mt-1">
+                      Names are anonymized for fair evaluation
+                    </span>
+                  )}
                 </CardDescription>
               </div>
             </div>
@@ -709,10 +374,12 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
                     return (
                       <TableRow key={application.id}>
                         <TableCell className="font-medium">
-                          {application.userProfile?.fullName || 'Unknown'}
+                          {getDisplayName(application)}
                         </TableCell>
                         <TableCell>{application.userProfile?.grade || 'N/A'}</TableCell>
-                        <TableCell>{application.userProfile?.studentNumber || 'N/A'}</TableCell>
+                        <TableCell>
+                          {isSuperAdmin ? (application.userProfile?.studentNumber || 'N/A') : '████████'}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={application.status === 'submitted' ? "default" : "secondary"}>
                             {application.status === 'submitted' ? 'Submitted' : 'Draft'}
@@ -771,269 +438,28 @@ const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 't
                           }
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col space-y-2">
-                            <div className="flex space-x-2">
-                              {application.status === 'submitted' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedApplicant(application);
-                                    setGradeMode(true);
-                                  }}
-                                >
-                                  <MessageSquare className="h-4 w-4 mr-1" />
-                                  Grade
-                                </Button>
-                              )}
+                          <div className="flex space-x-2">
+                            {application.status === 'submitted' && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleViewApplication(application)}
+                                onClick={() => {
+                                  setSelectedApplicant(application);
+                                  setGradeMode(true);
+                                }}
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                View
+                                <MessageSquare className="h-4 w-4 mr-1" />
+                                Grade
                               </Button>
-                            </div>
-                            
-                            {application.status === 'submitted' && (
-                              <div className="space-y-1">
-                                {/* Group Interview Actions */}
-                                {!candidateInterview?.interviewOneDate ? (
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSchedulingCandidate(application.id);
-                                          setSchedulingInterviewType('one');
-                                        }}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                      >
-                                        <CalendarIcon className="h-4 w-4 mr-1" />
-                                        Schedule Group Interview
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-md">
-                                      <DialogHeader>
-                                        <DialogTitle>Schedule Group Interview</DialogTitle>
-                                        <DialogDescription>
-                                          Schedule Group Interview for {application.userProfile?.fullName}
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <div className="space-y-4">
-                                        {/* Date Selection */}
-                                        <div>
-                                          <Label className="text-sm font-medium">Select Date</Label>
-                                          <Calendar
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={setSelectedDate}
-                                            className="rounded-md border"
-                                            disabled={(date) => !isValidInterviewDate(date, 'one')}
-                                          />
-                                          <p className="text-xs text-gray-500 mt-1">
-                                            Available: September 11-12, 2024
-                                          </p>
-                                        </div>
-
-                                        {/* Time Selection */}
-                                        {selectedDate && (
-                                          <div>
-                                            <Label className="text-sm font-medium">Time Slot</Label>
-                                            <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select time" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {timeSlots.map((time) => {
-                                                  const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
-                                                  const currentBookings = scheduledInterviews.filter(interview => {
-                                                    if (schedulingInterviewType === 'one') {
-                                                      return interview.interviewOneDate && 
-                                                        interview.interviewOneTime === time && 
-                                                        interview.interviewOneDate.toDateString() === selectedDate.toDateString();
-                                                    } else {
-                                                      return interview.interviewTwoDate && 
-                                                        interview.interviewTwoTime === time && 
-                                                        interview.interviewTwoDate.toDateString() === selectedDate.toDateString();
-                                                    }
-                                                  }).length;
-                                                  
-                                                  const maxSlots = schedulingInterviewType === 'one' ? 5 : 1;
-                                                  const slotsText = schedulingInterviewType === 'one' ? ` (${currentBookings}/${maxSlots})` : '';
-                                                  
-                                                  return (
-                                                    <SelectItem 
-                                                      key={time} 
-                                                      value={time}
-                                                      disabled={isTaken}
-                                                    >
-                                                      {time}{slotsText} {isTaken && '(Full)'}
-                                                    </SelectItem>
-                                                  );
-                                                })}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        )}
-
-                                        {/* Panel Selection */}
-                                        <div>
-                                          <Label className="text-sm font-medium">Panel Members (min 2)</Label>
-                                          <div className="space-y-2 max-h-32 overflow-y-auto">
-                                            {executives.map((exec) => (
-                                              <div key={exec.id} className="flex items-center space-x-2">
-                                                <Button
-                                                  variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
-                                                  size="sm"
-                                                  onClick={() => handlePanelMemberToggle(exec.id)}
-                                                  className="w-full justify-start"
-                                                >
-                                                  <Users className="h-4 w-4 mr-2" />
-                                                  {exec.name}
-                                                </Button>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-
-                                        <Button
-                                          onClick={() => handleScheduleInterview(application, 'one')}
-                                          className="w-full"
-                                        >
-                                          <CheckCircle className="h-4 w-4 mr-2" />
-                                          Schedule Group Interview
-                                        </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                ) : (
-                                  <div className="flex space-x-1">
-                                    <Button
-                                      onClick={() => handleRemoveInterview(application.id, 'one')}
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-red-600 border-red-300 hover:bg-red-50"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" />
-                                      Remove Int. 1
-                                    </Button>
-                                  </div>
-                                )}
-
-                                {/* Individual Interview Actions */}
-                                {!candidateInterview?.interviewTwoDate ? (
-                                  <Dialog>
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSchedulingCandidate(application.id);
-                                          setSchedulingInterviewType('two');
-                                        }}
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                                      >
-                                        <CalendarIcon className="h-4 w-4 mr-1" />
-                                        Schedule Individual Interview
-                                      </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="max-w-md">
-                                      <DialogHeader>
-                                        <DialogTitle>Schedule Individual Interview</DialogTitle>
-                                        <DialogDescription>
-                                          Schedule Individual Interview for {application.userProfile?.fullName}
-                                        </DialogDescription>
-                                      </DialogHeader>
-                                      <div className="space-y-4">
-                                        {/* Date Selection */}
-                                        <div>
-                                          <Label className="text-sm font-medium">Select Date</Label>
-                                          <Calendar
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={setSelectedDate}
-                                            className="rounded-md border"
-                                            disabled={(date) => !isValidInterviewDate(date, 'two')}
-                                          />
-                                          <p className="text-xs text-gray-500 mt-1">
-                                            Available: September 16-18, 2024 (weekdays only)
-                                          </p>
-                                        </div>
-
-                                        {/* Time Selection */}
-                                        {selectedDate && (
-                                          <div>
-                                            <Label className="text-sm font-medium">Time Slot</Label>
-                                            <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
-                                              <SelectTrigger>
-                                                <SelectValue placeholder="Select time" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                {timeSlots.map((time) => {
-                                                  const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
-                                                  return (
-                                                    <SelectItem 
-                                                      key={time} 
-                                                      value={time}
-                                                      disabled={isTaken}
-                                                    >
-                                                      {time} {isTaken && '(Taken)'}
-                                                    </SelectItem>
-                                                  );
-                                                })}
-                                              </SelectContent>
-                                            </Select>
-                                          </div>
-                                        )}
-
-                                        {/* Panel Selection */}
-                                        <div>
-                                          <Label className="text-sm font-medium">Panel Members (min 2)</Label>
-                                          <div className="space-y-2 max-h-32 overflow-y-auto">
-                                            {executives.map((exec) => (
-                                              <div key={exec.id} className="flex items-center space-x-2">
-                                                <Button
-                                                  variant={selectedPanelMembers.includes(exec.id) ? "default" : "outline"}
-                                                  size="sm"
-                                                  onClick={() => handlePanelMemberToggle(exec.id)}
-                                                  className="w-full justify-start"
-                                                >
-                                                  <Users className="h-4 w-4 mr-2" />
-                                                  {exec.name}
-                                                </Button>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-
-                                        <Button
-                                          onClick={() => handleScheduleInterview(application, 'two')}
-                                          className="w-full"
-                                        >
-                                          <CheckCircle className="h-4 w-4 mr-2" />
-                                          Schedule Individual Interview
-                                        </Button>
-                                      </div>
-                                    </DialogContent>
-                                  </Dialog>
-                                ) : (
-                                  <div className="flex space-x-1">
-                                    <Button
-                                      onClick={() => handleRemoveInterview(application.id, 'two')}
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-red-600 border-red-300 hover:bg-red-50"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-1" />
-                                      Remove Int. 2
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
                             )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewApplication(application)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
