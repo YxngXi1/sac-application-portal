@@ -62,7 +62,6 @@ const isExec = (email: string): boolean => {
     '898765@pdsb.net',
     '806272@pdsb.net',
     '780748@pdsb.net',
-    '784995@pdsb.net',
   ];
   return execEmails.includes(email);
 };
