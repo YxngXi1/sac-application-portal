@@ -62,11 +62,11 @@ const ApplicationDashboard = () => {
   };
 
   React.useEffect(() => {
-    const loadProgress = async () => {
-      if (!userProfile?.uid) return;
-      
-      try {
-        const savedApplication = await loadApplicationProgress(userProfile.uid);
+  const loadProgress = async () => {
+    if (!userProfile?.uid) return;
+    
+    try {
+      const savedApplication = await loadApplicationProgress(userProfile.uid);
         if (savedApplication) {
           setHasStartedApplication(true);
           setSelectedPosition(savedApplication.position);
@@ -81,7 +81,7 @@ const ApplicationDashboard = () => {
     };
 
     loadProgress();
-  }, [userProfile]);
+  }, [userProfile?.uid]);
 
   const availablePositions = [
     {
