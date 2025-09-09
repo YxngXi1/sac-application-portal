@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +58,22 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   const [averageScore, setAverageScore] = useState(0);
   const [applicationGrades, setApplicationGrades] = useState<any>(null);
   const [feedback, setFeedback] = useState<string>('');
+
+  const isExec = userProfile?.role === 'exec';
+  const isSuperAdmin = userProfile?.role === 'superadmin';
+
+  // Helper function to anonymize names for exec users
+  const getDisplayName = (application: ApplicationData) => {
+    if (isSuperAdmin) {
+      return application.userProfile?.fullName || 'Unknown';
+    }
+    if (isExec) {
+      // Create a consistent anonymous identifier based on application ID
+      const candidateNumber = allApplications.findIndex(app => app.id === application.id) + 1;
+      return `Candidate ${candidateNumber}`;
+    }
+    return application.userProfile?.fullName || 'Unknown';
+  };
 
   useEffect(() => {
     const loadApplicationsAndGrades = async () => {
@@ -427,6 +442,9 @@ const getQuestionText = (questionId: string): string => {
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 Grading Application
                 {gradeFilter && <span className="text-lg text-gray-600 ml-2">(Grade {gradeFilter})</span>}
+                {isExec && (
+                  <span className="text-lg text-orange-600 ml-2">(Anonymous Mode)</span>
+                )}
               </h1>
               
               {/* Applicant Details */}
@@ -436,7 +454,7 @@ const getQuestionText = (questionId: string): string => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Applicant</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {application.userProfile?.fullName || 'Unknown'}
+                      {getDisplayName(application)}
                     </p>
                   </div>
                 </div>
@@ -456,7 +474,7 @@ const getQuestionText = (questionId: string): string => {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Student Number</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {application.userProfile?.studentNumber || 'Not provided'}
+                      {isSuperAdmin ? (application.userProfile?.studentNumber || 'Not provided') : '████████'}
                     </p>
                   </div>
                 </div>
@@ -474,6 +492,11 @@ const getQuestionText = (questionId: string): string => {
               
               <p className="text-gray-600">
                 Position: {positionName}
+                {isExec && (
+                  <span className="ml-2 text-orange-600 font-medium">
+                    • Names are anonymized for fair evaluation
+                  </span>
+                )}
               </p>
             </div>
             
@@ -511,6 +534,11 @@ const getQuestionText = (questionId: string): string => {
                 <CardTitle>Application Responses</CardTitle>
                 <CardDescription>
                   Review the applicant's answers below
+                  {isExec && (
+                    <span className="block text-orange-600 font-medium mt-1">
+                      Names are anonymized for fair evaluation
+                    </span>
+                  )}
                 </CardDescription>
               </CardHeader>
             </Card>
