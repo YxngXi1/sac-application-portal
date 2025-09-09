@@ -252,6 +252,11 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
       const nextIndex = (currentApplicationIndex + i) % allApplications.length;
       const nextApp = allApplications[nextIndex];
       
+      // If there's a grade filter, only consider applications with matching grade
+      if (gradeFilter && nextApp.userProfile?.grade !== gradeFilter) {
+        continue;
+      }
+      
       try {
         const grades = await getApplicationGrades(nextApp.id);
         const hasMyGrades = grades?.executiveGrades?.some(eg => eg.executiveId === userProfile.uid);

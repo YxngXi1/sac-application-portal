@@ -52,7 +52,7 @@ const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Other Executives' Grades */}
-        {otherExecutives.length > 0 && (
+        {applicationGrades?.executiveGrades?.length > 0 && (
           <div className="space-y-3">
             <h4 className="font-medium text-gray-900">Other Executive Grades</h4>
             {otherExecutives.map((executive) => (
@@ -83,7 +83,7 @@ const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
           </div>
         )}
 
-        {/* My Feedback Section */}
+        {/* My Feedback Section - Always show this */}
         <div className="border-t pt-4">
           <h4 className="font-medium text-gray-900 mb-3">Your Feedback</h4>
           <div className="space-y-3">
@@ -103,16 +103,18 @@ const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
             </Button>
           </div>
           
-          {myGrades?.feedback && (
+          {applicationGrades?.executiveGrades?.find(eg => eg.executiveId === currentExecutiveId)?.feedback && (
             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-600 mb-1">Your saved feedback:</p>
-              <p className="text-sm text-blue-800">{myGrades.feedback}</p>
+              <p className="text-sm text-blue-800">
+                {applicationGrades.executiveGrades.find(eg => eg.executiveId === currentExecutiveId)?.feedback}
+              </p>
             </div>
           )}
         </div>
 
         {/* Average Score */}
-        {applicationGrades.executiveGrades.length > 1 && (
+        {applicationGrades?.executiveGrades?.length > 1 && (
           <div className="border-t pt-4">
             <div className="flex justify-between items-center p-3 bg-gray-100 rounded-lg">
               <span className="font-medium text-gray-900">Team Average</span>
