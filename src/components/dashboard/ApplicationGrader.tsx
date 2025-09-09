@@ -82,10 +82,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         let applicationsToUse: ApplicationData[];
         
         if (filteredApplications) {
-          applicationsToUse = filteredApplications.filter(app => app.status === 'submitted');
+          applicationsToUse = filteredApplications.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
         } else {
           const positionApplications = await getAllApplicationsByPosition(positionName);
-          applicationsToUse = positionApplications.filter(app => app.status === 'submitted');
+          applicationsToUse = positionApplications.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
         }
         
         setAllApplications(applicationsToUse);

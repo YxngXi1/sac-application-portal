@@ -52,7 +52,6 @@ const isSuperAdmin = (email: string): boolean => {
 
 const isExec = (email: string): boolean => {
   const execEmails = [
-    '752470@pdsb.net',
     '890323@pdsb.net',
     '752470@pdsb.net',
     '952625@pdsb.net',

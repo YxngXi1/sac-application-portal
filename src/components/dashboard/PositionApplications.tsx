@@ -59,6 +59,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [scheduledInterviews, setScheduledInterviews] = useState<ScheduledInterview[]>([]);
+  const [allSubmittedApplications, setAllSubmittedApplications] = useState<ApplicationData[]>([]);
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
@@ -69,8 +70,8 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       return application.userProfile?.fullName || 'Unknown';
     }
     if (isExec) {
-      // Create a consistent anonymous identifier based on application ID
-      const candidateNumber = applications.findIndex(app => app.id === application.id) + 1;
+      // Use the consistent submitted applications array for numbering
+      const candidateNumber = allSubmittedApplications.findIndex(app => app.id === application.id) + 1;
       return `Candidate ${candidateNumber}`;
     }
     return application.userProfile?.fullName || 'Unknown';
@@ -115,17 +116,26 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
     }
   };
 
-  // Load applications and scheduled interviews
+   // Load applications and scheduled interviews
   useEffect(() => {
     const loadData = async () => {
       try {
+        let applicationsToUse: ApplicationData[];
+        
         if (filteredApplications) {
-          setApplications(filteredApplications);
+          applicationsToUse = filteredApplications;
+          // Also get all submitted applications for consistent numbering
+          const allPositionApps = await getAllApplicationsByPosition(positionId);
+          const allSubmitted = allPositionApps.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
+          setAllSubmittedApplications(allSubmitted);
         } else {
           const positionApplications = await getAllApplicationsByPosition(positionId);
-          const submittedApps = positionApplications.filter(app => app.status === 'submitted');
-          setApplications(submittedApps);
+          applicationsToUse = positionApplications;
+          const allSubmitted = positionApplications.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
+          setAllSubmittedApplications(allSubmitted);
         }
+        
+        setApplications(applicationsToUse);
 
         // Load scheduled interviews for display purposes only
         const interviews = await getScheduledInterviewsByPosition(positionId);
@@ -159,7 +169,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
           setGradeMode(false);
         }}
         onNavigateToApplication={(newApplication) => setSelectedApplicant(newApplication)}
-        filteredApplications={applications}
+        filteredApplications={allSubmittedApplications}
         gradeFilter={gradeFilter}
       />
     );
