@@ -417,9 +417,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       }
     });
     
-    // Group Interview can have up to 5 people per slot
+    // Group Interview can have up to 10 people per slot
     if (interviewType === 'one') {
-      return interviews.length >= 5;
+      return interviews.length >= 10;
     }
     
     // Individual Interview remains 1 person per slot
@@ -770,7 +770,7 @@ return (
                                           }
                                         }).length;
                                         
-                                        const maxSlots = schedulingInterviewType === 'one' ? 5 : 1;
+                                        const maxSlots = schedulingInterviewType === 'one' ? 10 : 1;
                                         const slotsText = schedulingInterviewType === 'one' ? ` (${currentBookings}/${maxSlots})` : '';
                                         
                                         return (
