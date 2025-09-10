@@ -33,9 +33,11 @@ interface ScheduledInterview {
   interviewOneDate?: Date;
   interviewOneTime?: string;
   interviewOnePanelMembers?: string[];
+  interviewOneRoom?: string;
   interviewTwoDate?: Date;
   interviewTwoTime?: string;
   interviewTwoPanelMembers?: string[];
+  interviewTwoRoom?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,17 +54,33 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
   const [selectedPanelMembers, setSelectedPanelMembers] = useState<string[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [schedulingCandidate, setSchedulingCandidate] = useState<string | null>(null);
   const [schedulingInterviewType, setSchedulingInterviewType] = useState<'one' | 'two'>('one');
 
   const { toast } = useToast();
 
-  // Time slots: 11:00 AM - 12:00 PM and 3:00 PM - 4:45 PM in 15-minute intervals
-  const timeSlots = [
+  // Time slots for Group Interviews (Interview One)
+  const groupInterviewTimeSlots = [
     '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
     '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
   ];
+
+  // Time slots for Individual Interviews (Interview Two)
+  const individualInterviewTimeSlots = [
+    '9:00 AM', '9:15 AM', '9:30 AM', '9:45 AM',
+    '10:00 AM', '10:15 AM', '10:30 AM', '10:45 AM',
+    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
+    '1:00 PM', '1:15 PM', '1:30 PM', '1:45 PM',
+    '2:00 PM', '2:15 PM', '2:30 PM', '2:45 PM',
+    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM'
+  ];
+
+  // Helper function to get time slots based on interview type
+  const getTimeSlots = (interviewType: 'one' | 'two') => {
+    return interviewType === 'one' ? groupInterviewTimeSlots : individualInterviewTimeSlots;
+  };
 
   // Function to check if a date is valid for interview scheduling
   const isValidInterviewDate = (date: Date, interviewType: 'one' | 'two') => {
@@ -88,6 +106,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
     // Function to get the next available time slot for a given interview type
   const getNextAvailableSlot = (interviewType: 'one' | 'two') => {
     const validDates = [];
+    const timeSlots = getTimeSlots(interviewType);
     
     if (interviewType === 'one') {
       // September 11-12, 2025
@@ -111,6 +130,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
   // Function to set next available slot when opening dialog
   const setNextAvailableSlot = (interviewType: 'one' | 'two') => {
+    // Clear panel members when switching interview types
+    setSelectedPanelMembers([]);
+    
     const nextSlot = getNextAvailableSlot(interviewType);
     if (nextSlot) {
       setSelectedDate(nextSlot.date);
@@ -122,6 +144,13 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         : [new Date(2025, 8, 16)];
       setSelectedDate(validDates[0]);
       setSelectedTimeSlot('');
+    }
+    
+    // Set default room based on interview type
+    if (interviewType === 'one') {
+      setSelectedRoom(''); // Group interview allows choice between 216 and 217
+    } else {
+      setSelectedRoom('217'); // Individual interview defaults to 217
     }
   };
 
@@ -160,6 +189,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       if (interview.interviewOnePanelMembers !== undefined) {
         dataToSave.interviewOnePanelMembers = interview.interviewOnePanelMembers;
       }
+      if (interview.interviewOneRoom !== undefined) {
+        dataToSave.interviewOneRoom = interview.interviewOneRoom;
+      }
       if (interview.interviewTwoDate !== undefined) {
         dataToSave.interviewTwoDate = interview.interviewTwoDate;
       }
@@ -168,6 +200,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       }
       if (interview.interviewTwoPanelMembers !== undefined) {
         dataToSave.interviewTwoPanelMembers = interview.interviewTwoPanelMembers;
+      }
+      if (interview.interviewTwoRoom !== undefined) {
+        dataToSave.interviewTwoRoom = interview.interviewTwoRoom;
       }
       
       if (existingDoc.exists()) {
@@ -198,17 +233,29 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       );
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => {
+      const interviews = querySnapshot.docs.map(doc => {
         const data = doc.data();
+        console.log('Raw Firebase data for interview:', doc.id, data); // Debug log
+        
         return {
           id: doc.id,
-          ...data,
-          interviewOneDate: data.interviewOneDate?.toDate(),
-          interviewTwoDate: data.interviewTwoDate?.toDate(),
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
+          candidateId: data.candidateId,
+          positionId: data.positionId,
+          interviewOneDate: data.interviewOneDate?.toDate() || undefined,
+          interviewOneTime: data.interviewOneTime || undefined,
+          interviewOnePanelMembers: data.interviewOnePanelMembers || undefined,
+          interviewOneRoom: data.interviewOneRoom || undefined,
+          interviewTwoDate: data.interviewTwoDate?.toDate() || undefined,
+          interviewTwoTime: data.interviewTwoTime || undefined,
+          interviewTwoPanelMembers: data.interviewTwoPanelMembers || undefined,
+          interviewTwoRoom: data.interviewTwoRoom || undefined,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
         };
       }) as ScheduledInterview[];
+      
+      console.log('Processed interviews:', interviews); // Debug log
+      return interviews;
     } catch (error) {
       console.error('Error getting scheduled interviews:', error);
       throw error;
@@ -224,6 +271,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
           interviewOneDate: deleteField(),
           interviewOneTime: deleteField(),
           interviewOnePanelMembers: deleteField(),
+          interviewOneRoom: deleteField(),
           updatedAt: new Date(),
         });
       } else {
@@ -231,6 +279,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
           interviewTwoDate: deleteField(),
           interviewTwoTime: deleteField(),
           interviewTwoPanelMembers: deleteField(),
+          interviewTwoRoom: deleteField(),
           updatedAt: new Date(),
         });
       }
@@ -325,7 +374,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         setQualifiedApplications(sortedQualified);
         
         // Load scheduled interviews
+        console.log('Loading interviews for position:', positionName); // Debug log
         const interviews = await getScheduledInterviewsByPosition(positionName);
+        console.log('Loaded interviews:', interviews); // Debug log
         setScheduledInterviews(interviews);
       } catch (error) {
         console.error('Error loading applications:', error);
@@ -343,7 +394,16 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       // Always set the next available slot for the current interview type
       setNextAvailableSlot(schedulingInterviewType);
     }
-  }, [schedulingCandidate, schedulingInterviewType, scheduledInterviews]);
+  }, [schedulingCandidate, schedulingInterviewType]);
+
+  // Debug useEffect to monitor state changes
+  useEffect(() => {
+    console.log('Scheduled interviews state updated:', scheduledInterviews);
+  }, [scheduledInterviews]);
+
+  useEffect(() => {
+    console.log('Qualified applications state updated:', qualifiedApplications);
+  }, [qualifiedApplications]);
 
   const isTimeSlotTaken = (timeSlot: string, date: Date, interviewType: 'one' | 'two') => {
     const interviews = scheduledInterviews.filter(interview => {
@@ -368,7 +428,9 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   };
 
   const getCandidateInterview = (candidateId: string): ScheduledInterview | null => {
-    return scheduledInterviews.find(interview => interview.candidateId === candidateId) || null;
+    const interview = scheduledInterviews.find(interview => interview.candidateId === candidateId) || null;
+    console.log(`Looking for interview for candidate ${candidateId}:`, interview); // Debug log
+    return interview;
   };
 
   const handlePanelMemberToggle = (executiveId: string) => {
@@ -384,6 +446,15 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       toast({
         title: "Missing Information",
         description: "Please select both a date and time slot",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedRoom) {
+      toast({
+        title: "Missing Room",
+        description: "Please select a room for the interview",
         variant: "destructive",
       });
       return;
@@ -419,10 +490,12 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
         interviewData.interviewOneDate = selectedDate;
         interviewData.interviewOneTime = selectedTimeSlot;
         interviewData.interviewOnePanelMembers = selectedPanelMembers;
+        interviewData.interviewOneRoom = selectedRoom;
       } else {
         interviewData.interviewTwoDate = selectedDate;
         interviewData.interviewTwoTime = selectedTimeSlot;
         interviewData.interviewTwoPanelMembers = selectedPanelMembers;
+        interviewData.interviewTwoRoom = selectedRoom;
       }
 
       // Save to Firebase
@@ -451,6 +524,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       // Clear current scheduling state
       setSelectedTimeSlot('');
       setSelectedPanelMembers([]);
+      setSelectedRoom('');
       
       // If we just scheduled a group interview (type 'one'), automatically prepare for individual interview
       if (interviewType === 'one') {
@@ -468,7 +542,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       
       toast({
         title: `${interviewLabel} Scheduled`,
-        description: `${interviewLabel} scheduled for ${candidate.userProfile?.fullName} on ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot} with panel: ${panelMemberNames}`,
+        description: `${interviewLabel} scheduled for ${candidate.userProfile?.fullName} on ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot} in Room [${selectedRoom}] with panel: ${panelMemberNames}`,
       });
     } catch (error) {
       console.error('Error scheduling interview:', error);
@@ -569,6 +643,7 @@ return (
             <div className="space-y-4">
               {qualifiedApplications.map((application, index) => {
                 const candidateInterview = getCandidateInterview(application.id);
+                console.log(`Rendering candidate ${application.userProfile?.fullName} (${application.id}):`, candidateInterview); // Debug log
                 
                 return (
                   <div key={application.id} className="border rounded-lg p-4 bg-gray-50">
@@ -604,6 +679,9 @@ return (
                           {formatDateEST(candidateInterview.interviewOneDate)} at {candidateInterview.interviewOneTime}
                         </p>
                         <p className="text-sm text-blue-600">
+                          Room: [{candidateInterview.interviewOneRoom}]
+                        </p>
+                        <p className="text-sm text-blue-600">
                           Panel: {getPanelMemberNames(candidateInterview.interviewOnePanelMembers || [])}
                         </p>
                       </div>
@@ -618,6 +696,9 @@ return (
                         </div>
                         <p className="text-sm text-green-600">
                           {formatDateEST(candidateInterview.interviewTwoDate)} at {candidateInterview.interviewTwoTime}
+                        </p>
+                        <p className="text-sm text-green-600">
+                          Room: [{candidateInterview.interviewTwoRoom}]
                         </p>
                         <p className="text-sm text-green-600">
                           Panel: {getPanelMemberNames(candidateInterview.interviewTwoPanelMembers || [])}
@@ -676,7 +757,7 @@ return (
                                       <SelectValue placeholder="Select time" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {timeSlots.map((time) => {
+                                      {getTimeSlots(schedulingInterviewType).map((time) => {
                                         const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
                                         const currentBookings = scheduledInterviews.filter(interview => {
                                           if (schedulingInterviewType === 'one') {
@@ -707,6 +788,20 @@ return (
                                   </Select>
                                 </div>
                               )}
+
+                              {/* Room Selection */}
+                              <div>
+                                <Label className="text-sm font-medium">Room</Label>
+                                <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select room" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="216">[216]</SelectItem>
+                                    <SelectItem value="217">[217]</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
 
                               {/* Panel Selection */}
                               <div>
@@ -786,7 +881,7 @@ return (
                                       <SelectValue placeholder="Select time" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {timeSlots.map((time) => {
+                                      {getTimeSlots(schedulingInterviewType).map((time) => {
                                         const isTaken = isTimeSlotTaken(time, selectedDate, schedulingInterviewType);
                                         return (
                                           <SelectItem 
@@ -802,6 +897,22 @@ return (
                                   </Select>
                                 </div>
                               )}
+
+                              {/* Room Selection - Auto-filled for Individual Interview */}
+                              <div>
+                                <Label className="text-sm font-medium">Room</Label>
+                                <Select value={selectedRoom} onValueChange={setSelectedRoom} disabled>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Room automatically assigned" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="217">[217]</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Individual interviews are automatically assigned to Room [217]
+                                </p>
+                              </div>
 
                               {/* Panel Selection */}
                               <div>
@@ -866,7 +977,7 @@ return (
                           variant="destructive"
                           className="px-3"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" /> 
                         </Button>
                       )}
                     </div>

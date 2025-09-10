@@ -27,9 +27,11 @@ interface ScheduledInterview {
   interviewOneDate?: Date;
   interviewOneTime?: string;
   interviewOnePanelMembers?: string[];
+  interviewOneRoom?: string;
   interviewTwoDate?: Date;
   interviewTwoTime?: string;
   interviewTwoPanelMembers?: string[];
+  interviewTwoRoom?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,17 +101,29 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
       );
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => {
+      const interviews = querySnapshot.docs.map(doc => {
         const data = doc.data();
+        console.log('Raw Firebase interview data:', doc.id, data); // Debug log
+        
         return {
           id: doc.id,
-          ...data,
-          interviewOneDate: data.interviewOneDate?.toDate(),
-          interviewTwoDate: data.interviewTwoDate?.toDate(),
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
+          candidateId: data.candidateId,
+          positionId: data.positionId,
+          interviewOneDate: data.interviewOneDate?.toDate() || undefined,
+          interviewOneTime: data.interviewOneTime || undefined,
+          interviewOnePanelMembers: data.interviewOnePanelMembers || undefined,
+          interviewOneRoom: data.interviewOneRoom || undefined,
+          interviewTwoDate: data.interviewTwoDate?.toDate() || undefined,
+          interviewTwoTime: data.interviewTwoTime || undefined,
+          interviewTwoPanelMembers: data.interviewTwoPanelMembers || undefined,
+          interviewTwoRoom: data.interviewTwoRoom || undefined,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
         };
       }) as ScheduledInterview[];
+      
+      console.log('Processed interviews in PositionApplications:', interviews); // Debug log
+      return interviews;
     } catch (error) {
       console.error('Error getting scheduled interviews:', error);
       throw error;
@@ -151,7 +165,9 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   }, [positionId, filteredApplications]);
 
   const getCandidateInterview = (candidateId: string): ScheduledInterview | null => {
-    return scheduledInterviews.find(interview => interview.candidateId === candidateId) || null;
+    const interview = scheduledInterviews.find(interview => interview.candidateId === candidateId) || null;
+    console.log(`PositionApplications - Looking for interview for candidate ${candidateId}:`, interview); // Debug log
+    return interview;
   };
 
   const handleViewApplication = (application: ApplicationData) => {
@@ -286,7 +302,15 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
 
   const submittedApplications = applications.filter(app => app.status === 'submitted');
   const inProgressApplications = applications.filter(app => app.status === 'draft' && app.progress > 0);
-  const interviewedCount = applications.filter(app => app.interviewScheduled).length;
+  const interviewedApplications = applications.filter(app => app.interviewScheduled);
+  const interviewedCount = interviewedApplications.length;
+  
+  // Debug log to see which applications are marked as interviewed
+  console.log('Applications marked as interviewed:', interviewedApplications.map(app => ({
+    id: app.id,
+    name: app.userProfile?.fullName,
+    interviewScheduled: app.interviewScheduled
+  })));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -418,11 +442,18 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
+                            {(() => {
+                              console.log(`Interview data for ${application.userProfile?.fullName}:`, candidateInterview); // Debug log
+                              return null;
+                            })()}
                             {candidateInterview?.interviewOneDate ? (
                               <div className="text-xs">
                                 <Badge variant="default" className="mb-1">Group Interview</Badge>
                                 <div className="text-gray-600">
                                   {candidateInterview.interviewOneDate.toLocaleDateString()} at {candidateInterview.interviewOneTime}
+                                  {candidateInterview.interviewOneRoom && (
+                                    <div>Room: [{candidateInterview.interviewOneRoom}]</div>
+                                  )}
                                 </div>
                               </div>
                             ) : (
@@ -434,6 +465,9 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                                 <Badge variant="default" className="mb-1">Individual Interview</Badge>
                                 <div className="text-gray-600">
                                   {candidateInterview.interviewTwoDate.toLocaleDateString()} at {candidateInterview.interviewTwoTime}
+                                  {candidateInterview.interviewTwoRoom && (
+                                    <div>Room: [{candidateInterview.interviewTwoRoom}]</div>
+                                  )}
                                 </div>
                               </div>
                             ) : (

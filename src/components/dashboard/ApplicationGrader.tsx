@@ -145,8 +145,11 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
       }
     };
 
-    loadApplicationsAndGrades();
-  }, [application.id, application.answers, positionName, userProfile?.uid, filteredApplications]);
+    // Only load if we have a user ID - prevents running on auth state changes
+    if (userProfile?.uid) {
+      loadApplicationsAndGrades();
+    }
+  }, [application.id, positionName]); // Removed userProfile?.uid, application.answers, filteredApplications
 
   const updateScore = (questionId: string, newScore: number) => {
     // Allow half points (e.g., 5.5)
