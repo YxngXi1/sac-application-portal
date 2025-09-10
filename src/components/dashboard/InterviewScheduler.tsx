@@ -69,7 +69,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
   // Time slots for Individual Interviews (Interview Two) - 10 minute intervals
   const individualInterviewTimeSlots = [
     '11:05 AM', '11:15 AM', '11:25 AM', '11:35 AM', '11:45 AM', '11:55 AM',
-    '3:00 PM', '3:11 PM', '3:22 PM', '3:33 PM', '3:44 PM', '3:55 PM', '4:06 PM', '4:17 PM'
+    '3:00 PM', '3:10 PM', '3:20 PM', '3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM'
   ];
 
   // Helper function to get time slots based on interview type
