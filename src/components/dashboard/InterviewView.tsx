@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, Clock, Users, Plus, CheckCircle, XCircle, History } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Plus, CheckCircle, XCircle, History, RefreshCw } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import InterviewScheduler from './InterviewScheduler';
 import InterviewGrader from './InterviewGrader';
 import InterviewResults from './InterviewResults';
@@ -39,6 +39,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
   const [loading, setLoading] = useState(true);
    const [selectedInterviewType, setSelectedInterviewType] = useState<'one' | 'two' | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const grades = ['9', '10', '11', '12'];
 
@@ -81,6 +82,13 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const loadScheduledInterviews = async (applications: ApplicationData[]) => {
     const interviews: ScheduledInterview[] = [];
     
+    // Get current user to check their role and ID
+    const currentUser = auth.currentUser;
+    const currentUserDoc = currentUser ? await getDoc(doc(db, 'users', currentUser.uid)) : null;
+    const currentUserData = currentUserDoc?.data();
+    const isCurrentUserSuperadmin = currentUserData?.role === 'superadmin';
+    const currentUserId = currentUser?.uid;
+    
     for (const app of applications) {
       if (app.interviewScheduled) {
         try {
@@ -96,40 +104,48 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             const hasGradesOne = gradeDocOne.exists() && gradeDocOne.data()?.panelGrades?.length > 0;
             const hasGradesTwo = gradeDocTwo.exists() && gradeDocTwo.data()?.panelGrades?.length > 0;
             
-            // Add Group Interview if it exists
+            // Add Group Interview if it exists and user has permission to see it
             if (data.interviewOneDate && data.interviewOneTime) {
               const interviewOneDate = data.interviewOneDate.toDate();
+              const canViewInterviewOne = isCurrentUserSuperadmin || 
+                (data.interviewOnePanelMembers && data.interviewOnePanelMembers.includes(currentUserId));
               
-              interviews.push({
-                candidateId: `${app.id}_interview_one`,
-                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Group Interview`,
-                position: app.position,
-                grade: app.userProfile?.grade || 'N/A',
-                studentNumber: app.userProfile?.studentNumber || 'N/A',
-                date: interviewOneDate,
-                timeSlot: data.interviewOneTime,
-                endTime: getEndTime(data.interviewOneTime),
-                hasGrades: hasGradesOne,
-                interviewType: 'one'
-              });
+              if (canViewInterviewOne) {
+                interviews.push({
+                  candidateId: `${app.id}_interview_one`,
+                  candidateName: `${app.userProfile?.fullName || 'Unknown'} - Group Interview`,
+                  position: app.position,
+                  grade: app.userProfile?.grade || 'N/A',
+                  studentNumber: app.userProfile?.studentNumber || 'N/A',
+                  date: interviewOneDate,
+                  timeSlot: data.interviewOneTime,
+                  endTime: getEndTime(data.interviewOneTime, 'one'),
+                  hasGrades: hasGradesOne,
+                  interviewType: 'one'
+                });
+              }
             }
             
-            // Add Individual Interview if it exists
+            // Add Individual Interview if it exists and user has permission to see it
             if (data.interviewTwoDate && data.interviewTwoTime) {
               const interviewTwoDate = data.interviewTwoDate.toDate();
+              const canViewInterviewTwo = isCurrentUserSuperadmin || 
+                (data.interviewTwoPanelMembers && data.interviewTwoPanelMembers.includes(currentUserId));
               
-              interviews.push({
-                candidateId: `${app.id}_interview_two`,
-                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Individual Interview`,
-                position: app.position,
-                grade: app.userProfile?.grade || 'N/A',
-                studentNumber: app.userProfile?.studentNumber || 'N/A',
-                date: interviewTwoDate,
-                timeSlot: data.interviewTwoTime,
-                endTime: getEndTime(data.interviewTwoTime),
-                hasGrades: hasGradesTwo,
-                interviewType: 'two'
-              });
+              if (canViewInterviewTwo) {
+                interviews.push({
+                  candidateId: `${app.id}_interview_two`,
+                  candidateName: `${app.userProfile?.fullName || 'Unknown'} - Individual Interview`,
+                  position: app.position,
+                  grade: app.userProfile?.grade || 'N/A',
+                  studentNumber: app.userProfile?.studentNumber || 'N/A',
+                  date: interviewTwoDate,
+                  timeSlot: data.interviewTwoTime,
+                  endTime: getEndTime(data.interviewTwoTime, 'two'),
+                  hasGrades: hasGradesTwo,
+                  interviewType: 'two'
+                });
+              }
             }
           }
         } catch (error) {
@@ -248,7 +264,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       });
   };
 
-  const getEndTime = (startTime: string) => {
+  const getEndTime = (startTime: string, interviewType?: 'one' | 'two') => {
     // Parse start time
     const [time, period] = startTime.split(' ');
     const [hours, minutes] = time.split(':').map(Number);
@@ -261,8 +277,13 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       totalMinutes -= 12 * 60;
     }
     
-    // Add 8 minutes
-    totalMinutes += 8;
+    // Add duration based on interview type
+    // Group interviews (type 'one'): 15 minutes
+    // Individual interviews (type 'two'): 10 minutes
+    // Default: 15 minutes for backward compatibility
+    // Change the time between interviews
+    const duration = interviewType === 'two' ? 10 : 8;
+    totalMinutes += duration;
     
     // Convert back to 12-hour format
     const endHours24 = Math.floor(totalMinutes / 60);
@@ -284,6 +305,17 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       return 'Tomorrow';
     } else {
       return date.toLocaleDateString();
+    }
+  };
+
+  const refreshInterviews = async () => {
+    setRefreshing(true);
+    try {
+      await loadScheduledInterviews(applications);
+    } catch (error) {
+      console.error('Error refreshing interviews:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -388,13 +420,27 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
         {/* Upcoming Interviews */}
         <Card className="mb-8 border shadow-sm bg-white">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
-              Upcoming Interviews
-            </CardTitle>
-            <CardDescription>
-              Scheduled interviews that haven't been completed yet 
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                  Upcoming Interviews
+                </CardTitle>
+                <CardDescription>
+                  Scheduled interviews that haven't been completed yet 
+                </CardDescription>
+              </div>
+              <Button
+                onClick={refreshInterviews}
+                variant="outline"
+                size="sm"
+                disabled={refreshing}
+                className="ml-4"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="max-h-96 overflow-y-auto">
             {upcomingInterviews.length === 0 ? (

@@ -61,20 +61,15 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
   const { toast } = useToast();
 
-  // Time slots for Group Interviews (Interview One)
+  // Time slots for Group Interviews (Interview One) - 15 minute intervals
   const groupInterviewTimeSlots = [
-    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
-    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM', '4:00 PM', '4:15 PM', '4:30 PM'
+    '11:05 AM', '11:17 AM', '11:31 AM', '11:44 AM'
   ];
 
-  // Time slots for Individual Interviews (Interview Two)
+  // Time slots for Individual Interviews (Interview Two) - 10 minute intervals
   const individualInterviewTimeSlots = [
-    '9:00 AM', '9:15 AM', '9:30 AM', '9:45 AM',
-    '10:00 AM', '10:15 AM', '10:30 AM', '10:45 AM',
-    '11:00 AM', '11:15 AM', '11:30 AM', '11:45 AM',
-    '1:00 PM', '1:15 PM', '1:30 PM', '1:45 PM',
-    '2:00 PM', '2:15 PM', '2:30 PM', '2:45 PM',
-    '3:00 PM', '3:15 PM', '3:30 PM', '3:45 PM'
+    '11:05 AM', '11:15 AM', '11:25 AM', '11:35 AM', '11:45 AM', '11:55 AM',
+    '3:00 PM', '3:11 PM', '3:22 PM', '3:33 PM', '3:44 PM', '3:55 PM', '4:06 PM', '4:17 PM'
   ];
 
   // Helper function to get time slots based on interview type
@@ -93,13 +88,17 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       return (date.toDateString() === sept11.toDateString() || 
               date.toDateString() === sept12.toDateString());
     } else {
-      // September 15-18, 2025 (weekdays only: 16, 17, 18 since 15 is Sunday)
+      // September 15-18, 2025 (weekdays only: 16, 17, 18, 19 since 15 is Sunday)
+      const sept15 = new Date(year, 8, 15);
       const sept16 = new Date(year, 8, 16); // Monday
       const sept17 = new Date(year, 8, 17); // Tuesday
       const sept18 = new Date(year, 8, 18); // Wednesday
-      return (date.toDateString() === sept16.toDateString() || 
+      const sept19 = new Date(year, 8, 19); // Wednesday
+      return (date.toDateString() === sept15.toDateString() || 
+              date.toDateString() === sept16.toDateString() || 
               date.toDateString() === sept17.toDateString() || 
-              date.toDateString() === sept18.toDateString());
+              date.toDateString() === sept18.toDateString() ||
+              date.toDateString() === sept19.toDateString());
     }
   };
 
@@ -112,8 +111,8 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       // September 11-12, 2025
       validDates.push(new Date(2025, 8, 11), new Date(2025, 8, 12));
     } else {
-      // September 16-18, 2025
-      validDates.push(new Date(2025, 8, 16), new Date(2025, 8, 17), new Date(2025, 8, 18));
+      // September 15-19, 2025
+      validDates.push(new Date(2025, 8, 15), new Date(2025, 8, 16), new Date(2025, 8, 17), new Date(2025, 8, 18), new Date(2025, 8, 19));
     }
     
     // Check each date and time slot for availability
@@ -141,7 +140,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
       // If no slots available, still set a valid date but clear time slot
       const validDates = interviewType === 'one' 
         ? [new Date(2025, 8, 11)] 
-        : [new Date(2025, 8, 16)];
+        : [new Date(2025, 8, 15)];
       setSelectedDate(validDates[0]);
       setSelectedTimeSlot('');
     }
@@ -868,7 +867,7 @@ return (
                                   disabled={(date) => !isValidInterviewDate(date, 'two')}
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
-                                  Available: September 16-18, 2025 (weekdays only)
+                                  Available: September 15-19, 2025
                                 </p>
                               </div>
 
