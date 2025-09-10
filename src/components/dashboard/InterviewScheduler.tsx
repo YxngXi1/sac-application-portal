@@ -63,7 +63,7 @@ const InterviewScheduler: React.FC<InterviewSchedulerProps> = ({
 
   // Time slots for Group Interviews (Interview One) - 15 minute intervals
   const groupInterviewTimeSlots = [
-    '11:05 AM', '11:17 AM', '11:31 AM', '11:44 AM'
+    '11:05 AM', '11:17 AM', '11:29 AM', '11:41 AM'
   ];
 
   // Time slots for Individual Interviews (Interview Two) - 10 minute intervals
