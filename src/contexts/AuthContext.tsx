@@ -43,15 +43,17 @@ const isValidPDSBEmail = (email: string): boolean => {
 const isSuperAdmin = (email: string): boolean => {
   const superadminEmails = [
     '752470@pdsb.net',
-    '793546@pdsb.net',
     '843909@pdsb.net',
-    '795804@pdsb.net',
+    
   ];
   return superadminEmails.includes(email);
 };
 
 const isExec = (email: string): boolean => {
   const execEmails = [
+    '795804@pdsb.net',
+    '793546@pdsb.net',
+// pres on top
     '890323@pdsb.net',
     '752470@pdsb.net',
     '952625@pdsb.net',

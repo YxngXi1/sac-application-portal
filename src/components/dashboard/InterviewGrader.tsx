@@ -99,7 +99,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
 
           if (!peersSnap.empty) {
             const candidateIds = peersSnap.docs.map(d => (d.data() as any).candidateId).filter(Boolean) as string[];
-            const uniqueIds = Array.from(new Set(candidateIds)).slice(0, 5);
+            const uniqueIds = Array.from(new Set(candidateIds));
 
             const apps: ApplicationData[] = [];
             for (const id of uniqueIds) {
@@ -113,13 +113,21 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               }
             }
 
-            apps.sort((a, b) => {
+            // Filter by the same grade as the current candidate
+            const currentCandidateGrade = c.userProfile?.grade;
+            const sameGradeApps = apps.filter(app => 
+              app.userProfile?.grade === currentCandidateGrade
+            );
+
+            sameGradeApps.sort((a, b) => {
               const nameA = a.userProfile?.fullName || '';
               const nameB = b.userProfile?.fullName || '';
               return nameA.localeCompare(nameB);
             });
 
-            setGroupSlotCandidates(apps);
+            // Limit to 5 candidates maximum per grade group
+            const gradeGroupApps = sameGradeApps.slice(0, 5);
+            setGroupSlotCandidates(gradeGroupApps);
             return;
           }
         }
@@ -128,6 +136,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       console.debug('scheduledInterviews lookup failed, falling back to applications query', err);
     }
 
+    // Fallback method - also filter by grade
     const slot = getCandidateGroupSlot(c);
     if (!slot) {
       setGroupSlotCandidates([]);
@@ -147,12 +156,20 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         }
       }
 
-      results.sort((a, b) => {
+      // Filter by the same grade as the current candidate
+      const currentCandidateGrade = c.userProfile?.grade;
+      const sameGradeResults = results.filter(app => 
+        app.userProfile?.grade === currentCandidateGrade
+      );
+
+      sameGradeResults.sort((a, b) => {
         const nameA = a.userProfile?.fullName || '';
         const nameB = b.userProfile?.fullName || '';
         return nameA.localeCompare(nameB);
       });
-      const combined = results.slice(0, 5);
+
+      // Limit to 5 candidates maximum per grade group
+      const combined = sameGradeResults.slice(0, 5);
       setGroupSlotCandidates(combined);
     } catch (err) {
       console.error('Error fetching group slot candidates (fallback):', err);
