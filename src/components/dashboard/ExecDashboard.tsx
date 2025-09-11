@@ -185,7 +185,6 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
-            
             <div className="flex space-x-3">
               <Button
                 onClick={() => setShowSummaryView(true)}

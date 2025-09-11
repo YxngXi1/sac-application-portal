@@ -277,12 +277,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
       totalMinutes -= 12 * 60;
     }
     
-    // Add duration based on interview type
-    // Group interviews (type 'one'): 15 minutes
-    // Individual interviews (type 'two'): 10 minutes
-    // Default: 15 minutes for backward compatibility
-    // Change the time between interviews
-    const duration = interviewType === 'two' ? 10 : 8;
+    const duration = interviewType === 'two' ? 8 : 10;
     totalMinutes += duration;
     
     // Convert back to 12-hour format
