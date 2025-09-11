@@ -139,6 +139,18 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     return grades.combinedAverageScore || 0;
   };
 
+  const getInterviewOneScore = (candidateId: string): number => {
+    const grades = interviewGrades[candidateId];
+    if (!grades || !grades.interviewOne) return 0;
+    return grades.interviewOne.averageScore || 0;
+  };
+
+  const getInterviewTwoScore = (candidateId: string): number => {
+    const grades = interviewGrades[candidateId];
+    if (!grades || !grades.interviewTwo) return 0;
+    return grades.interviewTwo.averageScore || 0;
+  };
+
   const getCheckboxSummary = (candidateId: string) => {
     const grades = interviewGrades[candidateId];
     if (!grades || !grades.allPanelGrades.length) return { total: 0, breakdown: {} };
@@ -159,8 +171,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     return { total: totalChecked, breakdown };
   };
 
-  // ...existing code for groupedByPosition, handlePrint functions...
-
   const groupedByPosition = applications.reduce((acc, app) => {
     if (!acc[app.position]) {
       acc[app.position] = [];
@@ -168,8 +178,6 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     acc[app.position].push(app);
     return acc;
   }, {} as Record<string, ApplicationData[]>);
-
-  // ...existing handlePrint and generatePrintContent functions remain the same...
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -479,7 +487,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
               <th>Grade</th>
               <th>Student Number</th>
               <th>Application Score</th>
-              <th>Interview Score</th>
+              <th>Interview One Score</th>
+              <th>Interview Two Score</th>
+              <th>Combined Interview Score</th>
               <th>Total Score</th>
               <th>Criteria Met</th>
             </tr>
@@ -488,9 +498,11 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     `;
 
     sortedCandidates.forEach((candidate, index) => {
-      const interviewScore = getInterviewScore(candidate.id);
+      const interviewOneScore = getInterviewOneScore(candidate.id);
+      const interviewTwoScore = getInterviewTwoScore(candidate.id);
+      const combinedInterviewScore = getInterviewScore(candidate.id);
       const applicationScore = ((candidate.score || 0) / 100) * 10;
-      const totalScore = applicationScore + interviewScore;
+      const totalScore = applicationScore + combinedInterviewScore;
       const checkboxSummary = getCheckboxSummary(candidate.id);
 
       content += `
@@ -500,7 +512,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           <td>${candidate.userProfile?.grade || 'N/A'}</td>
           <td>${candidate.userProfile?.studentNumber || 'N/A'}</td>
           <td>${applicationScore.toFixed(1)}/10</td>
-          <td>${interviewScore.toFixed(1)}/5</td>
+          <td>${interviewOneScore.toFixed(1)}/5</td>
+          <td>${interviewTwoScore.toFixed(1)}/5</td>
+          <td>${combinedInterviewScore.toFixed(1)}/5</td>
           <td>${totalScore.toFixed(1)}/15</td>
           <td>${checkboxSummary.total}/5</td>
         </tr>
@@ -724,9 +738,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                       <TableRow className="border-gray-200">
                         <TableHead className="text-gray-700">Candidate</TableHead>
                         <TableHead className="text-gray-700">Grade</TableHead>
-                        <TableHead className="text-gray-700">Application Score</TableHead>
-                        <TableHead className="text-gray-700">Interview Score</TableHead>
-                        <TableHead className="text-gray-700">Total Score</TableHead>
+                        <TableHead className="text-gray-700">Interview One</TableHead>
+                        <TableHead className="text-gray-700">Interview Two</TableHead>
+                        <TableHead className="text-gray-700">Combined Interview</TableHead>
                         <TableHead className="text-gray-700">Assessment</TableHead>
                         <TableHead className="text-gray-700">Criteria Met</TableHead>
                         <TableHead className="text-gray-700">Feedback</TableHead>
@@ -745,9 +759,9 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                           return bTotal - aTotal;
                         })
                         .map((candidate, index) => {
-                          const interviewScore = getInterviewScore(candidate.id);
-                          const applicationScore = ((candidate.score || 0) / 100) * 10; // Convert to /10
-                          const totalScore = applicationScore + interviewScore; // Total out of 15
+                          const interviewOneScore = getInterviewOneScore(candidate.id);
+                          const interviewTwoScore = getInterviewTwoScore(candidate.id);
+                          const combinedInterviewScore = getInterviewScore(candidate.id);
                           const checkboxSummary = getCheckboxSummary(candidate.id);
                           
                           return (
@@ -764,13 +778,13 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                 {candidate.userProfile?.grade || 'N/A'}
                               </TableCell>
                               <TableCell className="text-blue-600 font-medium">
-                                {applicationScore.toFixed(1)}/10
+                                {interviewOneScore > 0 ? `${interviewOneScore.toFixed(1)}/5` : 'N/A'}
                               </TableCell>
-                              <TableCell className="text-blue-600 font-medium">
-                                {interviewScore.toFixed(1)}/5
+                              <TableCell className="text-green-600 font-medium">
+                                {interviewTwoScore > 0 ? `${interviewTwoScore.toFixed(1)}/5` : 'N/A'}
                               </TableCell>
-                              <TableCell className="font-bold text-gray-900">
-                                {totalScore.toFixed(1)}/15
+                              <TableCell className="text-purple-600 font-medium">
+                                {combinedInterviewScore.toFixed(1)}/5
                               </TableCell>
                               <TableCell>
                                 <Dialog>
