@@ -182,14 +182,14 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
         const interviewDateTime = new Date(interview.date);
         interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
         
-        // If no grades have been submitted, show with a 5-minute grace period after start
-        if (!interview.hasGrades) {
-          const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-          return interviewDateTime >= fiveMinutesAgo;
-        }
+        // Calculate end time by adding interview duration
+        const duration = interview.interviewType === 'two' ? 8 : 10;
+        const interviewEndTime = new Date(interviewDateTime.getTime() + duration * 60 * 1000);
         
-        // If grades exist, only show if the interview hasn't started yet
-        return interviewDateTime > now;
+        // Show interview until 5 minutes after it ends
+        const fiveMinutesAfterEnd = new Date(interviewEndTime.getTime() + 5 * 60 * 1000);
+        
+        return now < fiveMinutesAfterEnd;
       })
       .sort((a, b) => {
         // Sort by datetime (earliest first)
