@@ -168,8 +168,28 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
     
     return scheduledInterviews
       .filter(interview => {
-        // Show all scheduled interviews - they never disappear
-        return true;
+        // Create the full interview datetime
+        const [time, period] = interview.timeSlot.split(' ');
+        const [hours, minutes] = time.split(':').map(Number);
+        
+        let totalMinutes = hours * 60 + minutes;
+        if (period === 'PM' && hours !== 12) {
+          totalMinutes += 12 * 60;
+        } else if (period === 'AM' && hours === 12) {
+          totalMinutes -= 12 * 60;
+        }
+        
+        const interviewDateTime = new Date(interview.date);
+        interviewDateTime.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
+        
+        // Calculate end time by adding interview duration
+        const duration = interview.interviewType === 'two' ? 8 : 10;
+        const interviewEndTime = new Date(interviewDateTime.getTime() + duration * 60 * 1000);
+        
+        // Show interview until 5 minutes after it ends
+        const fiveMinutesAfterEnd = new Date(interviewEndTime.getTime() + 5 * 60 * 1000);
+        
+        return now < fiveMinutesAfterEnd;
       })
       .sort((a, b) => {
         // Sort by datetime (earliest first)
