@@ -503,7 +503,7 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
                             }
                           }}
                           size="sm"
-                          disabled={!canStartInterview}
+                          // disabled={!canStartInterview}
                           className={`${
                             canStartInterview 
                               ? 'bg-blue-600 hover:bg-blue-700 text-white' 
