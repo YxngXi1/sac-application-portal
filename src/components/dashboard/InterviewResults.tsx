@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Award, MessageSquare, CheckSquare, User, Eye, Printer } from 'lucide-react';
+import { ArrowLeft, Award, MessageSquare, CheckSquare, User, Eye, Printer, Shield } from 'lucide-react';
 import { getAllApplications, ApplicationData } from '@/services/applicationService';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import CandidateInterviewDetails from './CandidateInterviewDetails';
 
 interface InterviewResultsProps {
@@ -51,86 +51,115 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
   const [interviewGrades, setInterviewGrades] = useState<Record<string, CombinedInterviewGrades>>({});
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<ApplicationData | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
+    const checkAuthorization = async () => {
       try {
-        const allApplications = await getAllApplications();
-        // Filter for interviewed candidates
-        const interviewed = allApplications.filter(app => app.interviewScheduled);
-        setApplications(interviewed);
-
-        // Load interview grades for each candidate
-        const gradesData: Record<string, CombinedInterviewGrades> = {};
-        
-        for (const app of interviewed) {
-          try {
-            // Query for both interview types for this candidate
-            const interviewGradesQuery = query(
-              collection(db, 'interviewGrades'),
-              where('candidateId', '==', app.id)
-            );
-            
-            const querySnapshot = await getDocs(interviewGradesQuery);
-            const candidateInterviews: InterviewGrades[] = [];
-            
-            querySnapshot.forEach((doc) => {
-              candidateInterviews.push({ candidateId: doc.id, ...doc.data() } as InterviewGrades);
-            });
-
-            if (candidateInterviews.length > 0) {
-              const interviewOne = candidateInterviews.find(interview => interview.interviewType === 'one');
-              const interviewTwo = candidateInterviews.find(interview => interview.interviewType === 'two');
-              
-              // Calculate combined average score
-              let combinedAverageScore = 0;
-              let scoreCount = 0;
-              
-              if (interviewOne && interviewOne.averageScore) {
-                combinedAverageScore += parseFloat(interviewOne.averageScore.toString());
-                scoreCount++;
-              }
-              
-              if (interviewTwo && interviewTwo.averageScore) {
-                combinedAverageScore += parseFloat(interviewTwo.averageScore.toString());
-                scoreCount++;
-              }
-              
-              if (scoreCount > 0) {
-                combinedAverageScore = combinedAverageScore / scoreCount;
-              }
-
-              // Combine all panel grades from both interviews
-              const allPanelGrades: PanelMemberGrade[] = [];
-              if (interviewOne?.panelGrades) {
-                allPanelGrades.push(...interviewOne.panelGrades);
-              }
-              if (interviewTwo?.panelGrades) {
-                allPanelGrades.push(...interviewTwo.panelGrades);
-              }
-
-              gradesData[app.id] = {
-                candidateId: app.id,
-                interviewOne,
-                interviewTwo,
-                combinedAverageScore,
-                allPanelGrades
-              };
-            }
-          } catch (error) {
-            console.error(`Error loading grades for ${app.id}:`, error);
-          }
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          setIsAuthorized(false);
+          setLoading(false);
+          return;
         }
-        setInterviewGrades(gradesData);
+
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const isSuperadmin = userData.role === 'superadmin';
+          setIsAuthorized(isSuperadmin);
+          
+          if (isSuperadmin) {
+            // Only load data if user is authorized
+            await loadData();
+          }
+        } else {
+          setIsAuthorized(false);
+        }
       } catch (error) {
-        console.error('Error loading applications:', error);
+        console.error('Error checking authorization:', error);
+        setIsAuthorized(false);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    checkAuthorization();
   }, []);
+
+  const loadData = async () => {
+    try {
+      const allApplications = await getAllApplications();
+      // Filter for interviewed candidates
+      const interviewed = allApplications.filter(app => app.interviewScheduled);
+      setApplications(interviewed);
+
+      // Load interview grades for each candidate
+      const gradesData: Record<string, CombinedInterviewGrades> = {};
+      
+      for (const app of interviewed) {
+        try {
+          // Query for both interview types for this candidate
+          const interviewGradesQuery = query(
+            collection(db, 'interviewGrades'),
+            where('candidateId', '==', app.id)
+          );
+          
+          const querySnapshot = await getDocs(interviewGradesQuery);
+          const candidateInterviews: InterviewGrades[] = [];
+          
+          querySnapshot.forEach((doc) => {
+            candidateInterviews.push({ candidateId: doc.id, ...doc.data() } as InterviewGrades);
+          });
+
+          if (candidateInterviews.length > 0) {
+            const interviewOne = candidateInterviews.find(interview => interview.interviewType === 'one');
+            const interviewTwo = candidateInterviews.find(interview => interview.interviewType === 'two');
+            
+            // Calculate combined average score
+            let combinedAverageScore = 0;
+            let scoreCount = 0;
+            
+            if (interviewOne && interviewOne.averageScore) {
+              combinedAverageScore += parseFloat(interviewOne.averageScore.toString());
+              scoreCount++;
+            }
+            
+            if (interviewTwo && interviewTwo.averageScore) {
+              combinedAverageScore += parseFloat(interviewTwo.averageScore.toString());
+              scoreCount++;
+            }
+            
+            if (scoreCount > 0) {
+              combinedAverageScore = combinedAverageScore / scoreCount;
+            }
+
+            // Combine all panel grades from both interviews
+            const allPanelGrades: PanelMemberGrade[] = [];
+            if (interviewOne?.panelGrades) {
+              allPanelGrades.push(...interviewOne.panelGrades);
+            }
+            if (interviewTwo?.panelGrades) {
+              allPanelGrades.push(...interviewTwo.panelGrades);
+            }
+
+            gradesData[app.id] = {
+              candidateId: app.id,
+              interviewOne,
+              interviewTwo,
+              combinedAverageScore,
+              allPanelGrades
+            };
+          }
+        } catch (error) {
+          console.error(`Error loading grades for ${app.id}:`, error);
+        }
+      }
+      setInterviewGrades(gradesData);
+    } catch (error) {
+      console.error('Error loading applications:', error);
+    }
+  };
 
   const getInterviewScore = (candidateId: string): number => {
     const grades = interviewGrades[candidateId];
@@ -666,6 +695,26 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading interview results...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isAuthorized === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="border shadow-sm bg-white max-w-md mx-auto">
+          <CardContent className="p-8 text-center">
+            <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+            <p className="text-gray-600 mb-4">
+              You don't have permission to view interview results. Only superadmin users can access this page.
+            </p>
+            <Button onClick={onBack} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

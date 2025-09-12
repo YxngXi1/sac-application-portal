@@ -52,7 +52,7 @@ const isSuperAdmin = (email: string): boolean => {
 
 const isExec = (email: string): boolean => {
   const execEmails = [
-
+  
 // pres on top
     '890323@pdsb.net',
     '752470@pdsb.net',
