@@ -116,22 +116,15 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
             const interviewOne = candidateInterviews.find(interview => interview.interviewType === 'one');
             const interviewTwo = candidateInterviews.find(interview => interview.interviewType === 'two');
             
-            // Calculate combined average score
+            // Calculate combined total score (sum of both interviews)
             let combinedAverageScore = 0;
-            let scoreCount = 0;
             
             if (interviewOne && interviewOne.averageScore) {
               combinedAverageScore += parseFloat(interviewOne.averageScore.toString());
-              scoreCount++;
             }
             
             if (interviewTwo && interviewTwo.averageScore) {
               combinedAverageScore += parseFloat(interviewTwo.averageScore.toString());
-              scoreCount++;
-            }
-            
-            if (scoreCount > 0) {
-              combinedAverageScore = combinedAverageScore / scoreCount;
             }
 
             // Combine all panel grades from both interviews
@@ -182,7 +175,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
 
   const getCheckboxSummary = (candidateId: string) => {
     const grades = interviewGrades[candidateId];
-    if (!grades || !grades.allPanelGrades.length) return { total: 0, breakdown: {} };
+    if (!grades || !grades.interviewTwo?.panelGrades?.length) return { total: 0, breakdown: {} };
     
     const checkboxKeys: (keyof InterviewCheckboxes)[] = [
       'pastExperience', 'roleKnowledge', 'leadershipSkills', 'creativeOutlook', 'timeManagement'
@@ -192,7 +185,8 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     let totalChecked = 0;
     
     checkboxKeys.forEach(key => {
-      const checkedCount = grades.allPanelGrades.filter(pg => pg.checkboxes && pg.checkboxes[key]).length;
+      // Only count checkboxes from interview two (individual interview)
+      const checkedCount = grades.interviewTwo!.panelGrades.filter(pg => pg.checkboxes && pg.checkboxes[key]).length;
       breakdown[key] = checkedCount;
       if (checkedCount > 0) totalChecked++;
     });
@@ -543,8 +537,8 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           <td>${applicationScore.toFixed(1)}/10</td>
           <td>${interviewOneScore.toFixed(1)}/5</td>
           <td>${interviewTwoScore.toFixed(1)}/5</td>
-          <td>${combinedInterviewScore.toFixed(1)}/5</td>
-          <td>${totalScore.toFixed(1)}/15</td>
+                        <td>${combinedInterviewScore.toFixed(1)}/10</td>
+          <td>${totalScore.toFixed(1)}/20</td>
           <td>${checkboxSummary.total}/5</td>
         </tr>
       `;
@@ -576,8 +570,8 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           <div class="score-summary">
             <h5>Score Summary</h5>
             <p><strong>Application Score:</strong> ${applicationScore.toFixed(1)}/10</p>
-            <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/5 (Combined from both interviews)</p>
-            <p><strong>Total Score:</strong> ${totalScore.toFixed(1)}/15</p>
+            <p><strong>Interview Score:</strong> ${interviewScore.toFixed(1)}/10 (Combined from both interviews)</p>
+            <p><strong>Total Score:</strong> ${totalScore.toFixed(1)}/20</p>
             <p><strong>Criteria Met:</strong> ${checkboxSummary.total}/5</p>
           </div>
 
@@ -803,8 +797,8 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                           const bInterview = getInterviewScore(b.id);
                           const aAppScore = ((a.score || 0) / 100) * 10; // Convert to /10
                           const bAppScore = ((b.score || 0) / 100) * 10; // Convert to /10
-                          const aTotal = aAppScore + aInterview; // Total out of 15
-                          const bTotal = bAppScore + bInterview; // Total out of 15
+                          const aTotal = aAppScore + aInterview; // Total out of 20
+                          const bTotal = bAppScore + bInterview; // Total out of 20
                           return bTotal - aTotal;
                         })
                         .map((candidate, index) => {
@@ -833,7 +827,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                 {interviewTwoScore > 0 ? `${interviewTwoScore.toFixed(1)}/5` : 'N/A'}
                               </TableCell>
                               <TableCell className="text-purple-600 font-medium">
-                                {combinedInterviewScore.toFixed(1)}/5
+                                {combinedInterviewScore.toFixed(1)}/10
                               </TableCell>
                               <TableCell>
                                 <Dialog>
@@ -846,7 +840,7 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                                   <DialogContent className="max-w-2xl">
                                     <DialogHeader>
                                       <DialogTitle>Assessment Summary - {candidate.userProfile?.fullName}</DialogTitle>
-                                      <DialogDescription>Panel assessment criteria results (Combined from both interviews)</DialogDescription>
+                                      <DialogDescription>Panel assessment criteria results (Individual Interview only)</DialogDescription>
                                     </DialogHeader>
                                     <div className="space-y-4">
                                       <div className="grid grid-cols-1 gap-3">

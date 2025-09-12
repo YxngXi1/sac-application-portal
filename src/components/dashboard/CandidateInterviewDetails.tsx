@@ -36,6 +36,7 @@ interface InterviewGrades {
   interviewType: 'one' | 'two';
   panelGrades: PanelMemberGrade[];
   averageScore: number;
+  masterQuestions?: string[];
 }
 
 interface CombinedInterviewGrades {
@@ -50,26 +51,37 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
   const [combinedGrades, setCombinedGrades] = useState<CombinedInterviewGrades | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const getInterviewQuestions = (position: string, interviewType: 'one' | 'two'): string[] => {
-    const questionSets: Record<string, { one: string[], two: string[] }> = {
-    'Honourary Member': {
-      one: [
-        'Explain the promotional material you created and why you feel it is beneficial for promoting the SAC event.',
-        'Can you give an example of a time when you had to plan something under tight deadlines? What steps did you take to ensure it was done well, and what did you learn from that experience? In other words, can you get work done quickly and efficiently?',
-        'What do you think is the biggest challenge in getting students excited about school events, and how would you approach solving it?'
-      ],
-      two: [
-        'If you were to look back at the end of the year, what would success as a promotions officer look like for you? What would you want to be remembered for?',
-        'How would you handle a situation where multiple events are happening at the same time and you need to promote all of them effectively?',
-        'Describe a creative promotional idea you would implement for a school event that hasn\'t been done before.'
-      ]
-    },
+  const getInterviewQuestions = (position: string, interviewType: 'one' | 'two', interviewData?: InterviewGrades): string[] => {
+    // Debug logging
+    console.log('getInterviewQuestions called with:', { position, interviewType, masterQuestions: interviewData?.masterQuestions });
+    
+    // Use the actual questions from the interview grader data if available
+    if (interviewData?.masterQuestions) {
+      console.log('Using masterQuestions:', interviewData.masterQuestions);
+      return interviewData.masterQuestions;
+    }
+
+    // Fallback to hardcoded questions if no masterQuestions are found
+    const questionSets: Record<string, { one: string[] }> = {
+      'Honourary Member': {
+        one: [
+          'Collaboration',
+          'Confidence', 
+          'Participation',
+          'Overall Impression'
+        ]
+      },
+    };
+
+    const positionQuestions = questionSets[position];
+    if (!positionQuestions) {
+      console.log('No questions found for position:', position);
+      return [];
+    }
+
+    console.log('Using fallback questions:', positionQuestions.one);
+    return positionQuestions.one; // Use the hardcoded questions as fallback
   };
-
-  const positionQuestions = questionSets[position];
-
-  return positionQuestions[interviewType];
-};
 
   useEffect(() => {
     const loadInterviewGrades = async () => {
@@ -109,22 +121,15 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
 
         // Combine grades if either interview exists
         if (interviewOne || interviewTwo) {
-          // Calculate combined average score
+          // Calculate combined total score (sum of both interviews)
           let combinedAverageScore = 0;
-          let scoreCount = 0;
           
           if (interviewOne && interviewOne.averageScore) {
             combinedAverageScore += parseFloat(interviewOne.averageScore.toString());
-            scoreCount++;
           }
           
           if (interviewTwo && interviewTwo.averageScore) {
             combinedAverageScore += parseFloat(interviewTwo.averageScore.toString());
-            scoreCount++;
-          }
-          
-          if (scoreCount > 0) {
-            combinedAverageScore = combinedAverageScore / scoreCount;
           }
 
           // Combine all panel grades from both interviews
@@ -165,7 +170,6 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
     );
   }
 
-  const applicationScore = ((candidate.score || 0) / 100) * 10; // Convert to score out of 10
   const interviewScore = combinedGrades?.combinedAverageScore || 0;
 
   const checkboxLabels = {
@@ -175,9 +179,6 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
     creativeOutlook: 'Creative and energetic outlook for the tasks required for this role',
     timeManagement: 'Seems organized and manages time well'
   };
-
-  // Get application feedback safely
-  const applicationFeedback = (candidate as any).feedback || null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,49 +199,19 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
           </div>
           <div className="flex gap-6 text-sm text-gray-600">
             <span>Grade: {candidate.userProfile?.grade || 'N/A'}</span>
-            <span>Application Score: {applicationScore.toFixed(1)}/10</span>
             {combinedGrades?.interviewOne && (
               <span>Group Interview: {combinedGrades.interviewOne.averageScore.toFixed(1)}/5</span>
             )}
             {combinedGrades?.interviewTwo && (
               <span>Individual Interview: {combinedGrades.interviewTwo.averageScore.toFixed(1)}/5</span>
             )}
-            <span>Combined Interview: {interviewScore.toFixed(1)}/5</span>
-            <span className="font-semibold">Total: {(applicationScore + interviewScore).toFixed(1)}/15</span>
+            <span>Combined Interview: {interviewScore.toFixed(1)}/10</span>
+            <span className="font-semibold">Total Score: {interviewScore.toFixed(1)}/10</span>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-8 space-y-8">
-        {/* Application Stage Feedback */}
-        <Card className="border shadow-sm bg-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-blue-600" />
-              Application Stage Feedback
-            </CardTitle>
-            <CardDescription>
-              Feedback and score from the application review process
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <span className="font-medium">Application Score</span>
-                <Badge variant="secondary" className="text-lg px-3 py-1">
-                  {applicationScore.toFixed(1)}/10
-                </Badge>
-              </div>
-              {applicationFeedback && (
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Executive Feedback</h4>
-                  <p className="text-gray-700">{applicationFeedback}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Group Interview Questions */}
         {combinedGrades?.interviewOne && (
           <Card className="border shadow-sm bg-white">
@@ -255,7 +226,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {getInterviewQuestions(candidate.position, 'one').map((question, index) => (
+                {getInterviewQuestions(candidate.position, 'one', combinedGrades.interviewOne).map((question, index) => (
                   <div key={index} className="border rounded-lg p-4">
                     <h4 className="font-medium mb-3 text-gray-900">
                       Question {index + 1}: {question}
@@ -321,7 +292,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {getInterviewQuestions(candidate.position, 'two').map((question, index) => (
+                {getInterviewQuestions(candidate.position, 'two', combinedGrades.interviewTwo).map((question, index) => (
                   <div key={index} className="border rounded-lg p-4">
                     <h4 className="font-medium mb-3 text-gray-900">
                       Question {index + 1}: {question}
@@ -381,30 +352,26 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
               Assessment Criteria
             </CardTitle>
             <CardDescription>
-              Panel member assessments on key criteria (Combined from both interviews)
+              Panel member assessments on key criteria (Individual Interview only)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {combinedGrades?.allPanelGrades?.length > 0 ? (
+            {combinedGrades?.interviewTwo?.panelGrades?.length > 0 ? (
               <div className="space-y-4">
                 {Object.entries(checkboxLabels).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <span className="text-sm font-medium">{label}</span>
                     <div className="flex flex-wrap items-center gap-2">
-                      {combinedGrades.allPanelGrades.map((panelGrade, gradeIndex) => {
-                        const interviewType = panelGrade.interviewType === 'one' ? 'Group Interview' : 'Individual Interview';
-
-                        return (
-                          <div key={`${panelGrade.panelMemberId}-${panelGrade.interviewType}-${gradeIndex}`} className="flex items-center gap-1 bg-white p-2 rounded border">
-                            <span className="text-xs text-gray-600">{panelGrade.panelMemberName} ({interviewType}):</span>
-                            {panelGrade.checkboxes && panelGrade.checkboxes[key as keyof InterviewCheckboxes] ? (
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <XCircle className="h-4 w-4 text-gray-400" />
-                            )}
-                          </div>
-                        );
-                      })}
+                      {combinedGrades.interviewTwo.panelGrades.map((panelGrade, gradeIndex) => (
+                        <div key={`${panelGrade.panelMemberId}-two-${gradeIndex}`} className="flex items-center gap-1 bg-white p-2 rounded border">
+                          <span className="text-xs text-gray-600">{panelGrade.panelMemberName}:</span>
+                          {panelGrade.checkboxes && panelGrade.checkboxes[key as keyof InterviewCheckboxes] ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-gray-400" />
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
