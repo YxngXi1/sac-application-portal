@@ -46,14 +46,6 @@ const isSuperAdmin = (email: string): boolean => {
     '795804@pdsb.net',
     '793546@pdsb.net',
     '930999@pdsb.net',
-  ];
-  return superadminEmails.includes(email);
-};
-
-const isExec = (email: string): boolean => {
-  const execEmails = [
-    '752470@pdsb.net',
-// pres on top
     '890323@pdsb.net',
     '752470@pdsb.net',
     '952625@pdsb.net',
@@ -66,6 +58,14 @@ const isExec = (email: string): boolean => {
     '898765@pdsb.net',
     '806272@pdsb.net',
     '780748@pdsb.net',
+    '752470@pdsb.net',
+  ];
+  return superadminEmails.includes(email);
+};
+
+const isExec = (email: string): boolean => {
+  const execEmails = [
+    
   ];
   return execEmails.includes(email);
 };
