@@ -82,12 +82,11 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   const loadScheduledInterviews = async (applications: ApplicationData[]) => {
     const interviews: ScheduledInterview[] = [];
     
-    // Get current user to check their role and ID
+    // Get current user to check their role
     const currentUser = auth.currentUser;
     const currentUserDoc = currentUser ? await getDoc(doc(db, 'users', currentUser.uid)) : null;
     const currentUserData = currentUserDoc?.data();
-    const isCurrentUserSuperadmin = currentUserData?.role === 'superadmin';
-    const currentUserId = currentUser?.uid;
+    const isCurrentUserExec = currentUserData?.role === 'superadmin' || currentUserData?.role === 'executive';
     
     for (const app of applications) {
       if (app.interviewScheduled) {
@@ -104,48 +103,40 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
             const hasGradesOne = gradeDocOne.exists() && gradeDocOne.data()?.panelGrades?.length > 0;
             const hasGradesTwo = gradeDocTwo.exists() && gradeDocTwo.data()?.panelGrades?.length > 0;
             
-            // Add Group Interview if it exists and user has permission to see it
-            if (data.interviewOneDate && data.interviewOneTime) {
+            // Add Group Interview if it exists - show to all executives
+            if (data.interviewOneDate && data.interviewOneTime && isCurrentUserExec) {
               const interviewOneDate = data.interviewOneDate.toDate();
-              const canViewInterviewOne = isCurrentUserSuperadmin || 
-                (data.interviewOnePanelMembers && data.interviewOnePanelMembers.includes(currentUserId));
               
-              if (canViewInterviewOne) {
-                interviews.push({
-                  candidateId: `${app.id}_interview_one`,
-                  candidateName: `${app.userProfile?.fullName || 'Unknown'} - Group Interview`,
-                  position: app.position,
-                  grade: app.userProfile?.grade || 'N/A',
-                  studentNumber: app.userProfile?.studentNumber || 'N/A',
-                  date: interviewOneDate,
-                  timeSlot: data.interviewOneTime,
-                  endTime: getEndTime(data.interviewOneTime, 'one'),
-                  hasGrades: hasGradesOne,
-                  interviewType: 'one'
-                });
-              }
+              interviews.push({
+                candidateId: `${app.id}_interview_one`,
+                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Group Interview`,
+                position: app.position,
+                grade: app.userProfile?.grade || 'N/A',
+                studentNumber: app.userProfile?.studentNumber || 'N/A',
+                date: interviewOneDate,
+                timeSlot: data.interviewOneTime,
+                endTime: getEndTime(data.interviewOneTime, 'one'),
+                hasGrades: hasGradesOne,
+                interviewType: 'one'
+              });
             }
             
-            // Add Individual Interview if it exists and user has permission to see it
-            if (data.interviewTwoDate && data.interviewTwoTime) {
+            // Add Individual Interview if it exists - show to all executives
+            if (data.interviewTwoDate && data.interviewTwoTime && isCurrentUserExec) {
               const interviewTwoDate = data.interviewTwoDate.toDate();
-              const canViewInterviewTwo = isCurrentUserSuperadmin || 
-                (data.interviewTwoPanelMembers && data.interviewTwoPanelMembers.includes(currentUserId));
               
-              if (canViewInterviewTwo) {
-                interviews.push({
-                  candidateId: `${app.id}_interview_two`,
-                  candidateName: `${app.userProfile?.fullName || 'Unknown'} - Individual Interview`,
-                  position: app.position,
-                  grade: app.userProfile?.grade || 'N/A',
-                  studentNumber: app.userProfile?.studentNumber || 'N/A',
-                  date: interviewTwoDate,
-                  timeSlot: data.interviewTwoTime,
-                  endTime: getEndTime(data.interviewTwoTime, 'two'),
-                  hasGrades: hasGradesTwo,
-                  interviewType: 'two'
-                });
-              }
+              interviews.push({
+                candidateId: `${app.id}_interview_two`,
+                candidateName: `${app.userProfile?.fullName || 'Unknown'} - Individual Interview`,
+                position: app.position,
+                grade: app.userProfile?.grade || 'N/A',
+                studentNumber: app.userProfile?.studentNumber || 'N/A',
+                date: interviewTwoDate,
+                timeSlot: data.interviewTwoTime,
+                endTime: getEndTime(data.interviewTwoTime, 'two'),
+                hasGrades: hasGradesTwo,
+                interviewType: 'two'
+              });
             }
           }
         } catch (error) {
