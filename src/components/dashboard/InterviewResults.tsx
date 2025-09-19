@@ -87,6 +87,54 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
     checkAuthorization();
   }, []);
 
+  // Function to remove outlier scores
+  const removeOutliers = (scores: number[]): number[] => {
+    if (scores.length <= 2) return scores; // Can't remove outliers with 2 or fewer scores
+    
+    const sortedScores = [...scores].sort((a, b) => a - b);
+    
+    // Check for high outlier (highest score significantly higher than second highest)
+    const highestDiff = sortedScores[sortedScores.length - 1] - sortedScores[sortedScores.length - 2];
+    
+    // Check for low outlier (lowest score significantly lower than second lowest)
+    const lowestDiff = sortedScores[1] - sortedScores[0];
+    
+    // Only remove one outlier - prioritize removing the one with the larger difference
+    if (highestDiff >= 1 && highestDiff > lowestDiff) {
+      // Remove highest score
+      return sortedScores.slice(0, -1);
+    } else if (lowestDiff >= 1) {
+      // Remove lowest score
+      return sortedScores.slice(1);
+    }
+    
+    return scores; // No outliers to remove
+  };
+
+  // Function to recalculate interview averages with outlier removal
+  const recalculateInterviewAverages = (interview: InterviewGrades): InterviewGrades => {
+    if (!interview.panelGrades || interview.panelGrades.length === 0) {
+      return interview;
+    }
+
+    // Extract all individual panel member averages
+    const panelAverages = interview.panelGrades.map(panelGrade => {
+      const gradeValues = Object.values(panelGrade.grades).filter(g => typeof g === 'number' && g >= 0);
+      return gradeValues.length > 0 ? gradeValues.reduce((sum, g) => sum + g, 0) / gradeValues.length : 0;
+    }).filter(avg => avg > 0);
+
+    // Remove outliers and calculate new average
+    const filteredAverages = removeOutliers(panelAverages);
+    const newAverageScore = filteredAverages.length > 0 
+      ? filteredAverages.reduce((sum, avg) => sum + avg, 0) / filteredAverages.length 
+      : interview.averageScore;
+
+    return {
+      ...interview,
+      averageScore: newAverageScore
+    };
+  };
+
   const loadData = async () => {
     try {
       const allApplications = await getAllApplications();
@@ -113,8 +161,16 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
           });
 
           if (candidateInterviews.length > 0) {
-            const interviewOne = candidateInterviews.find(interview => interview.interviewType === 'one');
-            const interviewTwo = candidateInterviews.find(interview => interview.interviewType === 'two');
+            let interviewOne = candidateInterviews.find(interview => interview.interviewType === 'one');
+            let interviewTwo = candidateInterviews.find(interview => interview.interviewType === 'two');
+            
+            // Recalculate averages with outlier removal
+            if (interviewOne) {
+              interviewOne = recalculateInterviewAverages(interviewOne);
+            }
+            if (interviewTwo) {
+              interviewTwo = recalculateInterviewAverages(interviewTwo);
+            }
             
             // Calculate combined total score (sum of both interviews)
             let combinedAverageScore = 0;
@@ -488,13 +544,18 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
 
   const generatePositionContent = (position: string, candidates: ApplicationData[]) => {
     const sortedCandidates = candidates.sort((a, b) => {
+      // First sort by grade (ascending: 9, 10, 11, 12)
+      const aGrade = parseInt(a.userProfile?.grade || '0');
+      const bGrade = parseInt(b.userProfile?.grade || '0');
+      
+      if (aGrade !== bGrade) {
+        return aGrade - bGrade;
+      }
+      
+      // Within same grade, sort by combined interview score (descending)
       const aInterview = getInterviewScore(a.id);
       const bInterview = getInterviewScore(b.id);
-      const aAppScore = ((a.score || 0) / 100) * 10;
-      const bAppScore = ((b.score || 0) / 100) * 10;
-      const aTotal = aAppScore + aInterview;
-      const bTotal = bAppScore + bInterview;
-      return bTotal - aTotal;
+      return bInterview - aInterview;
     });
 
     let content = `
@@ -793,13 +854,18 @@ const InterviewResults: React.FC<InterviewResultsProps> = ({ onBack }) => {
                     <TableBody>
                       {candidates
                         .sort((a, b) => {
+                          // First sort by grade (ascending: 9, 10, 11, 12)
+                          const aGrade = parseInt(a.userProfile?.grade || '0');
+                          const bGrade = parseInt(b.userProfile?.grade || '0');
+                          
+                          if (aGrade !== bGrade) {
+                            return aGrade - bGrade;
+                          }
+                          
+                          // Within same grade, sort by combined interview score (descending)
                           const aInterview = getInterviewScore(a.id);
                           const bInterview = getInterviewScore(b.id);
-                          const aAppScore = ((a.score || 0) / 100) * 10; // Convert to /10
-                          const bAppScore = ((b.score || 0) / 100) * 10; // Convert to /10
-                          const aTotal = aAppScore + aInterview; // Total out of 20
-                          const bTotal = bAppScore + bInterview; // Total out of 20
-                          return bTotal - aTotal;
+                          return bInterview - aInterview;
                         })
                         .map((candidate, index) => {
                           const interviewOneScore = getInterviewOneScore(candidate.id);
