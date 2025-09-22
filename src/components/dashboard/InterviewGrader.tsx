@@ -185,7 +185,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       pool3: string[],
       pool4: string[]
     }> = {
-      'Honourary Member': {
+      'Grade Rep': {
         interviewOne: [
           "Collaboration",
           "Confidence",

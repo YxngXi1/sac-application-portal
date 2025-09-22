@@ -34,11 +34,12 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
-  // Check if applications are open (September 3rd, 2025 at 8:00 AM EST)
+  // Check if applications are open (September 3rd, 2025 at 8:00 AM EST) and closed (September 23rd, 2025 at 8:00 PM EST)
   const isApplicationsOpen = () => {
     const now = new Date();
     const openDate = new Date('2025-09-03T08:00:00-04:00'); // September 3rd, 2025 at 8:00 AM EST
-    return now >= openDate;
+    const closeDate = new Date('2025-09-23T20:00:00-04:00'); // September 23rd, 2025 at 8:00 PM EST
+    return now >= openDate && now <= closeDate;
   };
 
   const getTimeUntilOpen = () => {
@@ -85,8 +86,8 @@ const ApplicationDashboard = () => {
 
   const availablePositions = [
     {
-      title: "Honourary Member",
-      description: "Support event execution, attend weekly meetings, stay active on Slack, promote school spirit and SAC initiatives, and participate in sub-committees."
+      title: "Grade Rep",
+      description: "Grade Reps are elected members that represent and voice the opinions of their grade at SAC initiatives, as well as carry out the responsibilities of an honourary member."
     }
   ];
 

@@ -24,7 +24,7 @@ const ApplicationFlow = () => {
   const [forceStartFromBeginning, setForceStartFromBeginning] = useState(false);
 
   const positions = [
-    'Honourary Member',
+    'Grade Rep',
   ];
 
   // Load application progress on component mount
@@ -86,14 +86,14 @@ const ApplicationFlow = () => {
 
   useEffect(() => {
     if (currentStep === 1 && !loading && !selectedPosition) {
-      console.log('Auto-selecting Honourary Member position');
-      setSelectedPosition('Honourary Member');
+      console.log('Auto-selecting Grade Rep position');
+      setSelectedPosition('Grade Rep');
     }
   }, [currentStep, loading, selectedPosition]);
 
   // Handle position selection and proceed to next step
   useEffect(() => {
-    if (currentStep === 1 && selectedPosition === 'Honourary Member' && !loading) {
+    if (currentStep === 1 && selectedPosition === 'Grade Rep' && !loading) {
       console.log('Position is set, proceeding to save and continue');
       
       const proceedWithApplication = async () => {
@@ -147,7 +147,7 @@ const ApplicationFlow = () => {
       
       toast({
         title: "Position Selected",
-        description: "You're applying for Honourary Member position.",
+        description: "You're applying for Grade Rep position.",
       });
     } catch (error) {
       console.error('Error saving position selection:', error);
@@ -215,7 +215,7 @@ const ApplicationFlow = () => {
 
   const getQuestionCount = (position: string) => {
     switch (position) {
-      case 'Honourary Member': return 5;
+      case 'Grade Rep': return 5;
       default: return 1;
     }
   };
@@ -286,13 +286,13 @@ const saveProgress = async () => {
         <Card className="w-full max-w-md mx-4">
           <CardHeader className="text-center p-4 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl">Start Your Application</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council as an Honourary Member?</p>
+            <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council as an Grade Rep?</p>
           </CardHeader>
           <CardContent className="text-center space-y-4 p-4 sm:p-6">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Honourary Member Position</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">Grade Rep Position</h3>
               <p className="text-sm text-blue-700">
-                As an honourary member, you'll contribute to SAC events, attend meetings, and help make our school better.
+                Grade Reps are elected members that represent and voice the opinions of their grade at SAC initiatives, as well as carry out the responsibilities of an honourary member.
               </p>
             </div>
             <div className="bg-blue-50 p-3 rounded-lg text-xs sm:text-sm text-blue-800">
@@ -311,20 +311,20 @@ const saveProgress = async () => {
     );
   }
 
-  // Step 1: Position Selection (Auto-select Honourary Member)
+  // Step 1: Position Selection (Auto-select Grade Rep)
   if (currentStep === 1) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md mx-4">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl">Setting Up Your Application</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base">Preparing your Honourary Member application...</p>
+            <p className="text-gray-600 text-sm sm:text-base">Preparing your Grade Rep application...</p>
           </CardHeader>
           <CardContent className="text-center space-y-4 p-4 sm:p-6">
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Honourary Member Position</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">Grade Rep Position</h3>
               <p className="text-sm text-blue-700">
-                As an honourary member, you'll contribute to SAC events, attend meetings, and help make our school better.
+                Grade Reps are elected members that represent and voice the opinions of their grade at SAC initiatives, as well as carry out the responsibilities of an honourary member.
               </p>
             </div>
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>

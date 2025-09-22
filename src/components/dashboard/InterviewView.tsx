@@ -53,7 +53,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
 
   const getGradeApplications = (grade: string) => {
     return applications
-      .filter(app => app.position === 'Honourary Member' && app.userProfile?.grade === grade)
+      .filter(app => app.position === 'Grade Rep' && app.userProfile?.grade === grade)
       .sort((a, b) => (b.score || 0) - (a.score || 0)); // Sort by score descending
   };
 
@@ -297,7 +297,7 @@ const InterviewView: React.FC<InterviewViewProps> = ({ onBack }) => {
   if (showScheduler && selectedGrade) {
     return (
       <InterviewScheduler
-        positionName="Honourary Member"
+        positionName="Grade Rep"
         selectedGrade={selectedGrade} // Pass the selected grade
         onBack={() => {
           setShowScheduler(false);
@@ -386,7 +386,7 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
             Interview Management
           </h1>
           <p className="text-gray-600">
-            Schedule and manage candidate interviews for Honourary Members
+            Schedule and manage candidate interviews for Grade Rep
           </p>
         </div>
       </div>
@@ -548,7 +548,7 @@ if (showGrader && selectedCandidate && selectedInterviewType) {
           <CardHeader>
             <CardTitle>Interview Scheduling by Grade</CardTitle>
             <CardDescription>
-              Schedule interviews for Honourary Member candidates by grade (ordered by application score)
+              Schedule interviews for Grade Rep candidates by grade (ordered by application score)
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -31,11 +31,11 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     const loadApplications = async () => {
       try {
         const allApplications = await getAllApplications();
-        // Filter for only Honourary Member applications
-        const honouraryApplications = allApplications.filter(app => 
-          app.position === 'Honourary Member'
+        // Filter for only Grade Rep applications
+        const gradeRepApplications = allApplications.filter(app => 
+          app.position === 'Grade Rep'
         );
-        setApplications(honouraryApplications);
+        setApplications(gradeRepApplications);
       } catch (error) {
         console.error('Error loading applications:', error);
       } finally {
@@ -54,7 +54,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>SAC Honourary Member Applications Report</title>
+          <title>SAC Grade Rep Applications Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -73,7 +73,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </style>
         </head>
         <body>
-          <h1>SAC Honourary Member Applications Report</h1>
+          <h1>SAC Grade Rep Applications Report</h1>
           <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           <p><strong>Total Applications:</strong> ${applications.length}</p>
           
@@ -147,8 +147,8 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     
     return (
       <PositionApplications 
-        positionId="Honourary Member"
-        positionName={`Grade ${selectedGrade} Honourary Members`}
+        positionId="Grade REp"
+        positionName={`Grade ${selectedGrade} Grade Rep`}
         onBack={() => setSelectedGrade(null)}
         filteredApplications={gradeApplications}
         gradeFilter={selectedGrade}
@@ -214,10 +214,10 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Honourary Member Dashboard
+            Grade Rep Dashboard
           </h1>
           <p className="text-gray-600">
-            Manage SAC Honourary Member applications by grade level
+            Manage SAC Grade Rep applications by grade level
           </p>
         </div>
       </div>
@@ -279,7 +279,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-blue-600" />
-              Honourary Member Applications by Grade
+              Grade Rep Applications by Grade
             </CardTitle>
             <CardDescription>
               Click on a grade to view and manage applications for that grade level.

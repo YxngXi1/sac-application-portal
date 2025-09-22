@@ -28,14 +28,14 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Application deadline - June 5th, 2025 at 11:59 PM EST
-  const deadline = new Date('2025-09-08T23:59:59-04:00'); // EDT time in September
+  // Application deadline - September 23rd, 2025 at 8:00 PM EST
+  const deadline = new Date('2025-09-23T20:00:00-04:00'); // EST time
   const now = new Date();
   const isDeadlinePassed = now > deadline;
 
   const getQuestionCount = (position: string) => {
     switch (position) {
-      case 'Honourary Member': return 5;
+      case 'Grade Rep': return 5;
       default: return 1;
     }
   };
@@ -145,7 +145,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             </CardTitle>
             <p className="text-gray-600">
               {isDeadlinePassed 
-                ? 'The application deadline was Thursday, September 8th, 2025 at 11:59 PM EDT'
+                ? 'The application deadline was Monday, September 23rd, 2025 at 8:00 PM EST'
                 : 'Please confirm your details before submitting'
               }
             </p>

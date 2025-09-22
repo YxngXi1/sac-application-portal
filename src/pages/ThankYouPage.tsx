@@ -25,10 +25,10 @@ const ThankYouPage = () => {
           
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Honourary Member Application Submitted Successfully</h3>
+              <h3 className="text-lg font-semibold">Grade Rep Application Submitted Successfully</h3>
               <p className="text-gray-600">
-                Your SAC Honourary Member application has been submitted and is now under review. 
-                We appreciate your interest in joining the Student Activity Council as an honourary member.
+                Your SAC Grade Rep application has been submitted and is now under review. 
+                We appreciate your interest in joining the Student Activity Council as an Grade Rep.
               </p>
               <p className="text-sm text-gray-500">
                 You will be notified about the status of your application and any 

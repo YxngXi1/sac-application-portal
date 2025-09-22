@@ -63,7 +63,7 @@ const CandidateInterviewDetails: React.FC<CandidateInterviewDetailsProps> = ({ c
 
     // Fallback to hardcoded questions if no masterQuestions are found
     const questionSets: Record<string, { one: string[] }> = {
-      'Honourary Member': {
+      'Grade Rep': {
         one: [
           'Collaboration',
           'Confidence', 
