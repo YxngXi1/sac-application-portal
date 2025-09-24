@@ -95,6 +95,13 @@ const ApplicationDashboard = () => {
   const isApplicationSubmitted = applicationStatus === 'submitted';
   const applicationsOpen = isApplicationsOpen();
 
+  // Determine if before open or after close
+  const now = new Date();
+  const openDate = new Date('2025-09-03T08:00:00-04:00');
+  const closeDate = new Date('2025-09-23T20:00:00-04:00');
+  const isBeforeOpen = now < openDate;
+  const isAfterClose = now > closeDate;
+
   const handleStartApplication = () => {
     if (!applicationsOpen) {
       toast({
@@ -207,7 +214,7 @@ const ApplicationDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* Main Application Section */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-              {!applicationsOpen ? (
+              {isBeforeOpen ? (
                 <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-red-600 text-white">
                   <CardContent className="p-6 sm:p-8 text-center">
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
@@ -229,7 +236,24 @@ const ApplicationDashboard = () => {
                     </Button>
                   </CardContent>
                 </Card>
-              ): !hasStartedApplication ? (
+              ) : isAfterClose ? (
+                <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-500 to-red-600 text-white">
+                  <CardContent className="p-6 sm:p-8 text-center">
+                    <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Closed</h2>
+                    <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
+                      The application deadline was <strong>September 23rd, 2025 at 8:00 PM EST</strong>
+                    </p>
+                    <Button 
+                      disabled
+                      size="lg"
+                      className="bg-gray-500 text-gray-300 cursor-not-allowed px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-semibold w-full sm:w-auto"
+                    >
+                      Applications Closed
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : !hasStartedApplication ? (
                 <Card className="border-0 shadow-lg bg-gradient-to-r from-gray-800 to-black text-white">
                   <CardContent className="p-6 sm:p-8 text-center">
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Ready to Apply?</h2>
