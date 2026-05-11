@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -30,8 +30,29 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
     studentNumber: userProfile?.studentNumber || '',
     studentType: userProfile?.studentType || 'none'
   });
+  const isValidStudentNumber = /^\d{6,7}$/.test(formData.studentNumber);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setFormData({
+      fullName: userProfile?.fullName || '',
+      grade: userProfile?.grade || '',
+      studentNumber: userProfile?.studentNumber || '',
+      studentType: userProfile?.studentType || 'none'
+    });
+  }, [open, userProfile]);
 
   const handleSave = async () => {
+    if (!isValidStudentNumber) {
+      toast({
+        title: "Invalid student number",
+        description: "Student number must be a numeric value that is 6 or 7 digits long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await updateUserProfile({
         fullName: formData.fullName,
@@ -90,9 +111,14 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
             <Input
               id="studentNumber"
               value={formData.studentNumber}
-              onChange={(e) => handleInputChange('studentNumber', e.target.value)}
-              placeholder="Enter your student number"
+              onChange={(e) => handleInputChange('studentNumber', e.target.value.replace(/\D/g, '').slice(0, 7))}
+              placeholder="Enter your 6-7 digit student number"
+              inputMode="numeric"
+              maxLength={7}
             />
+            {formData.studentNumber !== '' && !isValidStudentNumber && (
+              <p className="text-sm text-red-600">Student number must be 6 or 7 digits.</p>
+            )}
           </div>
           
           <div className="grid gap-2">
@@ -118,7 +144,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None</SelectItem>
-                <SelectItem value="IB">SHSM</SelectItem>
+                <SelectItem value="SHSM">SHSM</SelectItem>
                 <SelectItem value="AP">Advanced Placement (AP)</SelectItem>
               </SelectContent>
             </Select>
@@ -129,7 +155,7 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={!isValidStudentNumber || !formData.fullName.trim() || !formData.grade}>
             Save Changes
           </Button>
         </DialogFooter>

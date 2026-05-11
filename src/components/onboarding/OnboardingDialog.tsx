@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -15,7 +14,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
 
 interface OnboardingDialogProps {
   open: boolean;
@@ -32,7 +30,8 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
     studentType: '' as 'AP' | 'SHSM' | 'none' | ''
   });
 
-  const isStep2Valid = formData.fullName.trim() !== '' && formData.studentNumber.trim() !== '';
+  const isValidStudentNumber = /^\d{6,7}$/.test(formData.studentNumber);
+  const isStep2Valid = formData.fullName.trim() !== '' && isValidStudentNumber;
   const isStep3Valid = formData.grade.trim() !== '' && formData.studentType !== '';
 
   const stepContent = [
@@ -51,6 +50,15 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
   ];
 
   const totalSteps = stepContent.length;
+
+  const handleEnterAdvance = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'Enter') return;
+
+    event.preventDefault();
+    if (step === 2 && isStep2Valid) {
+      handleContinue();
+    }
+  };
 
   const handleContinue = () => {
     // Add validation for each step
@@ -91,7 +99,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
 
   return (
     <Dialog open={open}>
-      <DialogContent className="gap-0 p-0 [&>button:last-child]:text-white sm:max-w-[500px]">
+      <DialogContent className="gap-0 p-0 [&>button:last-child]:hidden sm:max-w-[500px]">
         <div className="p-4">
           <div className="w-full h-32 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
             <GraduationCap className="h-16 w-16 text-white" />
@@ -112,6 +120,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
                   placeholder="Enter your full name"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  onKeyDown={handleEnterAdvance}
                   required
                 />
               </div>
@@ -119,11 +128,17 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
                 <Label htmlFor="studentNumber">Student Number *</Label>
                 <Input
                   id="studentNumber"
-                  placeholder="Enter your student number"
+                  placeholder="Enter your 6-7 digit student number"
                   value={formData.studentNumber}
-                  onChange={(e) => setFormData({ ...formData, studentNumber: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, studentNumber: e.target.value.replace(/\D/g, '').slice(0, 7) })}
+                  onKeyDown={handleEnterAdvance}
+                  inputMode="numeric"
+                  maxLength={7}
                   required
                 />
+                {formData.studentNumber !== '' && !isValidStudentNumber && (
+                  <p className="text-sm text-red-600">Student number must be 6 or 7 digits.</p>
+                )}
               </div>
             </div>
           )}
@@ -176,12 +191,13 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
           <DialogFooter className="flex-col space-y-2">
             <div className="flex w-full gap-2">
               {step > 1 && (
-                <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+                <Button type="button" variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
                   Back
                 </Button>
               )}
               {step < totalSteps ? (
                 <Button 
+                  type="button"
                   onClick={handleContinue} 
                   className="flex-1"
                   disabled={
@@ -193,6 +209,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onComplete })
                 </Button>
               ) : (
                 <Button 
+                  type="button"
                   onClick={handleComplete} 
                   className="flex-1"
                   disabled={!isStep2Valid || !isStep3Valid || step !== totalSteps}

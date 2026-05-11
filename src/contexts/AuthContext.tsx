@@ -74,6 +74,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const getDerivedRole = (email: string): 'student' | 'exec' | 'superadmin' => {
+    if (isSuperAdmin(email)) {
+      return 'superadmin';
+    }
+    if (isExec(email)) {
+      return 'exec';
+    }
+    return 'student';
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('Auth state changed:', user?.email);
@@ -97,21 +107,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Always update role based on email
             if (isSuperAdmin(user.email || '')) {
               profile = { ...profile, role: 'superadmin' };
-              await setDoc(doc(db, 'users', user.uid), profile);
+              await setDoc(doc(db, 'users', user.uid), { role: 'superadmin' }, { merge: true });
             } else if (isExec(user.email || '')) {
               profile = { ...profile, role: 'exec' };
-              await setDoc(doc(db, 'users', user.uid), profile);
+              await setDoc(doc(db, 'users', user.uid), { role: 'exec' }, { merge: true });
             }
             
             setUserProfile(profile);
           } else {
             // Create initial profile with appropriate role
-            let initialRole: 'student' | 'exec' | 'superadmin' = 'student';
-            if (isSuperAdmin(user.email || '')) {
-              initialRole = 'superadmin';
-            } else if (isExec(user.email || '')) {
-              initialRole = 'exec';
-            }
+            const initialRole = getDerivedRole(user.email || '');
 
             const initialProfile: UserProfile = {
               uid: user.uid,
@@ -180,10 +185,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUserProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return;
-    
-    const updatedProfile = { ...userProfile, ...updates } as UserProfile;
-    await setDoc(doc(db, 'users', user.uid), updatedProfile);
+    if (!user || !userProfile) return;
+
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      ...updates,
+      uid: user.uid,
+      email: user.email || userProfile.email,
+      role: getDerivedRole(user.email || ''),
+      createdAt: userProfile.createdAt,
+    };
+
+    await setDoc(doc(db, 'users', user.uid), updatedProfile, { merge: true });
     setUserProfile(updatedProfile);
   };
 
