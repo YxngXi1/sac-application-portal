@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { loadApplicationProgress } from '@/services/applicationService';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { APPLICATION_POSITIONS } from '@/lib/applicationConfig';
 
 interface Executive {
   id: string;
@@ -21,6 +22,23 @@ const StudentDashboard = () => {
   const [loading, setLoading] = React.useState(true);
   const [executives, setExecutives] = React.useState<Executive[]>([]);
   const [userInterviewData, setUserInterviewData] = React.useState<any>(null);
+
+  const formatSubmittedAt = (value: Date | string | undefined) => {
+    if (!value) return 'Not submitted';
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not submitted';
+
+    return date.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   // Fetch superadmin users for panel member names
   React.useEffect(() => {
@@ -190,7 +208,7 @@ const StudentDashboard = () => {
     id: userProfile?.uid || '1',
     position: applicationData.position || 'Unknown Position',
     status: applicationData.status || 'draft',
-    submittedAt: applicationData.submittedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+    submittedAt: applicationData.submittedAt,
     interviewScheduled: !!userInterviewData,
   }] : [];
 
@@ -234,14 +252,14 @@ const StudentDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              {['President', 'Vice President', 'Secretary', 'Treasurer', 'Social Coordinator', 'Spirit Coordinator', 'Grade 9 Rep', 'Grade 10 Rep'].map((position) => (
+              {APPLICATION_POSITIONS.map((position) => (
                 <Button 
-                  key={position}
+                  key={position.id}
                   variant="outline" 
                   className="h-auto p-4 text-left justify-start hover:bg-blue-50 hover:border-blue-300"
                 >
                   <div>
-                    <div className="font-medium">{position}</div>
+                    <div className="font-medium">{position.title}</div>
                     <div className="text-sm text-gray-500">Click to apply</div>
                   </div>
                 </Button>
@@ -282,7 +300,7 @@ const StudentDashboard = () => {
                   </Badge>
                 </div>
                 <CardDescription>
-                  Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                  Submitted: {formatSubmittedAt(app.submittedAt)}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -331,14 +349,14 @@ const StudentDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {['President', 'Vice President', 'Secretary', 'Treasurer', 'Social Coordinator', 'Spirit Coordinator', 'Grade 9 Rep', 'Grade 10 Rep'].map((position) => (
+            {APPLICATION_POSITIONS.map((position) => (
               <Button 
-                key={position}
+                key={position.id}
                 variant="outline" 
                 className="h-auto p-4 text-left justify-start hover:bg-blue-50 hover:border-blue-300"
               >
                 <div>
-                  <div className="font-medium">{position}</div>
+                  <div className="font-medium">{position.title}</div>
                   <div className="text-sm text-gray-500">Click to apply</div>
                 </div>
               </Button>

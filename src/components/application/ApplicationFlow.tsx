@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { saveApplicationProgress, loadApplicationProgress } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +9,7 @@ import PositionQuestionsComponent from './PositionQuestionsComponent';
 import ConfirmationPage from './ConfirmationPage';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { APPLICATION_POSITIONS, getQuestionCountForPosition } from '@/lib/applicationConfig';
 
 const ApplicationFlow = () => {
   const { user, userProfile } = useAuth();
@@ -20,12 +20,7 @@ const ApplicationFlow = () => {
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [hasExistingApplication, setHasExistingApplication] = useState(false);
   const [forceStartFromBeginning, setForceStartFromBeginning] = useState(false);
-
-  const positions = [
-    'Grade Rep',
-  ];
 
   // Load application progress on component mount
   useEffect(() => {
@@ -41,7 +36,6 @@ const ApplicationFlow = () => {
         
         if (savedApplication && !forceStartFromBeginning) {
           console.log('Found existing application:', savedApplication);
-          setHasExistingApplication(true);
           setSelectedPosition(savedApplication.position);
           setAnswers(savedApplication.answers || {});
           
@@ -57,7 +51,6 @@ const ApplicationFlow = () => {
           setSelectedPosition('');
           setAnswers({});
           setUploadedFiles({});
-          setHasExistingApplication(false);
         }
       } catch (error) {
         console.error('Error loading application progress:', error);
@@ -84,54 +77,23 @@ const ApplicationFlow = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (currentStep === 1 && !loading && !selectedPosition) {
-      console.log('Auto-selecting Grade Rep position');
-      setSelectedPosition('Grade Rep');
-    }
-  }, [currentStep, loading, selectedPosition]);
-
-  // Handle position selection and proceed to next step
-  useEffect(() => {
-    if (currentStep === 1 && selectedPosition === 'Grade Rep' && !loading) {
-      console.log('Position is set, proceeding to save and continue');
-      
-      const proceedWithApplication = async () => {
-        try {
-          await handlePositionSelect();
-        } catch (error) {
-          console.error('Error during auto-position selection:', error);
-          toast({
-            title: "Error",
-            description: "Failed to save your position selection. Please try again.",
-            variant: "destructive",
-          });
-        }
-      };
-
-      // Small delay to ensure state is properly updated
-      const timeoutId = setTimeout(proceedWithApplication, 100);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [currentStep, selectedPosition, loading]);
-
   const handleGetStarted = () => {
     console.log('Getting started, moving to position selection');
     setCurrentStep(1);
   };
 
-  const handlePositionSelect = async () => {
-    if (!selectedPosition || !user) {
-      console.error('Cannot select position: missing data', { selectedPosition, user: !!user });
+  const handlePositionSelect = async (position = selectedPosition) => {
+    if (!position || !user) {
+      console.error('Cannot select position: missing data', { position, user: !!user });
       return;
     }
 
     try {
-      console.log('Saving position selection:', selectedPosition);
+      console.log('Saving position selection:', position);
       const progress = 20; // Position selected = 20% progress
       
       await saveApplicationProgress(user.uid, {
-        position: selectedPosition,
+        position,
         answers: {},
         progress,
         status: 'draft',
@@ -142,12 +104,12 @@ const ApplicationFlow = () => {
         }
       });
       
-      setHasExistingApplication(true);
+      setSelectedPosition(position);
       setCurrentStep(2);
       
       toast({
         title: "Position Selected",
-        description: "You're applying for Grade Rep position.",
+        description: `You're applying for ${position}.`,
       });
     } catch (error) {
       console.error('Error saving position selection:', error);
@@ -171,7 +133,6 @@ const ApplicationFlow = () => {
       setSelectedPosition('');
       setAnswers({});
       setUploadedFiles({});
-      setHasExistingApplication(false);
       setCurrentStep(0);
       
       toast({
@@ -214,10 +175,7 @@ const ApplicationFlow = () => {
   };
 
   const getQuestionCount = (position: string) => {
-    switch (position) {
-      case 'Grade Rep': return 5;
-      default: return 1;
-    }
+    return getQuestionCountForPosition(position);
   };
 
 const saveProgress = async () => {
@@ -282,26 +240,40 @@ const saveProgress = async () => {
   // Step 0: Get Started
   if (currentStep === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-4">
-          <CardHeader className="text-center p-4 sm:p-6">
-            <CardTitle className="text-xl sm:text-2xl">Start Your Application</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base">Ready to join the Student Activity Council as an Grade Rep?</p>
+      <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        <Card className="w-full max-w-6xl mx-auto">
+          <CardHeader className="text-center px-4 py-6 sm:px-8 sm:py-8">
+            <CardTitle className="text-2xl sm:text-3xl lg:text-4xl">Start Your Application</CardTitle>
+            <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-3xl mx-auto">
+              Apply for one of this year’s SAC executive positions.
+            </p>
           </CardHeader>
-          <CardContent className="text-center space-y-4 p-4 sm:p-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Grade Rep Position</h3>
-              <p className="text-sm text-blue-700">
-                Grade Reps are elected members that represent and voice the opinions of their grade at SAC initiatives, as well as carry out the responsibilities of an honourary member.
-              </p>
+          <CardContent className="space-y-5 px-4 pb-4 sm:px-8 sm:pb-8">
+            <div className="space-y-4">
+              <h3 className="font-semibold text-blue-900 text-lg sm:text-xl text-center">Available Roles</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 text-left">
+                {APPLICATION_POSITIONS.map((position) => (
+                  <div
+                    key={position.id}
+                    className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-4 sm:px-5 sm:py-5 shadow-sm"
+                  >
+                    <h4 className="font-semibold text-blue-900 text-base sm:text-lg mb-2">
+                      {position.title}
+                    </h4>
+                    <p className="text-sm sm:text-base text-blue-700 leading-7">
+                      {position.fullDescription}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="bg-blue-50 p-3 rounded-lg text-xs sm:text-sm text-blue-800">
+            <div className="bg-blue-50 px-4 py-3 sm:px-5 sm:py-4 rounded-lg text-sm sm:text-base text-blue-800 text-center">
               Your progress is automatically saved. We recommend saving a backup of these answers on another safe platform too.
             </div>
             <Button 
               onClick={handleGetStarted}
               size="lg"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-sm sm:text-base lg:text-lg"
             >
               Start Application
             </Button>
@@ -311,24 +283,48 @@ const saveProgress = async () => {
     );
   }
 
-  // Step 1: Position Selection (Auto-select Grade Rep)
+  // Step 1: Position Selection
   if (currentStep === 1) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-4">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-xl sm:text-2xl">Setting Up Your Application</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base">Preparing your Grade Rep application...</p>
+      <div className="min-h-screen bg-gray-50 px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        <Card className="w-full max-w-5xl mx-auto">
+          <CardHeader className="px-4 py-6 sm:px-8 sm:py-8">
+            <CardTitle className="text-2xl sm:text-3xl">Choose Your Position</CardTitle>
+            <p className="text-gray-600 text-sm sm:text-base lg:text-lg">Select the SAC executive role you want to apply for.</p>
           </CardHeader>
-          <CardContent className="text-center space-y-4 p-4 sm:p-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">Grade Rep Position</h3>
-              <p className="text-sm text-blue-700">
-                Grade Reps are elected members that represent and voice the opinions of their grade at SAC initiatives, as well as carry out the responsibilities of an honourary member.
-              </p>
+          <CardContent className="space-y-5 px-4 pb-4 sm:px-8 sm:pb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {APPLICATION_POSITIONS.map((position) => (
+                <button
+                  key={position.id}
+                  type="button"
+                  onClick={() => setSelectedPosition(position.id)}
+                  className={`rounded-xl border p-4 sm:p-5 text-left transition ${
+                    selectedPosition === position.id
+                      ? 'border-blue-600 bg-blue-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <h3 className="font-semibold text-gray-900 text-base sm:text-lg mb-2">{position.title}</h3>
+                  <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{position.shortDescription}</p>
+                </button>
+              ))}
             </div>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-gray-600 text-sm">Setting up your application...</p>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button variant="outline" onClick={handleBack} className="flex-1">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                onClick={() => handlePositionSelect()}
+                disabled={!selectedPosition}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                Continue
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

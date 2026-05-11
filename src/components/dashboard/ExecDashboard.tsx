@@ -2,40 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, FileText, Target, TrendingUp, Clock, ArrowLeft, Calendar, BarChart3, GraduationCap } from 'lucide-react';
+import { Users, FileText, Target, Clock, ArrowLeft, Briefcase } from 'lucide-react';
 import { getAllApplications } from '@/services/applicationService';
 import { ApplicationData } from '@/services/applicationService';
 import PositionApplications from './PositionApplications';
-import InterviewView from './InterviewView';
-import SummaryView from './SummaryView';
+import { APPLICATION_POSITIONS } from '@/lib/applicationConfig';
 
 interface ExecDashboardProps {
   onBack: () => void;
 }
 
 const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
-  const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
-  const [showInterviewView, setShowInterviewView] = useState(false);
-  const [showSummaryView, setShowSummaryView] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const grades = [
-    { id: '9', name: 'Grade 9' },
-    { id: '10', name: 'Grade 10' },
-    { id: '11', name: 'Grade 11' },
-    { id: '12', name: 'Grade 12' }
-  ];
 
   useEffect(() => {
     const loadApplications = async () => {
       try {
         const allApplications = await getAllApplications();
-        // Filter for only Grade Rep applications
-        const gradeRepApplications = allApplications.filter(app => 
-          app.position === 'Grade Rep'
+        const execApplications = allApplications.filter(app =>
+          APPLICATION_POSITIONS.some((position) => position.id === app.position)
         );
-        setApplications(gradeRepApplications);
+        setApplications(execApplications);
       } catch (error) {
         console.error('Error loading applications:', error);
       } finally {
@@ -54,7 +43,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>SAC Grade Rep Applications Report</title>
+          <title>SAC Executive Applications Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -73,7 +62,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </style>
         </head>
         <body>
-          <h1>SAC Grade Rep Applications Report</h1>
+          <h1>SAC Executive Applications Report</h1>
           <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           <p><strong>Total Applications:</strong> ${applications.length}</p>
           
@@ -81,6 +70,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             <thead>
               <tr>
                 <th>Student Name</th>
+                <th>Position</th>
                 <th>Grade</th>
                 <th>Student Number</th>
                 <th>Status</th>
@@ -93,6 +83,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
               ${applications.map(app => `
                 <tr>
                   <td>${app.userProfile?.fullName || 'N/A'}</td>
+                  <td>${app.position || 'N/A'}</td>
                   <td>${app.userProfile?.grade || 'N/A'}</td>
                   <td>${app.userProfile?.studentNumber || 'N/A'}</td>
                   <td class="status-${app.status}">${app.status.replace('_', ' ').toUpperCase()}</td>
@@ -117,17 +108,17 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
     printWindow.document.close();
   };
 
-  const getGradeStats = (grade: string) => {
-    const gradeApps = applications.filter(app => 
-      app.userProfile?.grade === grade
+  const getPositionStats = (positionId: string) => {
+    const positionApps = applications.filter(app =>
+      app.position === positionId
     );
     
-    const total = gradeApps.length;
-    const submitted = gradeApps.filter(app => app.status === 'submitted').length;
-    const inProgress = gradeApps.filter(app => 
+    const total = positionApps.length;
+    const submitted = positionApps.filter(app => app.status === 'submitted').length;
+    const inProgress = positionApps.filter(app =>
       app.status === 'draft' && app.progress > 0
     ).length;
-    const interviewed = gradeApps.filter(app => app.interviewScheduled).length;
+    const interviewed = positionApps.filter(app => app.interviewScheduled).length;
 
     return { total, submitted, inProgress, interviewed };
   };
@@ -139,29 +130,19 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
   ).length;
   const totalInterviewed = applications.filter(app => app.interviewScheduled).length;
 
-  if (selectedGrade) {
-    // Filter applications by grade for the PositionApplications component
-    const gradeApplications = applications.filter(app => 
-      app.userProfile?.grade === selectedGrade
+  if (selectedPosition) {
+    const positionApplications = applications.filter(app =>
+      app.position === selectedPosition
     );
     
     return (
       <PositionApplications 
-        positionId="Grade REp"
-        positionName={`Grade ${selectedGrade} Grade Rep`}
-        onBack={() => setSelectedGrade(null)}
-        filteredApplications={gradeApplications}
-        gradeFilter={selectedGrade}
+        positionId={selectedPosition}
+        positionName={selectedPosition}
+        onBack={() => setSelectedPosition(null)}
+        filteredApplications={positionApplications}
       />
     );
-  }
-
-  if (showInterviewView) {
-    return <InterviewView onBack={() => setShowInterviewView(false)} />;
-  }
-
-  if (showSummaryView) {
-    return <SummaryView onBack={() => setShowSummaryView(false)} />;
   }
 
   if (loading) {
@@ -185,39 +166,20 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
-            <div className="flex space-x-3">
-              <Button
-                onClick={() => setShowSummaryView(true)}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Summary View
-              </Button>
-              
-              <Button
-                onClick={() => setShowInterviewView(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Interview View
-              </Button>
-              
-              <Button
-                onClick={handlePrintApplications}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Print Report
-              </Button>
-            </div>
+            <Button
+              onClick={handlePrintApplications}
+              variant="outline"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Print Report
+            </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Grade Rep Dashboard
+            SAC Executive Applications
           </h1>
           <p className="text-gray-600">
-            Manage SAC Grade Rep applications by grade level
+            Review and grade applications by position
           </p>
         </div>
       </div>
@@ -274,32 +236,32 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </Card>
         </div>
 
-        {/* Grade Levels Grid */}
+        {/* Positions Grid */}
         <Card className="border shadow-sm bg-white">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-blue-600" />
-              Grade Rep Applications by Grade
+              <Briefcase className="h-5 w-5 text-blue-600" />
+              Applications by Position
             </CardTitle>
             <CardDescription>
-              Click on a grade to view and manage applications for that grade level.
+              Click a position to view and manage applications for that role.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {grades.map((grade) => {
-                const stats = getGradeStats(grade.id);
+              {APPLICATION_POSITIONS.map((position) => {
+                const stats = getPositionStats(position.id);
                 return (
                   <Card 
-                    key={grade.id}
+                    key={position.id}
                     className="cursor-pointer hover:shadow-lg transition-all duration-200 border shadow-sm hover:scale-105"
-                    onClick={() => setSelectedGrade(grade.id)}
+                    onClick={() => setSelectedPosition(position.id)}
                   >
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
-                          <GraduationCap className="h-5 w-5 text-blue-600" />
-                          <h3 className="font-semibold text-lg text-gray-900">{grade.name}</h3>
+                          <Briefcase className="h-5 w-5 text-blue-600" />
+                          <h3 className="font-semibold text-lg text-gray-900">{position.title}</h3>
                         </div>
                         <Badge variant="secondary" className="bg-gray-100 text-gray-800">
                           {stats.total} total
@@ -327,14 +289,16 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
                         </div>
                       </div>
 
+                      <p className="text-sm text-gray-600 mb-4">{position.shortDescription}</p>
+
                       <Button 
                         className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedGrade(grade.id);
+                          setSelectedPosition(position.id);
                         }}
                       >
-                        View Grade {grade.id} Applications
+                        View Applications
                       </Button>
                     </CardContent>
                   </Card>
@@ -344,24 +308,24 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </CardContent>
         </Card>
 
-        {/* Quick Stats by Grade */}
+        {/* Quick Stats by Position */}
         <Card className="border shadow-sm bg-white mt-6">
           <CardHeader>
-            <CardTitle>Grade Distribution Summary</CardTitle>
+            <CardTitle>Position Summary</CardTitle>
             <CardDescription>
-              Overview of applications across all grade levels
+              Overview of application volume across all four roles
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {grades.map((grade) => {
-                const stats = getGradeStats(grade.id);
+              {APPLICATION_POSITIONS.map((position) => {
+                const stats = getPositionStats(position.id);
                 const submissionRate = stats.total > 0 ? ((stats.submitted / stats.total) * 100).toFixed(1) : '0';
                 
                 return (
-                  <div key={grade.id} className="p-4 bg-gray-50 rounded-lg">
+                  <div key={position.id} className="p-4 bg-gray-50 rounded-lg">
                     <div className="text-center">
-                      <h4 className="font-semibold text-gray-900 mb-2">{grade.name}</h4>
+                      <h4 className="font-semibold text-gray-900 mb-2">{position.title}</h4>
                       <div className="text-2xl font-bold text-blue-600 mb-1">{stats.submitted}</div>
                       <div className="text-sm text-gray-600">of {stats.total} submitted</div>
                       <div className="text-xs text-gray-500 mt-1">{submissionRate}% completion</div>

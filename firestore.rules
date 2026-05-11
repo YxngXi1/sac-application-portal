@@ -1,0 +1,148 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function authEmail() {
+      return request.auth.token.email;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isExecEmail() {
+      return signedIn() && [
+        '782630@pdsb.net',
+        '781284@pdsb.net',
+        '1099702@pdsb.net',
+        '892934@pdsb.net',
+        '898765@pdsb.net',
+        '806272@pdsb.net',
+        '780748@pdsb.net',
+        '752470@pdsb.net'
+      ].hasAny([authEmail()]);
+    }
+
+    function isSuperadminEmail() {
+      return signedIn() && [
+        '843909@pdsb.net',
+        '795804@pdsb.net',
+        '793546@pdsb.net',
+        '930999@pdsb.net',
+        '890323@pdsb.net',
+        '752470@pdsb.net',
+        '952625@pdsb.net',
+        '752622@pdsb.net',
+        '1024127@pdsb.net'
+      ].hasAny([authEmail()]);
+    }
+
+    function isStaff() {
+      return isExecEmail() || isSuperadminEmail();
+    }
+
+    function derivedRole() {
+      return isSuperadminEmail() ? 'superadmin'
+        : isExecEmail() ? 'exec'
+        : 'student';
+    }
+
+    function isStaffProfileDoc() {
+      return ['exec', 'superadmin'].hasAny([resource.data.role]);
+    }
+
+    function validUserCreate(userId) {
+      return request.resource.data.uid == userId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == authEmail()
+        && request.resource.data.role == derivedRole();
+    }
+
+    function validUserUpdate(userId) {
+      return request.resource.data.uid == resource.data.uid
+        && request.resource.data.uid == userId
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.email == authEmail()
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.role == derivedRole()
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function validApplicationOwnerCreate(applicationId) {
+      return applicationId == request.auth.uid
+        && request.resource.data.id == applicationId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.position is string
+        && request.resource.data.answers is map
+        && request.resource.data.progress is number
+        && request.resource.data.status == 'draft'
+        && !request.resource.data.keys().hasAny(['score', 'interviewScheduled']);
+    }
+
+    function validApplicationOwnerUpdate(applicationId) {
+      return applicationId == request.auth.uid
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.position is string
+        && request.resource.data.answers is map
+        && request.resource.data.progress is number
+        && request.resource.data.score == resource.data.score
+        && request.resource.data.interviewScheduled == resource.data.interviewScheduled
+        && (
+          (resource.data.status == 'submitted' && request.resource.data.status == 'submitted') ||
+          (resource.data.status != 'submitted' && ['draft', 'submitted'].hasAny([request.resource.data.status]))
+        );
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && (
+        isOwner(userId) ||
+        isStaff() ||
+        isStaffProfileDoc()
+      );
+
+      allow create: if isOwner(userId) && validUserCreate(userId);
+      allow update: if isOwner(userId) && validUserUpdate(userId);
+      allow delete: if false;
+    }
+
+    match /applications/{applicationId} {
+      allow read: if signedIn() && (
+        applicationId == request.auth.uid ||
+        isStaff()
+      );
+
+      allow create: if signedIn() && validApplicationOwnerCreate(applicationId);
+      allow update: if signedIn() && (
+        validApplicationOwnerUpdate(applicationId) ||
+        isStaff()
+      );
+      allow delete: if signedIn() && applicationId == request.auth.uid;
+    }
+
+    match /applicationGrades/{gradeId} {
+      allow read, write: if signedIn() && isStaff();
+    }
+
+    match /interviewGrades/{gradeId} {
+      allow read, write: if signedIn() && isStaff();
+    }
+
+    match /interviews/{interviewId} {
+      allow read: if signedIn() && (
+        interviewId == request.auth.uid ||
+        isStaff()
+      );
+      allow write: if signedIn() && isStaff();
+    }
+
+    match /scheduledInterviews/{docId} {
+      allow read, write: if signedIn() && isStaff();
+    }
+  }
+}

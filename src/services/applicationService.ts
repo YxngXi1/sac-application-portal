@@ -57,6 +57,17 @@ export interface ExecutiveGradeSubmission {
   feedback?: string; // Overall feedback
 }
 
+const toDateValue = (value: unknown): Date | undefined => {
+  if (!value) return undefined;
+  if (value instanceof Date) return value;
+  if (typeof value === 'object' && value !== null && 'toDate' in value && typeof (value as { toDate: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+
+  const parsed = new Date(value as string | number | Date);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+};
+
 export const saveApplicationProgress = async (
   userId: string,
   applicationData: Partial<ApplicationData>
@@ -122,9 +133,9 @@ export const loadApplicationProgress = async (userId: string): Promise<Applicati
       
       return {
         ...data,
-        createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
-        updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
-        submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
+        createdAt: toDateValue(data.createdAt) || new Date(),
+        updatedAt: toDateValue(data.updatedAt) || new Date(),
+        submittedAt: toDateValue(data.submittedAt),
       };
     } else {
       console.log('No application data found for user');
@@ -204,9 +215,9 @@ export const getAllApplicationsByPosition = async (position: string): Promise<Ap
     const data = doc.data() as ApplicationData;
     return {
       ...data,
-      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
-      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
-      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
+      createdAt: toDateValue(data.createdAt) || new Date(),
+      updatedAt: toDateValue(data.updatedAt) || new Date(),
+      submittedAt: toDateValue(data.submittedAt),
     };
   });
 };
@@ -219,9 +230,9 @@ export const getAllApplications = async (): Promise<ApplicationData[]> => {
     const data = doc.data() as ApplicationData;
     return {
       ...data,
-      createdAt: data.createdAt instanceof Date ? data.createdAt : new Date(data.createdAt),
-      updatedAt: data.updatedAt instanceof Date ? data.updatedAt : new Date(data.updatedAt),
-      submittedAt: data.submittedAt ? (data.submittedAt instanceof Date ? data.submittedAt : new Date(data.submittedAt)) : undefined,
+      createdAt: toDateValue(data.createdAt) || new Date(),
+      updatedAt: toDateValue(data.updatedAt) || new Date(),
+      submittedAt: toDateValue(data.submittedAt),
     };
   });
 };

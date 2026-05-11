@@ -9,6 +9,7 @@ import { ApplicationData, saveApplicationGrades, getApplicationGrades, getAllApp
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import ExecutiveGrades from './ExecutiveGrades';
+import { getQuestionsForPosition } from '@/lib/applicationConfig';
 
 interface ApplicationGraderProps {
   application: ApplicationData;
@@ -16,7 +17,6 @@ interface ApplicationGraderProps {
   onBack: () => void;
   onNavigateToApplication?: (application: ApplicationData) => void;
   filteredApplications?: ApplicationData[];
-  gradeFilter?: string;
 }
 
 interface Question {
@@ -27,26 +27,12 @@ interface Question {
   maxScore: number;
 }
 
-const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>> = {
-  'Grade Rep': [
-    { question: 'Tell us your "why" - why do you want to be a Grade Representative in the 2025-26 school year?', key: 'honorary_1' },
-    { question: "What is your platform? In other words, what ideas, initiatives, or changes would you like to introduce, and how will it benefit the student body?", key: 'honorary_2' },
-    { question: "As a Grade Rep, communication is key. How will you actively represent and voice your grade's ideas and opinions during SAC meetings, events, and spirit weeks? Please be specific.", key: 'honorary_3' },
-    { question: 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.', key: 'honorary_4' },
-    { question: 'Do you know anyone currently on the SAC Executive Council?', key: 'honorary_5' },
-    { question: 'Which 2 John Fraser teachers support you as a SAC Grade Representative. Include their name and emails.', key: 'honorary_6' }
-  ]
-};
-
-
-
 const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   application,
   positionName,
   onBack,
   onNavigateToApplication,
-  filteredApplications,
-  gradeFilter
+  filteredApplications
 }) => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
@@ -100,14 +86,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
         const myGrades = existingGrades?.executiveGrades?.find(eg => eg.executiveId === userProfile?.uid);
         
         // Get position-specific questions with proper mapping
-        const positionQuestions = POSITION_QUESTIONS[positionName] || [
-          { question: 'Question 1', key: 'honorary_1' },
-          { question: 'Question 2', key: 'honorary_2' },
-          { question: 'Question 3', key: 'honorary_3' },
-          { question: 'Question 4', key: 'honorary_4' },
-          { question: 'Question 5', key: 'honorary_5' },
-          { question: 'Question 6', key: 'honorary_6' }
-        ];
+        const positionQuestions = getQuestionsForPosition(positionName).map((question) => ({
+          question: question.question,
+          key: question.id,
+        }));
         
         // Convert application answers to questions format with proper key mapping
         const questionsList: Question[] = [];
@@ -255,11 +237,6 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
       const nextIndex = (currentApplicationIndex + i) % allApplications.length;
       const nextApp = allApplications[nextIndex];
       
-      // If there's a grade filter, only consider applications with matching grade
-      if (gradeFilter && nextApp.userProfile?.grade !== gradeFilter) {
-        continue;
-      }
-      
       try {
         const grades = await getApplicationGrades(nextApp.id);
         const hasMyGrades = grades?.executiveGrades?.some(eg => eg.executiveId === userProfile.uid);
@@ -280,10 +257,9 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     if (nextUngraded && onNavigateToApplication) {
       onNavigateToApplication(nextUngraded.app);
     } else {
-      const gradeText = gradeFilter ? ` for Grade ${gradeFilter}` : '';
       toast({
         title: "All Done!",
-        description: `You have graded all submitted applications${gradeText}.`,
+        description: `You have graded all submitted applications for this position.`,
       });
     }
   };
@@ -366,19 +342,6 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     );
   };
 
-const getQuestionText = (questionId: string): string => {
-  const questionMappings: Record<string, string> = {
-    'honorary_1': 'Tell us your "why" - why do you want to be a Grade Representative in the 2025-26 school year? (150 words max)',
-    'honorary_2': 'What is your platform? In other words, what ideas, initiatives, or changes would you like to introduce, and how will it benefit the student body? (200 words max)',
-    'honorary_3': "As a Grade Rep, communication is key. How will you actively represent and voice your grade's ideas and opinions during SAC meetings, events, and spirit weeks? Please be specific. (200 words max)",
-    'honorary_4': 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only. (150 words max)',
-    'honorary_5': 'Do you know anyone currently on the SAC Executive Council? (100 words max)',
-    'honorary_6': 'Which 2 John Fraser teachers support you as a SAC Grade Representative. Include their name and emails. (100 words max)'
-  };
-
-  return questionMappings[questionId] || questionId;
-};
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -402,14 +365,7 @@ const getQuestionText = (questionId: string): string => {
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Applications
                 </Button>
-                
-                {gradeFilter && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    <GraduationCap className="h-3 w-3 mr-1" />
-                    Grade {gradeFilter} Only
-                  </Badge>
-                )}
-                
+
                 {/* Navigation Controls */}
                 <div className="flex items-center space-x-2 ml-8">
                   <Button 
@@ -449,7 +405,6 @@ const getQuestionText = (questionId: string): string => {
               
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 Grading Application
-                {gradeFilter && <span className="text-lg text-gray-600 ml-2">(Grade {gradeFilter})</span>}
                 {isExec && (
                   <span className="text-lg text-orange-600 ml-2">(Anonymous Mode)</span>
                 )}
@@ -565,7 +520,7 @@ const getQuestionText = (questionId: string): string => {
                       Question {index + 1}
                     </CardTitle>
                     <CardDescription>
-                      {getQuestionText(question.id)}
+                      {question.question}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

@@ -9,6 +9,7 @@ import ProfileEditDialog from './ProfileEditDialog';
 import ExecDashboard from './ExecDashboard';
 import DeadlineTile from './DeadlineTile';
 import { useToast } from '@/hooks/use-toast';
+import { APPLICATION_POSITIONS } from '@/lib/applicationConfig';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,17 +35,17 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
-  // Check if applications are open (September 3rd, 2025 at 8:00 AM EST) and closed (September 23rd, 2025 at 8:00 PM EST)
+  // Check if applications are open (May 11th, 2026 at 12:00 PM EDT) and closed (May 12th, 2026 at 11:59 PM EDT)
   const isApplicationsOpen = () => {
     const now = new Date();
-    const openDate = new Date('2025-09-03T08:00:00-04:00'); // September 3rd, 2025 at 8:00 AM EST
-    const closeDate = new Date('2025-09-23T20:00:00-04:00'); // September 23rd, 2025 at 8:00 PM EST
+    const openDate = new Date('2026-05-11T12:00:00-04:00'); // May 11th, 2026 at 12:00 PM EDT
+    const closeDate = new Date('2026-05-12T23:59:59-04:00'); // May 12th, 2026 at 11:59 PM EDT
     return now >= openDate && now <= closeDate;
   };
 
   const getTimeUntilOpen = () => {
     const now = new Date();
-    const openDate = new Date('2025-09-03T08:00:00-04:00');
+    const openDate = new Date('2026-05-11T12:00:00-04:00');
     const timeDiff = openDate.getTime() - now.getTime();
     
     if (timeDiff <= 0) return null;
@@ -84,12 +85,7 @@ const ApplicationDashboard = () => {
     loadProgress();
   }, [userProfile?.uid]);
 
-  const availablePositions = [
-    {
-      title: "Grade Rep",
-      description: "Grade Reps are elected members that represent and voice the opinions of their grade at SAC initiatives, as well as carry out the responsibilities of an honourary member."
-    }
-  ];
+  const availablePositions = APPLICATION_POSITIONS;
 
   const isExecOrSuperAdmin = userProfile?.role === 'exec' || userProfile?.role === 'superadmin';
   const isApplicationSubmitted = applicationStatus === 'submitted';
@@ -97,8 +93,8 @@ const ApplicationDashboard = () => {
 
   // Determine if before open or after close
   const now = new Date();
-  const openDate = new Date('2025-09-03T08:00:00-04:00');
-  const closeDate = new Date('2025-09-23T20:00:00-04:00');
+  const openDate = new Date('2026-05-11T12:00:00-04:00');
+  const closeDate = new Date('2026-05-12T23:59:59-04:00');
   const isBeforeOpen = now < openDate;
   const isAfterClose = now > closeDate;
 
@@ -106,7 +102,7 @@ const ApplicationDashboard = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on September 3rd at 8:00 AM EST.",
+        description: "Applications will open on May 11th, 2026 at 12:00 PM EDT.",
         variant: "destructive",
       });
       return;
@@ -121,7 +117,7 @@ const ApplicationDashboard = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on September 3rd at 8:00 AM EST.",
+        description: "Applications will open on May 11th, 2026 at 12:00 PM EDT.",
         variant: "destructive",
       });
       return;
@@ -220,7 +216,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Not Yet Open</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      SAC applications will open on <strong>September 3rd, 2025 at 8:00 AM EST</strong>
+                      SAC applications will open on <strong>May 11th, 2026 at 12:00 PM EDT</strong>
                     </p>
                     {getTimeUntilOpen() && (
                       <p className="text-orange-100 mb-6 sm:mb-8 text-sm sm:text-base">
@@ -242,7 +238,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Closed</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      The application deadline was <strong>September 23rd, 2025 at 8:00 PM EST</strong>
+                      The application deadline was <strong>May 12th, 2026 at 11:59 PM EDT</strong>
                     </p>
                     <Button 
                       disabled
@@ -398,7 +394,7 @@ const ApplicationDashboard = () => {
                           {position.title}
                         </h4>
                         <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                          {position.description}
+                          {position.shortDescription}
                         </p>
                       </div>
                     ))}

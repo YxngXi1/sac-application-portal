@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { submitApplication, saveApplicationProgress } from '@/services/applicationService';
+import { getQuestionCountForPosition } from '@/lib/applicationConfig';
 
 interface ConfirmationPageProps {
   position: string;
@@ -28,16 +29,13 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Application deadline - September 23rd, 2025 at 8:00 PM EST
-  const deadline = new Date('2025-09-23T20:00:00-04:00'); // EST time
+  // Application deadline - May 12th, 2026 at 11:59 PM EDT
+  const deadline = new Date('2026-05-12T23:59:59-04:00');
   const now = new Date();
   const isDeadlinePassed = now > deadline;
 
   const getQuestionCount = (position: string) => {
-    switch (position) {
-      case 'Grade Rep': return 5;
-      default: return 1;
-    }
+    return getQuestionCountForPosition(position);
   };
 
   const calculateProgress = () => {
@@ -145,7 +143,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             </CardTitle>
             <p className="text-gray-600">
               {isDeadlinePassed 
-                ? 'The application deadline was Monday, September 23rd, 2025 at 8:00 PM EST'
+                ? 'The application deadline was Tuesday, May 12th, 2026 at 11:59 PM EDT'
                 : 'Please confirm your details before submitting'
               }
             </p>

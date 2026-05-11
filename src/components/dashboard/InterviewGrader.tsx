@@ -9,6 +9,7 @@ import { ApplicationData } from '@/services/applicationService';
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
+import { APPLICATION_POSITIONS } from '@/lib/applicationConfig';
 
 interface InterviewGraderProps {
   candidate: ApplicationData;
@@ -113,21 +114,13 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
               }
             }
 
-            // Filter by the same grade as the current candidate
-            const currentCandidateGrade = c.userProfile?.grade;
-            const sameGradeApps = apps.filter(app => 
-              app.userProfile?.grade === currentCandidateGrade
-            );
-
-            sameGradeApps.sort((a, b) => {
+            apps.sort((a, b) => {
               const nameA = a.userProfile?.fullName || '';
               const nameB = b.userProfile?.fullName || '';
               return nameA.localeCompare(nameB);
             });
 
-            // Limit to 5 candidates maximum per grade group
-            const gradeGroupApps = sameGradeApps.slice(0, 5);
-            setGroupSlotCandidates(gradeGroupApps);
+            setGroupSlotCandidates(apps.slice(0, 5));
             return;
           }
         }
@@ -136,7 +129,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       console.debug('scheduledInterviews lookup failed, falling back to applications query', err);
     }
 
-    // Fallback method - also filter by grade
+    // Fallback method
     const slot = getCandidateGroupSlot(c);
     if (!slot) {
       setGroupSlotCandidates([]);
@@ -156,21 +149,13 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
         }
       }
 
-      // Filter by the same grade as the current candidate
-      const currentCandidateGrade = c.userProfile?.grade;
-      const sameGradeResults = results.filter(app => 
-        app.userProfile?.grade === currentCandidateGrade
-      );
-
-      sameGradeResults.sort((a, b) => {
+      results.sort((a, b) => {
         const nameA = a.userProfile?.fullName || '';
         const nameB = b.userProfile?.fullName || '';
         return nameA.localeCompare(nameB);
       });
 
-      // Limit to 5 candidates maximum per grade group
-      const combined = sameGradeResults.slice(0, 5);
-      setGroupSlotCandidates(combined);
+      setGroupSlotCandidates(results.slice(0, 5));
     } catch (err) {
       console.error('Error fetching group slot candidates (fallback):', err);
       setGroupSlotCandidates([]);
@@ -185,7 +170,91 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       pool3: string[],
       pool4: string[]
     }> = {
-      'Grade Rep': {
+      'SAC President': {
+        interviewOne: [
+          "Collaboration",
+          "Confidence",
+          "Participation",
+          "Overall Impression"
+        ],
+        pool1: [
+          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
+          "How should an honorary member demonstrate their commitment to SAC and the student body?",
+          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
+        ],
+        pool2: [
+          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
+          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
+          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
+        ],
+        pool3: [
+          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
+          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
+          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
+        ],
+        pool4: [
+          "Is there a person, either from real life or a story, who inspires you most? Why?",
+          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
+          "If you could describe yourself as any animal, which would you pick and why?"
+        ]
+      },
+      'SAC Vice President': {
+        interviewOne: [
+          "Collaboration",
+          "Confidence",
+          "Participation",
+          "Overall Impression"
+        ],
+        pool1: [
+          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
+          "How should an honorary member demonstrate their commitment to SAC and the student body?",
+          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
+        ],
+        pool2: [
+          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
+          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
+          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
+        ],
+        pool3: [
+          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
+          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
+          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
+        ],
+        pool4: [
+          "Is there a person, either from real life or a story, who inspires you most? Why?",
+          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
+          "If you could describe yourself as any animal, which would you pick and why?"
+        ]
+      },
+      'SAC Social Convenor': {
+        interviewOne: [
+          "Collaboration",
+          "Confidence",
+          "Participation",
+          "Overall Impression"
+        ],
+        pool1: [
+          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
+          "How should an honorary member demonstrate their commitment to SAC and the student body?",
+          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
+        ],
+        pool2: [
+          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
+          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
+          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
+        ],
+        pool3: [
+          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
+          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
+          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
+        ],
+        pool4: [
+          "Is there a person, either from real life or a story, who inspires you most? Why?",
+          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
+          "If you could describe yourself as any animal, which would you pick and why?"
+        ]
+      },
+      'SAC Treasurer': {
         interviewOne: [
           "Collaboration",
           "Confidence",
@@ -215,7 +284,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
       },
     };
 
-    return questionPools[position] || questionPools['Honourary Member'];
+    return questionPools[position] || questionPools[APPLICATION_POSITIONS[0].id];
   };
 
   const generateInterviewTwoQuestions = (position: string): string[] => {

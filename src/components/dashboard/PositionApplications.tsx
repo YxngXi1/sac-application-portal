@@ -11,13 +11,13 @@ import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import ApplicationGrader from './ApplicationGrader';
+import { getQuestionsForPosition } from '@/lib/applicationConfig';
 
 interface PositionApplicationsProps {
   positionId: string;
   positionName: string;
   onBack: () => void;
   filteredApplications?: ApplicationData[];
-  gradeFilter?: string;
 }
 
 interface ScheduledInterview {
@@ -36,23 +36,11 @@ interface ScheduledInterview {
   updatedAt: Date;
 }
 
-const POSITION_QUESTIONS: Record<string, Array<{question: string, key: string}>> = {
-  'Grade Rep': [
-    { question: 'Tell us your “why” - why do you want to be a Grade Representative in the 2025-26 school year?', key: 'honorary_1' },
-    { question: "What is your platform? In other words, what ideas, initiatives, or changes would you like to introduce, and how will it benefit the student body?", key: 'honorary_2' },
-    { question: "As a Grade Rep, communication is key. How will you actively represent and voice your grade’s ideas and opinions during SAC meetings, events, and spirit weeks? Please be specific.", key: 'honorary_3' },
-    { question: 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.', key: 'honorary_4' },
-    { question: 'Do you know anyone currently on the SAC Executive Council?', key: 'honorary_5' },
-    { question: 'Which 2 John Fraser teachers support you as a SAC Grade Representative. Include their name and emails.', key: 'honorary_6' }
-  ]
-};
-
 const PositionApplications: React.FC<PositionApplicationsProps> = ({
   positionId,
   positionName,
   onBack,
-  filteredApplications,
-  gradeFilter
+  filteredApplications
 }) => {
   const { userProfile } = useAuth();
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicationData | null>(null);
@@ -186,7 +174,6 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
         }}
         onNavigateToApplication={(newApplication) => setSelectedApplicant(newApplication)}
         filteredApplications={allSubmittedApplications}
-        gradeFilter={gradeFilter}
       />
     );
   }
@@ -252,14 +239,10 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
                 {selectedApplicant.answers && Object.keys(selectedApplicant.answers).length > 0 ? (
                   (() => {
                     // Get position-specific questions with proper mapping
-                    const positionQuestions = POSITION_QUESTIONS[positionName] || [
-                        { question: 'Tell us your “why” - why do you want to be a Grade Representative in the 2025-26 school year?', key: 'honorary_1' },
-                        { question: "What is your platform? In other words, what ideas, initiatives, or changes would you like to introduce, and how will it benefit the student body?", key: 'honorary_2' },
-                        { question: "As a Grade Rep, communication is key. How will you actively represent and voice your grade’s ideas and opinions during SAC meetings, events, and spirit weeks? Please be specific.", key: 'honorary_3' },
-                        { question: 'What are your other commitments that you are in or plan to be in, both in and out of school? Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot notes only.', key: 'honorary_4' },
-                        { question: 'Do you know anyone currently on the SAC Executive Council?', key: 'honorary_5' },
-                        { question: 'Which 2 John Fraser teachers support you as a SAC Grade Representative. Include their name and emails.', key: 'honorary_6' }
-                    ];
+                    const positionQuestions = getQuestionsForPosition(positionName).map((question) => ({
+                      question: question.question,
+                      key: question.id,
+                    }));
 
                     // Map questions in the correct order
                     return positionQuestions.map((questionData, index) => {
@@ -325,7 +308,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{positionName}</h1>
           <p className="text-gray-600">
-            {gradeFilter ? `Applications with grade: ${gradeFilter}` : 'All applications for this position'}
+            All applications for this position
             {isExec && (
               <span className="ml-2 text-orange-600 font-medium">
                 • Anonymous Mode (Executive View)
