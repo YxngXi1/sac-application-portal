@@ -6,7 +6,7 @@ import { Clock, Calendar } from 'lucide-react';
 const DeadlineTile = () => {
   const [timeLeft, setTimeLeft] = useState('');
   
-  const deadline = new Date('2026-05-12T23:59:59-04:00');
+  const deadline = new Date('2026-05-13T17:00:00-04:00');
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -49,8 +49,8 @@ const DeadlineTile = () => {
       <CardContent className="p-6">
         <div className="text-center space-y-4">
           <div>
-            <p className="text-lg font-semibold text-gray-900">Due on May 12th, 2026</p>
-            <p className="text-sm text-gray-600">11:59 PM EDT</p>
+            <p className="text-lg font-semibold text-gray-900">Due on May 13th, 2026</p>
+            <p className="text-sm text-gray-600">5:00 PM EDT</p>
           </div>
           
           <div className={`flex items-center justify-center gap-2 p-3 rounded-lg ${isDeadlinePassed ? 'bg-red-50' : 'bg-blue-50'}`}>

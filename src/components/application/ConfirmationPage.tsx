@@ -29,8 +29,8 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Application deadline - May 12th, 2026 at 11:59 PM EDT
-  const deadline = new Date('2026-05-12T23:59:59-04:00');
+  // Application deadline - May 13th, 2026 at 5:00 PM EDT
+  const deadline = new Date('2026-05-13T17:00:00-04:00');
   const now = new Date();
   const isDeadlinePassed = now > deadline;
 
@@ -143,7 +143,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             </CardTitle>
             <p className="text-gray-600">
               {isDeadlinePassed 
-                ? 'The application deadline was Tuesday, May 12th, 2026 at 11:59 PM EDT'
+                ? 'The application deadline was Wednesday, May 13th, 2026 at 5:00 PM EDT'
                 : 'Please confirm your details before submitting'
               }
             </p>

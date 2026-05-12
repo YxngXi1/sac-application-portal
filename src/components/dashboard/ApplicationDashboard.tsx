@@ -35,11 +35,11 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
-  // Check if applications are open (May 11th, 2026 at 12:00 PM EDT) and closed (May 12th, 2026 at 11:59 PM EDT)
+  // Check if applications are open (May 11th, 2026 at 12:00 PM EDT) and closed (May 13th, 2026 at 5:00 PM EDT)
   const isApplicationsOpen = () => {
     const now = new Date();
     const openDate = new Date('2026-05-11T12:00:00-04:00'); // May 11th, 2026 at 12:00 PM EDT
-    const closeDate = new Date('2026-05-12T23:59:59-04:00'); // May 12th, 2026 at 11:59 PM EDT
+    const closeDate = new Date('2026-05-13T17:00:00-04:00'); // May 13th, 2026 at 5:00 PM EDT
     return now >= openDate && now <= closeDate;
   };
 
@@ -94,7 +94,7 @@ const ApplicationDashboard = () => {
   // Determine if before open or after close
   const now = new Date();
   const openDate = new Date('2026-05-11T12:00:00-04:00');
-  const closeDate = new Date('2026-05-12T23:59:59-04:00');
+  const closeDate = new Date('2026-05-13T17:00:00-04:00');
   const isBeforeOpen = now < openDate;
   const isAfterClose = now > closeDate;
 
@@ -238,7 +238,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Closed</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      The application deadline was <strong>May 12th, 2026 at 11:59 PM EDT</strong>
+                      The application deadline was <strong>Wednesday, May 13th, 2026 at 5:00 PM EDT</strong>
                     </p>
                     <Button 
                       disabled
