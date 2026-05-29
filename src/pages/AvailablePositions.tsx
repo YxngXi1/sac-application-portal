@@ -12,8 +12,8 @@ const AvailablePositions = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md mx-4">
         <CardHeader className="text-center p-4 sm:p-6">
-          <CardTitle className="text-xl sm:text-2xl">SAC Executive Applications</CardTitle>
-          <p className="text-gray-600 text-sm sm:text-base">Apply for an SAC executive role and help shape the school year.</p>
+          <CardTitle className="text-xl sm:text-2xl">SAC Applications</CardTitle>
+          <p className="text-gray-600 text-sm sm:text-base">Apply for an SAC role and help shape the school year.</p>
         </CardHeader>
         <CardContent className="space-y-4 p-4 sm:p-6">
           <div className="space-y-3">

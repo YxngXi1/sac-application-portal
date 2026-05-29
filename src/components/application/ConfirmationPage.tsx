@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { submitApplication, saveApplicationProgress } from '@/services/applicationService';
 import { getQuestionCountForPosition } from '@/lib/applicationConfig';
+import { APPLICATION_CLOSE_DATE, APPLICATION_CLOSE_LABEL } from '@/lib/applicationSchedule';
 
 interface ConfirmationPageProps {
   position: string;
@@ -29,8 +30,8 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Application deadline - May 13th, 2026 at 5:00 PM EDT
-  const deadline = new Date('2026-05-13T17:00:00-04:00');
+  // Application deadline
+  const deadline = APPLICATION_CLOSE_DATE;
   const now = new Date();
   const isDeadlinePassed = now > deadline;
 
@@ -143,7 +144,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             </CardTitle>
             <p className="text-gray-600">
               {isDeadlinePassed 
-                ? 'The application deadline was Wednesday, May 13th, 2026 at 5:00 PM EDT'
+                ? `The application deadline was ${APPLICATION_CLOSE_LABEL}`
                 : 'Please confirm your details before submitting'
               }
             </p>

@@ -135,7 +135,9 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
               return (
                 <div key={question.id} className="space-y-2">
                   <label className="block text-sm font-medium text-gray-900">
-                    {index + 1}. {question.question}
+                    <span className="whitespace-pre-line break-words">
+                      {index + 1}. {question.question}
+                    </span>
                     {question.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
                   

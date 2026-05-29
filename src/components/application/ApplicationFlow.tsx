@@ -245,7 +245,7 @@ const saveProgress = async () => {
           <CardHeader className="text-center px-4 py-6 sm:px-8 sm:py-8">
             <CardTitle className="text-2xl sm:text-3xl lg:text-4xl">Start Your Application</CardTitle>
             <p className="text-gray-600 text-sm sm:text-base lg:text-lg max-w-3xl mx-auto">
-              Apply for one of this year’s SAC executive positions.
+              Apply for one of this year's SAC positions.
             </p>
           </CardHeader>
           <CardContent className="space-y-5 px-4 pb-4 sm:px-8 sm:pb-8">
@@ -290,7 +290,7 @@ const saveProgress = async () => {
         <Card className="w-full max-w-5xl mx-auto">
           <CardHeader className="px-4 py-6 sm:px-8 sm:py-8">
             <CardTitle className="text-2xl sm:text-3xl">Choose Your Position</CardTitle>
-            <p className="text-gray-600 text-sm sm:text-base lg:text-lg">Select the SAC executive role you want to apply for.</p>
+            <p className="text-gray-600 text-sm sm:text-base lg:text-lg">Select the SAC role you want to apply for.</p>
           </CardHeader>
           <CardContent className="space-y-5 px-4 pb-4 sm:px-8 sm:pb-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

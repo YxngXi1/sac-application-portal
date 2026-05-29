@@ -9,7 +9,6 @@ import { ApplicationData } from '@/services/applicationService';
 import { collection, addDoc, getDocs, query, where, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { APPLICATION_POSITIONS } from '@/lib/applicationConfig';
 
 interface InterviewGraderProps {
   candidate: ApplicationData;
@@ -49,6 +48,43 @@ interface CandidateGradeState {
   feedback: string;
   checkboxes: InterviewCheckboxes;
 }
+
+interface InterviewQuestionPool {
+  interviewOne: string[];
+  pool1: string[];
+  pool2: string[];
+  pool3: string[];
+  pool4: string[];
+}
+
+const DEFAULT_QUESTION_POOL: InterviewQuestionPool = {
+  interviewOne: [
+    'Collaboration',
+    'Confidence',
+    'Participation',
+    'Overall Impression',
+  ],
+  pool1: [
+    "How do you believe this role can best contribute to SAC's goal of creating a positive school environment?",
+    'How should an SAC executive demonstrate commitment to the council and the student body?',
+    'What traits, qualities, or characteristics do you believe make someone effective in this role?',
+  ],
+  pool2: [
+    "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. How would you help respark their motivation and encourage them to re-engage?",
+    'Describe a situation where you had to mediate a disagreement. How did you resolve it, and what steps did you take?',
+    'How would you handle a situation where an important event plan is falling behind schedule just a few days before launch?',
+  ],
+  pool3: [
+    'What experiences from your past school or community involvement have prepared you for this role?',
+    'Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?',
+    'In your opinion, what experiences make you a strong fit for this position?',
+  ],
+  pool4: [
+    'What kind of impact do you hope to leave on SAC or the school in this role?',
+    'What is one value that would guide your decisions in this position, and why?',
+    'What would success look like for you by the end of the year in this role?',
+  ],
+};
 
 const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewType, onBack }) => {
   const { user } = useAuth();
@@ -162,130 +198,7 @@ const InterviewGrader: React.FC<InterviewGraderProps> = ({ candidate, interviewT
     }
   };
 
-  const getQuestionPools = (position: string) => {
-    const questionPools: Record<string, { 
-      interviewOne: string[],
-      pool1: string[], 
-      pool2: string[], 
-      pool3: string[],
-      pool4: string[]
-    }> = {
-      'SAC President': {
-        interviewOne: [
-          "Collaboration",
-          "Confidence",
-          "Participation",
-          "Overall Impression"
-        ],
-        pool1: [
-          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
-          "How should an honorary member demonstrate their commitment to SAC and the student body?",
-          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
-        ],
-        pool2: [
-          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
-          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
-          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
-        ],
-        pool3: [
-          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
-          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
-          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
-        ],
-        pool4: [
-          "Is there a person, either from real life or a story, who inspires you most? Why?",
-          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
-          "If you could describe yourself as any animal, which would you pick and why?"
-        ]
-      },
-      'SAC Vice President': {
-        interviewOne: [
-          "Collaboration",
-          "Confidence",
-          "Participation",
-          "Overall Impression"
-        ],
-        pool1: [
-          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
-          "How should an honorary member demonstrate their commitment to SAC and the student body?",
-          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
-        ],
-        pool2: [
-          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
-          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
-          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
-        ],
-        pool3: [
-          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
-          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
-          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
-        ],
-        pool4: [
-          "Is there a person, either from real life or a story, who inspires you most? Why?",
-          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
-          "If you could describe yourself as any animal, which would you pick and why?"
-        ]
-      },
-      'SAC Social Convenor': {
-        interviewOne: [
-          "Collaboration",
-          "Confidence",
-          "Participation",
-          "Overall Impression"
-        ],
-        pool1: [
-          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
-          "How should an honorary member demonstrate their commitment to SAC and the student body?",
-          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
-        ],
-        pool2: [
-          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
-          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
-          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
-        ],
-        pool3: [
-          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
-          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
-          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
-        ],
-        pool4: [
-          "Is there a person, either from real life or a story, who inspires you most? Why?",
-          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
-          "If you could describe yourself as any animal, which would you pick and why?"
-        ]
-      },
-      'SAC Treasurer': {
-        interviewOne: [
-          "Collaboration",
-          "Confidence",
-          "Participation",
-          "Overall Impression"
-        ],
-        pool1: [
-          "How do you believe an honourary member can best contribute to SAC's ultimate goal of creating a positive school environment?",
-          "How should an honorary member demonstrate their commitment to SAC and the student body?",
-          "What traits, qualities, or characteristics do you believe make the perfect honourary member?"
-        ],
-        pool2: [
-          "Imagine a fellow council member's motivation begins to decline. They start missing meetings, avoiding volunteer opportunities, and contributing less to SAC's initiatives. As an honorary member, how would you help respark their motivation and encourage them to re-engage?",
-          "Imagine an angry student claims they bought their semi-formal ticket, but there is no record of their ticket in the google sheet. How would you deescalate the issue without giving into their lie?",
-          "Describe a situation where you had to mediate a disagreement. How exactly did you resolve it and what were your steps in doing so?"
-        ],
-        pool3: [
-          "What experiences from your past school or community involvement have prepared you for an honourary role on SAC?",
-          "Describe a time when you worked as part of a team. What did you learn from that experience that you could apply to SAC?",
-          "In your opinion, what experiences make you the most suitable candidate for this honourary position?"
-        ],
-        pool4: [
-          "Is there a person, either from real life or a story, who inspires you most? Why?",
-          "What kind of impact do you hope to leave on either SAC or the school as an honourary member?",
-          "If you could describe yourself as any animal, which would you pick and why?"
-        ]
-      },
-    };
-
-    return questionPools[position] || questionPools[APPLICATION_POSITIONS[0].id];
-  };
+  const getQuestionPools = (_position: string): InterviewQuestionPool => DEFAULT_QUESTION_POOL;
 
   const generateInterviewTwoQuestions = (position: string): string[] => {
     const pools = getQuestionPools(position);

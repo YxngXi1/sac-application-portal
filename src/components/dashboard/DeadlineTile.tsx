@@ -2,11 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, Calendar } from 'lucide-react';
+import {
+  APPLICATION_CLOSE_DATE,
+  APPLICATION_CLOSE_DATE_LABEL,
+  APPLICATION_CLOSE_TIME_LABEL,
+} from '@/lib/applicationSchedule';
 
 const DeadlineTile = () => {
   const [timeLeft, setTimeLeft] = useState('');
   
-  const deadline = new Date('2026-05-13T17:00:00-04:00');
+  const deadline = APPLICATION_CLOSE_DATE;
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -49,8 +54,8 @@ const DeadlineTile = () => {
       <CardContent className="p-6">
         <div className="text-center space-y-4">
           <div>
-            <p className="text-lg font-semibold text-gray-900">Due on May 13th, 2026</p>
-            <p className="text-sm text-gray-600">5:00 PM EDT</p>
+            <p className="text-lg font-semibold text-gray-900">Due on {APPLICATION_CLOSE_DATE_LABEL}</p>
+            <p className="text-sm text-gray-600">{APPLICATION_CLOSE_TIME_LABEL}</p>
           </div>
           
           <div className={`flex items-center justify-center gap-2 p-3 rounded-lg ${isDeadlinePassed ? 'bg-red-50' : 'bg-blue-50'}`}>

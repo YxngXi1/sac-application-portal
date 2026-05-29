@@ -11,6 +11,12 @@ import DeadlineTile from './DeadlineTile';
 import { useToast } from '@/hooks/use-toast';
 import { APPLICATION_POSITIONS } from '@/lib/applicationConfig';
 import {
+  APPLICATION_CLOSE_DATE,
+  APPLICATION_CLOSE_LABEL,
+  APPLICATION_OPEN_DATE,
+  APPLICATION_OPEN_LABEL,
+} from '@/lib/applicationSchedule';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -35,17 +41,17 @@ const ApplicationDashboard = () => {
   const [showExecView, setShowExecView] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   
-  // Check if applications are open (May 11th, 2026 at 12:00 PM EDT) and closed (May 13th, 2026 at 5:00 PM EDT)
+  // Check if applications are open and closed
   const isApplicationsOpen = () => {
     const now = new Date();
-    const openDate = new Date('2026-05-11T12:00:00-04:00'); // May 11th, 2026 at 12:00 PM EDT
-    const closeDate = new Date('2026-05-13T17:00:00-04:00'); // May 13th, 2026 at 5:00 PM EDT
+    const openDate = APPLICATION_OPEN_DATE;
+    const closeDate = APPLICATION_CLOSE_DATE;
     return now >= openDate && now <= closeDate;
   };
 
   const getTimeUntilOpen = () => {
     const now = new Date();
-    const openDate = new Date('2026-05-11T12:00:00-04:00');
+    const openDate = APPLICATION_OPEN_DATE;
     const timeDiff = openDate.getTime() - now.getTime();
     
     if (timeDiff <= 0) return null;
@@ -93,8 +99,8 @@ const ApplicationDashboard = () => {
 
   // Determine if before open or after close
   const now = new Date();
-  const openDate = new Date('2026-05-11T12:00:00-04:00');
-  const closeDate = new Date('2026-05-13T17:00:00-04:00');
+  const openDate = APPLICATION_OPEN_DATE;
+  const closeDate = APPLICATION_CLOSE_DATE;
   const isBeforeOpen = now < openDate;
   const isAfterClose = now > closeDate;
 
@@ -102,7 +108,7 @@ const ApplicationDashboard = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on May 11th, 2026 at 12:00 PM EDT.",
+        description: `Applications will open on ${APPLICATION_OPEN_LABEL}.`,
         variant: "destructive",
       });
       return;
@@ -117,7 +123,7 @@ const ApplicationDashboard = () => {
     if (!applicationsOpen) {
       toast({
         title: "Applications Not Open",
-        description: "Applications will open on May 11th, 2026 at 12:00 PM EDT.",
+        description: `Applications will open on ${APPLICATION_OPEN_LABEL}.`,
         variant: "destructive",
       });
       return;
@@ -216,7 +222,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Not Yet Open</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      SAC applications will open on <strong>May 11th, 2026 at 12:00 PM EDT</strong>
+                      SAC applications will open on <strong>{APPLICATION_OPEN_LABEL}</strong>
                     </p>
                     {getTimeUntilOpen() && (
                       <p className="text-orange-100 mb-6 sm:mb-8 text-sm sm:text-base">
@@ -238,7 +244,7 @@ const ApplicationDashboard = () => {
                     <CalendarX className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-90" />
                     <h2 className="text-2xl sm:text-3xl font-bold mb-4">Applications Closed</h2>
                     <p className="text-orange-100 mb-4 sm:mb-6 text-base sm:text-lg">
-                      The application deadline was <strong>Wednesday, May 13th, 2026 at 5:00 PM EDT</strong>
+                      The application deadline was <strong>{APPLICATION_CLOSE_LABEL}</strong>
                     </p>
                     <Button 
                       disabled

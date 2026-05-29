@@ -43,7 +43,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>SAC Executive Applications Report</title>
+          <title>SAC Applications Report</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -62,7 +62,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           </style>
         </head>
         <body>
-          <h1>SAC Executive Applications Report</h1>
+          <h1>SAC Applications Report</h1>
           <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           <p><strong>Total Applications:</strong> ${applications.length}</p>
           
@@ -176,7 +176,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
             </Button>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            SAC Executive Applications
+            SAC Applications
           </h1>
           <p className="text-gray-600">
             Review and grade applications by position
@@ -313,7 +313,7 @@ const ExecDashboard: React.FC<ExecDashboardProps> = ({ onBack }) => {
           <CardHeader>
             <CardTitle>Position Summary</CardTitle>
             <CardDescription>
-              Overview of application volume across all four roles
+              Overview of application volume across all positions
             </CardDescription>
           </CardHeader>
           <CardContent>

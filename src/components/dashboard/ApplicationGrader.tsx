@@ -519,12 +519,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     <CardTitle className="text-lg">
                       Question {index + 1}
                     </CardTitle>
-                    <CardDescription>
-                      {question.question}
-                    </CardDescription>
+                  <CardDescription className="whitespace-pre-line break-words">
+                    {question.question}
+                  </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {positionName === 'Photography Exec' && question.id === 'photo_1' ? 
+                    {question.answer.includes('firebasestorage.googleapis.com') ?
                       renderPhotographyPortfolio(question.answer) :
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">

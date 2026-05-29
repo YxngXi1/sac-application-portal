@@ -251,7 +251,7 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
 
                       return (
                         <div key={questionData.key} className="mb-6 p-4 border rounded-lg">
-                          <h4 className="font-medium mb-2">
+                          <h4 className="font-medium mb-2 whitespace-pre-line break-words">
                             Question {index + 1}: {questionData.question}
                           </h4>
                           <div className="bg-gray-50 p-3 rounded">
