@@ -1,4 +1,4 @@
-export const APPLICATION_OPEN_DATE = new Date('2026-05-29T00:00:00-04:00');
+export const APPLICATION_OPEN_DATE = new Date('2026-05-29T15:00:00-04:00');
 export const APPLICATION_CLOSE_DATE = new Date('2026-06-05T23:59:00-04:00');
 
 export const APPLICATION_OPEN_LABEL = 'May 29th, 2026 at 3:00 PM EDT';
