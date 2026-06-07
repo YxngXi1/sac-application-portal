@@ -43,28 +43,17 @@ const isValidPDSBEmail = (email: string): boolean => {
 const isSuperAdmin = (email: string): boolean => {
   const superadminEmails = [
     '843909@pdsb.net',
-    '795804@pdsb.net',
     '793546@pdsb.net',
-    '930999@pdsb.net',
-    '890323@pdsb.net',
-    '752470@pdsb.net',
-    '952625@pdsb.net',
-    '752622@pdsb.net',
-    '1024127@pdsb.net',
+    '781284@pdsb.net',
+    '782630@pdsb.net',
+    '752470@pdsb.net'
   ];
   return superadminEmails.includes(email);
 };
 
 const isExec = (email: string): boolean => {
   const execEmails = [
-    '782630@pdsb.net',
-    '781284@pdsb.net',
-    '1099702@pdsb.net',
-    '892934@pdsb.net',
-    '898765@pdsb.net',
-    '806272@pdsb.net',
-    '780748@pdsb.net',
-    '752470@pdsb.net',
+
   ];
   return execEmails.includes(email);
 };
