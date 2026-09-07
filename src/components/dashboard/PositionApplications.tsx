@@ -53,6 +53,9 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
+  // Honourary Member is graded on the rubric's 1/3/5 scale (max 5);
+  // everyone else keeps the existing free 0-10 scale.
+  const maxScoreForPosition = positionName === 'Honourary Member' ? 5 : 10;
 
   // Helper function to anonymize names for exec users
   const getDisplayName = (application: ApplicationData) => {
@@ -287,6 +290,26 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   const inProgressApplications = applications.filter(app => app.status === 'draft' && app.progress > 0);
   const interviewedApplications = applications.filter(app => app.interviewScheduled);
   const interviewedCount = interviewedApplications.length;
+
+  // Group submitted applications by the student's grade (9/10/11/12) so
+  // execs can mark one grade at a time instead of one long mixed list.
+  const applicationsByGrade = applications.reduce((acc, app) => {
+    const grade = app.userProfile?.grade || 'Ungraded';
+    if (!acc[grade]) acc[grade] = [];
+    acc[grade].push(app);
+    return acc;
+  }, {} as Record<string, ApplicationData[]>);
+
+  const sortedGrades = Object.keys(applicationsByGrade).sort((a, b) => {
+    const numA = parseInt(a, 10);
+    const numB = parseInt(b, 10);
+    const aIsNum = !isNaN(numA);
+    const bIsNum = !isNaN(numB);
+    if (aIsNum && bIsNum) return numA - numB;
+    if (aIsNum) return -1;
+    if (bIsNum) return 1;
+    return a.localeCompare(b);
+  });
   
   // Debug log to see which applications are marked as interviewed
   console.log('Applications marked as interviewed:', interviewedApplications.map(app => ({
@@ -347,156 +370,176 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
           </Card>
         </div>
 
-        {/* Applications Table */}
-        <Card className="border shadow-sm bg-white">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Applications</CardTitle>
-                <CardDescription>
-                  Click on an applicant to view details or enter grade mode
-                  {isExec && (
-                    <span className="block text-orange-600 font-medium mt-1">
-                      Names are anonymized for fair evaluation
-                    </span>
-                  )}
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {applications.length === 0 ? (
+        {/* Applications by Grade */}
+        {applications.length === 0 ? (
+          <Card className="border shadow-sm bg-white">
+            <CardHeader>
+              <CardTitle>Applications</CardTitle>
+              <CardDescription>
+                Click on an applicant to view details or enter grade mode
+                {isExec && (
+                  <span className="block text-orange-600 font-medium mt-1">
+                    Names are anonymized for fair evaluation
+                  </span>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <div className="text-center py-8 text-gray-500">
                 No applications found for this position.
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Student Number</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Progress</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead>Interviews</TableHead>
-                    <TableHead>Submitted (EST)</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {applications.map((application) => {
-                    const candidateInterview = getCandidateInterview(application.id);
-                    
-                    return (
-                      <TableRow key={application.id}>
-                        <TableCell className="font-medium">
-                          {getDisplayName(application)}
-                        </TableCell>
-                        <TableCell>{application.userProfile?.grade || 'N/A'}</TableCell>
-                        <TableCell>
-                          {isSuperAdmin ? (application.userProfile?.studentNumber || 'N/A') : '████████'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={application.status === 'submitted' ? "default" : "secondary"}>
-                            {application.status === 'submitted' ? 'Submitted' : 'Draft'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full" 
-                                style={{ width: `${application.progress}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm text-gray-600">{application.progress}%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {application.score ? (
-                            <div className="flex items-center space-x-1">
-                              <Star className="h-4 w-4 text-gray-600" />
-                              <span className="font-medium">{application.score.toFixed(1)}/10</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">Not graded</span>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {sortedGrades.map((grade) => {
+              const gradeApplications = applicationsByGrade[grade];
+              return (
+                <Card key={grade} className="border shadow-sm bg-white">
+                  <CardHeader>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle>
+                          {grade === 'Ungraded' ? 'Grade Not Provided' : `Grade ${grade}`}
+                        </CardTitle>
+                        <CardDescription>
+                          {gradeApplications.length} application{gradeApplications.length !== 1 ? 's' : ''} · Click on an applicant to view details or enter grade mode
+                          {isExec && (
+                            <span className="block text-orange-600 font-medium mt-1">
+                              Names are anonymized for fair evaluation
+                            </span>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            {(() => {
-                              console.log(`Interview data for ${application.userProfile?.fullName}:`, candidateInterview); // Debug log
-                              return null;
-                            })()}
-                            {candidateInterview?.interviewOneDate ? (
-                              <div className="text-xs">
-                                <Badge variant="default" className="mb-1">Group Interview</Badge>
-                                <div className="text-gray-600">
-                                  {candidateInterview.interviewOneDate.toLocaleDateString()} at {candidateInterview.interviewOneTime}
-                                  {candidateInterview.interviewOneRoom && (
-                                    <div>Room: [{candidateInterview.interviewOneRoom}]</div>
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Grade</TableHead>
+                          <TableHead>Student Number</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Progress</TableHead>
+                          <TableHead>Score</TableHead>
+                          <TableHead>Interviews</TableHead>
+                          <TableHead>Submitted (EST)</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {gradeApplications.map((application) => {
+                          const candidateInterview = getCandidateInterview(application.id);
+
+                          return (
+                            <TableRow key={application.id}>
+                              <TableCell className="font-medium">
+                                {getDisplayName(application)}
+                              </TableCell>
+                              <TableCell>{application.userProfile?.grade || 'N/A'}</TableCell>
+                              <TableCell>
+                                {isSuperAdmin ? (application.userProfile?.studentNumber || 'N/A') : '████████'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={application.status === 'submitted' ? "default" : "secondary"}>
+                                  {application.status === 'submitted' ? 'Submitted' : 'Draft'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-16 bg-gray-200 rounded-full h-2">
+                                    <div
+                                      className="bg-blue-600 h-2 rounded-full"
+                                      style={{ width: `${application.progress}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-sm text-gray-600">{application.progress}%</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {application.score ? (
+                                  <div className="flex items-center space-x-1">
+                                    <Star className="h-4 w-4 text-gray-600" />
+                                    <span className="font-medium">{application.score.toFixed(1)}/{maxScoreForPosition}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400">Not graded</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-1">
+                                  {candidateInterview?.interviewOneDate ? (
+                                    <div className="text-xs">
+                                      <Badge variant="default" className="mb-1">Group Interview</Badge>
+                                      <div className="text-gray-600">
+                                        {candidateInterview.interviewOneDate.toLocaleDateString()} at {candidateInterview.interviewOneTime}
+                                        {candidateInterview.interviewOneRoom && (
+                                          <div>Room: [{candidateInterview.interviewOneRoom}]</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs">Group Interview: Pending</Badge>
+                                  )}
+
+                                  {candidateInterview?.interviewTwoDate ? (
+                                    <div className="text-xs">
+                                      <Badge variant="default" className="mb-1">Individual Interview</Badge>
+                                      <div className="text-gray-600">
+                                        {candidateInterview.interviewTwoDate.toLocaleDateString()} at {candidateInterview.interviewTwoTime}
+                                        {candidateInterview.interviewTwoRoom && (
+                                          <div>Room: [{candidateInterview.interviewTwoRoom}]</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs">Individual Interview: Pending</Badge>
                                   )}
                                 </div>
-                              </div>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">Group Interview: Pending</Badge>
-                            )}
-                            
-                            {candidateInterview?.interviewTwoDate ? (
-                              <div className="text-xs">
-                                <Badge variant="default" className="mb-1">Individual Interview</Badge>
-                                <div className="text-gray-600">
-                                  {candidateInterview.interviewTwoDate.toLocaleDateString()} at {candidateInterview.interviewTwoTime}
-                                  {candidateInterview.interviewTwoRoom && (
-                                    <div>Room: [{candidateInterview.interviewTwoRoom}]</div>
+                              </TableCell>
+                              <TableCell>
+                                {application.submittedAt ?
+                                  formatDateEST(application.submittedAt) :
+                                  'Not submitted'
+                                }
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex space-x-2">
+                                  {application.status === 'submitted' && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        setSelectedApplicant(application);
+                                        setGradeMode(true);
+                                      }}
+                                    >
+                                      <MessageSquare className="h-4 w-4 mr-1" />
+                                      Grade
+                                    </Button>
                                   )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewApplication(application)}
+                                  >
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    View
+                                  </Button>
                                 </div>
-                              </div>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">Individual Interview: Pending</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {application.submittedAt ? 
-                            formatDateEST(application.submittedAt) : 
-                            'Not submitted'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            {application.status === 'submitted' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedApplicant(application);
-                                  setGradeMode(true);
-                                }}
-                              >
-                                <MessageSquare className="h-4 w-4 mr-1" />
-                                Grade
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewApplication(application)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -15,28 +15,29 @@ service cloud.firestore {
 
     function isExecEmail() {
       return signedIn() && [
-        '782630@pdsb.net',
-        '781284@pdsb.net',
+        '844136@pdsb.net',
+        '1061713@pdsb.net',
+        '1031623@pdsb.net',
+        '874034@pdsb.net',
         '1099702@pdsb.net',
-        '892934@pdsb.net',
-        '898765@pdsb.net',
-        '806272@pdsb.net',
         '780748@pdsb.net',
-        '752470@pdsb.net'
+        '897889@pdsb.net',
+        '841491@pdsb.net',
+        '909956@pdsb.net',
+        '1024557@pdsb.net',
+        '778345@pdsb.net',
+        '807453@pdsb.net',
+        '779629@pdsb.net'
       ].hasAny([authEmail()]);
     }
 
     function isSuperadminEmail() {
       return signedIn() && [
-        '843909@pdsb.net',
-        '795804@pdsb.net',
-        '793546@pdsb.net',
-        '930999@pdsb.net',
-        '890323@pdsb.net',
-        '752470@pdsb.net',
-        '952625@pdsb.net',
-        '752622@pdsb.net',
-        '1024127@pdsb.net'
+        '781284@pdsb.net',
+        '949834@pdsb.net',
+        '782630@pdsb.net',
+        '931108@pdsb.net',
+        '778130@pdsb.net'
       ].hasAny([authEmail()]);
     }
 

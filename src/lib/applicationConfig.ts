@@ -15,6 +15,13 @@ export interface ApplicationPosition {
 }
 
 export const APPLICATION_POSITIONS: ApplicationPosition[] = [
+  /* ============================================================
+   * The 8 exec positions are closed for now. Commented out (not
+   * deleted) so they can be dropped back in later just by
+   * uncommenting this block and removing/relocating the
+   * Honourary Member entry below.
+   * ============================================================
+
   {
     id: 'Secretary',
     title: 'Secretary',
@@ -63,11 +70,23 @@ export const APPLICATION_POSITIONS: ApplicationPosition[] = [
     shortDescription: 'Captures SAC events and builds a strong visual record of student life.',
     fullDescription: 'The Photography Exec documents SAC events through strong photo coverage, creative visual storytelling, and thoughtful editing, helping preserve school memories and support SAC’s promotional presence throughout the year.',
   },
+
+  ============================================================ */
+
+  {
+    id: 'Honourary Member',
+    title: 'Honourary Member',
+    shortDescription: 'A non-exec role recognizing students who go above and beyond to support SAC and school life.',
+    fullDescription: 'Honourary Members are not part of the executive team, but support SAC in an advisory capacity, help mentor other members, represent the council at events, and bring ideas to improve student life throughout the year.',
+  },
 ];
 
 const OVERALL_QUESTION = (position: string): PositionQuestion => ({
   id: 'overall_motivation',
-  question: `Why do you wish to become an SAC Executive, and why do you choose the ${position} position specifically? (150 words MAX)`,
+  question:
+    position === 'Honourary Member'
+      ? 'Why do you wish to become an SAC Honourary Member, and what do you hope to contribute to SAC in this role? (150 words MAX)'
+      : `Why do you wish to become an SAC Executive, and why do you choose the ${position} position specifically? (150 words MAX)`,
   type: 'textarea',
   required: true,
   wordLimit: 150,
@@ -90,6 +109,52 @@ const getTeacherSupportQuestion = (position: string): PositionQuestion => ({
   type: 'textarea',
   required: true,
 });
+
+// Honourary Member gets its own dedicated 5-question set (matches the
+// Honourary Application Rubric exactly) instead of going through the
+// shared OVERALL_QUESTION / COMMITMENTS_QUESTION / teacher-refs pipeline.
+// See getQuestionsForPosition below.
+const HONOURARY_QUESTIONS: PositionQuestion[] = [
+  {
+    id: 'why_join_sac',
+    question:
+      'Tell us your "why" - why do you want to be a part of the Student Activity Council for the 2026-27 school year? (100 words MAX)',
+    type: 'textarea',
+    required: true,
+    wordLimit: 100,
+  },
+  {
+    id: 'unique_qualities',
+    question:
+      'What unique qualities, skills, or assets make you a very valuable member to the council? In other words, why should we choose you over other applicants? (150 words MAX)',
+    type: 'textarea',
+    required: true,
+    wordLimit: 150,
+  },
+  {
+    id: 'other_commitments',
+    question:
+      'What are your other commitments that you are in or plan to be in both in and out of school. Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot Notes Only.',
+    type: 'textarea',
+    required: true,
+  },
+  {
+    id: 'setback_story',
+    question:
+      "Describe a time when your group's 'perfect plan' faced a setback. How did your group overcome this obstacle and what was your role in doing so? (150 words MAX)",
+    type: 'textarea',
+    required: true,
+    wordLimit: 150,
+  },
+  {
+    id: 'song_book_movie',
+    question:
+      'If you had to pick a song/book/movie/TV show/play to describe yourself, what would it be and why? (100 words MAX)',
+    type: 'textarea',
+    required: true,
+    wordLimit: 100,
+  },
+];
 
 const POSITION_SPECIFIC_QUESTIONS: Record<string, PositionQuestion[]> = {
   Secretary: [
@@ -243,6 +308,10 @@ const POSITION_SPECIFIC_QUESTIONS: Record<string, PositionQuestion[]> = {
 };
 
 export const getQuestionsForPosition = (position: string): PositionQuestion[] => {
+  if (position === 'Honourary Member') {
+    return HONOURARY_QUESTIONS;
+  }
+
   const positionSpecificQuestions = POSITION_SPECIFIC_QUESTIONS[position] || [];
 
   return [

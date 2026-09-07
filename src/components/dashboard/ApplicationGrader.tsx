@@ -47,6 +47,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
+  // Honourary Member uses the rubric's discrete 1 / 3 / 5 scale for every
+  // question (including Overall Impression). All other positions keep the
+  // existing free 0-10 scale.
+  const isHonourary = positionName === 'Honourary Member';
+  const maxScorePerQuestion = isHonourary ? 5 : 10;
+  const rubricScoreOptions = [1, 3, 5];
 
   // Helper function to anonymize names for exec users
   const getDisplayName = (application: ApplicationData) => {
@@ -103,7 +109,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
             question: questionData.question,
             answer: answerText,
             score: existingGrade?.score || 0,
-            maxScore: 10
+            maxScore: maxScorePerQuestion
           });
         });
 
@@ -148,7 +154,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
   const updateOverallImpression = (newScore: number) => {
     // Allow half points (e.g., 5.5)
     const roundedScore = Math.round(newScore * 2) / 2;
-    setOverallImpression(Math.max(0, Math.min(10, roundedScore)));
+    setOverallImpression(Math.max(0, Math.min(maxScorePerQuestion, roundedScore)));
   };
 
   const myScore = questions.length > 0 ? 
@@ -179,12 +185,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
           {
             questionId: 'overall_impression',
             score: overallImpression,
-            maxScore: 10,
+            maxScore: maxScorePerQuestion,
             feedback: ''
           }
         ],
         totalScore: myScore,
-        maxTotalScore: 10,
+        maxTotalScore: maxScorePerQuestion,
         gradedAt: new Date(),
         feedback: feedback
       };
@@ -466,7 +472,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
             <div className="text-right space-y-2">
               <div className="flex items-center space-x-2 mb-2">
                 <Star className="h-5 w-5 text-blue-600" />
-                <span className="text-2xl font-bold">{myScore.toFixed(1)}/10</span>
+                <span className="text-2xl font-bold">{myScore.toFixed(1)}/{maxScorePerQuestion}</span>
               </div>
               <Badge variant="secondary" className="bg-blue-100 text-blue-800 mb-2">
                 Your Score
@@ -476,7 +482,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                 <div>
                   <div className="flex items-center space-x-2">
                     <Star className="h-4 w-4 text-gray-600" />
-                    <span className="text-lg font-semibold">{averageScore.toFixed(1)}/10</span>
+                    <span className="text-lg font-semibold">{averageScore.toFixed(1)}/{maxScorePerQuestion}</span>
                   </div>
                   <Badge variant="outline" className="bg-gray-50 text-gray-700">
                     Team Average
@@ -544,6 +550,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
               feedback={feedback}
               onFeedbackChange={setFeedback}
               onSaveFeedback={handleSaveFeedback}
+              maxScore={maxScorePerQuestion}
             />
           </div>
 
@@ -553,7 +560,9 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
               <CardHeader>
                 <CardTitle>Score Questions</CardTitle>
                 <CardDescription>
-                  Rate each response out of 10 points (whole or half numbers)
+                  {isHonourary
+                    ? 'Rate each response 1, 3, or 5 per the Honourary rubric'
+                    : 'Rate each response out of 10 points (whole or half numbers)'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -562,21 +571,37 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     <Label htmlFor={`score-${question.id}`}>
                       Question {index + 1} Score
                     </Label>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        id={`score-${question.id}`}
-                        type="number"
-                        min="0"
-                        max={question.maxScore}
-                        step="0.5"
-                        value={question.score}
-                        onChange={(e) => updateScore(question.id, parseFloat(e.target.value) || 0)}
-                        className="w-20"
-                      />
-                      <span className="text-sm text-gray-600">
-                        / {question.maxScore}
-                      </span>
-                    </div>
+                    {isHonourary ? (
+                      <div className="flex items-center space-x-2">
+                        {rubricScoreOptions.map((option) => (
+                          <Button
+                            key={option}
+                            type="button"
+                            variant={question.score === option ? 'default' : 'outline'}
+                            className={question.score === option ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                            onClick={() => updateScore(question.id, option)}
+                          >
+                            {option}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id={`score-${question.id}`}
+                          type="number"
+                          min="0"
+                          max={question.maxScore}
+                          step="0.5"
+                          value={question.score}
+                          onChange={(e) => updateScore(question.id, parseFloat(e.target.value) || 0)}
+                          className="w-20"
+                        />
+                        <span className="text-sm text-gray-600">
+                          / {question.maxScore}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
 
@@ -585,21 +610,37 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                   <Label htmlFor="overall-impression">
                     Overall Impression
                   </Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      id="overall-impression"
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="0.5"
-                      value={overallImpression}
-                      onChange={(e) => updateOverallImpression(parseFloat(e.target.value) || 0)}
-                      className="w-20"
-                    />
-                    <span className="text-sm text-gray-600">
-                      / 10
-                    </span>
-                  </div>
+                  {isHonourary ? (
+                    <div className="flex items-center space-x-2">
+                      {rubricScoreOptions.map((option) => (
+                        <Button
+                          key={option}
+                          type="button"
+                          variant={overallImpression === option ? 'default' : 'outline'}
+                          className={overallImpression === option ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                          onClick={() => updateOverallImpression(option)}
+                        >
+                          {option}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="overall-impression"
+                        type="number"
+                        min="0"
+                        max="10"
+                        step="0.5"
+                        value={overallImpression}
+                        onChange={(e) => updateOverallImpression(parseFloat(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <span className="text-sm text-gray-600">
+                        / 10
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t pt-4">
@@ -607,7 +648,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     <Label className="text-lg font-semibold">Your Score</Label>
                     <div className="flex items-center space-x-2">
                       <Star className="h-5 w-5 text-blue-600" />
-                      <span className="text-xl font-bold">{myScore.toFixed(1)}/10</span>
+                      <span className="text-xl font-bold">{myScore.toFixed(1)}/{maxScorePerQuestion}</span>
                     </div>
                   </div>
                   
@@ -616,7 +657,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                       <Label className="text-sm font-medium text-gray-600">Team Average</Label>
                       <div className="flex items-center space-x-2">
                         <Star className="h-4 w-4 text-gray-600" />
-                        <span className="text-lg font-semibold">{averageScore.toFixed(1)}/10</span>
+                        <span className="text-lg font-semibold">{averageScore.toFixed(1)}/{maxScorePerQuestion}</span>
                       </div>
                     </div>
                   )}

@@ -42,18 +42,30 @@ const isValidPDSBEmail = (email: string): boolean => {
 
 const isSuperAdmin = (email: string): boolean => {
   const superadminEmails = [
-    '843909@pdsb.net',
-    '793546@pdsb.net',
     '781284@pdsb.net',
+    '949834@pdsb.net',
     '782630@pdsb.net',
-    '752470@pdsb.net'
+    '931108@pdsb.net',
+    '778130@pdsb.net'
   ];
   return superadminEmails.includes(email);
 };
 
 const isExec = (email: string): boolean => {
   const execEmails = [
-
+    '844136@pdsb.net',
+    '1061713@pdsb.net',
+    '1031623@pdsb.net',
+    '874034@pdsb.net',
+    '1099702@pdsb.net',
+    '780748@pdsb.net',
+    '897889@pdsb.net',
+    '841491@pdsb.net',
+    '909956@pdsb.net',
+    '1024557@pdsb.net',
+    '778345@pdsb.net',
+    '807453@pdsb.net',
+    '779629@pdsb.net'
   ];
   return execEmails.includes(email);
 };
@@ -115,8 +127,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isOnboarded: false,
               createdAt: firestoreServerTimestamp()
             };
-            await setDoc(doc(db, 'users', user.uid), initialProfile);
-            setUserProfile(initialProfile);
+            const userDocRef = doc(db, 'users', user.uid);
+            await setDoc(userDocRef, initialProfile);
+
+            // Re-fetch so local state holds the *resolved* server
+            // timestamp instead of the unresolved sentinel used to
+            // write it. Without this, a later profile update (e.g.
+            // completing onboarding) re-sends the sentinel, which
+            // resolves to a *new* timestamp — failing firestore.rules'
+            // requirement that createdAt stay unchanged on update.
+            const createdSnap = await getDoc(userDocRef);
+            setUserProfile(createdSnap.exists() ? (createdSnap.data() as UserProfile) : initialProfile);
           }
         } catch (error) {
           console.error('Error handling user profile:', error);

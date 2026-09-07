@@ -12,6 +12,7 @@ interface ExecutiveGradesProps {
   feedback: string;
   onFeedbackChange: (feedback: string) => void;
   onSaveFeedback: () => void;
+  maxScore?: number;
 }
 
 const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
@@ -19,7 +20,8 @@ const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
   currentExecutiveId,
   feedback,
   onFeedbackChange,
-  onSaveFeedback
+  onSaveFeedback,
+  maxScore = 10
 }) => {
   if (!applicationGrades || !applicationGrades.executiveGrades.length) {
     return (
@@ -64,7 +66,7 @@ const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
                   </div>
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="font-semibold">{executive.totalScore.toFixed(1)}/10</span>
+                    <span className="font-semibold">{executive.totalScore.toFixed(1)}/{maxScore}</span>
                   </div>
                 </div>
                 {executive.feedback && (
@@ -121,7 +123,7 @@ const ExecutiveGrades: React.FC<ExecutiveGradesProps> = ({
               <div className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-blue-600" />
                 <span className="text-lg font-bold text-blue-600">
-                  {applicationGrades.averageScore.toFixed(1)}/10
+                  {applicationGrades.averageScore.toFixed(1)}/{maxScore}
                 </span>
               </div>
             </div>
