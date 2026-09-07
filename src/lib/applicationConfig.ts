@@ -15,12 +15,7 @@ export interface ApplicationPosition {
 }
 
 export const APPLICATION_POSITIONS: ApplicationPosition[] = [
-  /* ============================================================
-   * The 8 exec positions are closed for now. Commented out (not
-   * deleted) so they can be dropped back in later just by
-   * uncommenting this block and removing/relocating the
-   * Honourary Member entry below.
-   * ============================================================
+/*
 
   {
     id: 'Secretary',
@@ -71,7 +66,7 @@ export const APPLICATION_POSITIONS: ApplicationPosition[] = [
     fullDescription: 'The Photography Exec documents SAC events through strong photo coverage, creative visual storytelling, and thoughtful editing, helping preserve school memories and support SAC’s promotional presence throughout the year.',
   },
 
-  ============================================================ */
+*/
 
   {
     id: 'Honourary Member',
