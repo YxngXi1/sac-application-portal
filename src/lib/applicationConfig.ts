@@ -71,8 +71,8 @@ export const APPLICATION_POSITIONS: ApplicationPosition[] = [
   {
     id: 'Honourary Member',
     title: 'Honourary Member',
-    shortDescription: 'A non-exec role recognizing students who go above and beyond to support SAC and school life.',
-    fullDescription: 'Honourary Members are not part of the executive team, but support SAC in an advisory capacity, help mentor other members, represent the council at events, and bring ideas to improve student life throughout the year.',
+    shortDescription: 'Student Leaders who go above and beyond to support school life by helping plan, promote, and execute SAC events.',
+    fullDescription: 'Honourary Members represent SAC at school events and initiatives, supporting the planning, promotion, and execution of activities throughout the year. They contribute ideas, collaborate with council members, and help create engaging experiences that strengthen student life and school spirit.',
   },
 ];
 
