@@ -47,11 +47,11 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
-  // Honourary Member uses the rubric's discrete 1 / 3 / 5 scale for every
+  // Honorary Member uses the rubric's discrete 1 / 3 / 5 scale for every
   // question (including Overall Impression). All other positions keep the
   // existing free 0-10 scale.
-  const isHonourary = positionName === 'Honourary Member';
-  const maxScorePerQuestion = isHonourary ? 5 : 10;
+  const isHonorary = positionName === 'Honorary Member';
+  const maxScorePerQuestion = isHonorary ? 5 : 10;
   const rubricScoreOptions = [1, 3, 5];
 
   // Helper function to anonymize names for exec users
@@ -283,10 +283,18 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
     }
   };
 
+  const handlePortfolioImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.currentTarget;
+    target.style.display = 'none';
+    const fallback = target.nextElementSibling as HTMLElement | null;
+    if (fallback) {
+      fallback.style.display = 'flex';
+    }
+  };
+
   const renderPhotographyPortfolio = (answer: string) => {
-    // Check if the answer contains Firebase Storage URLs
     const urls = answer.split(', ').filter(url => url.includes('firebasestorage.googleapis.com'));
-    
+
     if (urls.length === 0) {
       return (
         <div className="bg-gray-50 p-4 rounded-lg">
@@ -304,44 +312,36 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
             Portfolio submitted with {urls.length} file(s)
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {urls.map((url, index) => (
-              <div key={index} className="border rounded-lg overflow-hidden bg-white">
-                <div className="aspect-square relative bg-gray-100 flex items-center justify-center">
-                  <img
-                    src={url}
-                    alt={`Portfolio item ${index + 1}`}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      // If image fails to load, show a file icon
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div class="flex flex-col items-center justify-center h-full text-gray-500">
-                            <svg class="h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <span class="text-xs">File ${index + 1}</span>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
+            {urls.map((url, index) => {
+              const label = 'File ' + (index + 1);
+              return (
+                <div key={index} className="border rounded-lg overflow-hidden bg-white">
+                  <div className="aspect-square relative bg-gray-100 flex items-center justify-center">
+                    <img
+                      src={url}
+                      alt={label}
+                      className="max-w-full max-h-full object-contain"
+                      onError={handlePortfolioImageError}
+                    />
+                    <div className="hidden flex-col items-center justify-center h-full text-gray-500 absolute inset-0">
+                      <ImageIcon className="h-8 w-8 mb-2" />
+                      <span className="text-xs">{label}</span>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
+                    >
+                      <ImageIcon className="h-3 w-3" />
+                      View full size
+                    </a>
+                  </div>
                 </div>
-                <div className="p-2">
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:text-blue-800 underline flex items-center gap-1"
-                  >
-                    <ImageIcon className="h-3 w-3" />
-                    View full size
-                  </a>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -560,8 +560,8 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
               <CardHeader>
                 <CardTitle>Score Questions</CardTitle>
                 <CardDescription>
-                  {isHonourary
-                    ? 'Rate each response 1, 3, or 5 per the Honourary rubric'
+                  {isHonorary
+                    ? 'Rate each response 1, 3, or 5 per the Honorary rubric'
                     : 'Rate each response out of 10 points (whole or half numbers)'}
                 </CardDescription>
               </CardHeader>
@@ -571,7 +571,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     <Label htmlFor={`score-${question.id}`}>
                       Question {index + 1} Score
                     </Label>
-                    {isHonourary ? (
+                    {isHonorary ? (
                       <div className="flex items-center space-x-2">
                         {rubricScoreOptions.map((option) => (
                           <Button
@@ -610,7 +610,7 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                   <Label htmlFor="overall-impression">
                     Overall Impression
                   </Label>
-                  {isHonourary ? (
+                  {isHonorary ? (
                     <div className="flex items-center space-x-2">
                       {rubricScoreOptions.map((option) => (
                         <Button

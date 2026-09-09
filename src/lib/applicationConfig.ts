@@ -69,18 +69,18 @@ export const APPLICATION_POSITIONS: ApplicationPosition[] = [
 */
 
   {
-    id: 'Honourary Member',
-    title: 'Honourary Member',
+    id: 'Honorary Member',
+    title: 'Honorary Member',
     shortDescription: 'Student Leaders who go above and beyond to support school life by helping plan, promote, and execute SAC events.',
-    fullDescription: 'Honourary Members represent SAC at school events and initiatives, supporting the planning, promotion, and execution of activities throughout the year. They contribute ideas, collaborate with council members, and help create engaging experiences that strengthen student life and school spirit.',
+    fullDescription: 'Honorary Members represent SAC at school events and initiatives, supporting the planning, promotion, and execution of activities throughout the year. They contribute ideas, collaborate with council members, and help create engaging experiences that strengthen student life and school spirit.',
   },
 ];
 
 const OVERALL_QUESTION = (position: string): PositionQuestion => ({
   id: 'overall_motivation',
   question:
-    position === 'Honourary Member'
-      ? 'Why do you wish to become an SAC Honourary Member, and what do you hope to contribute to SAC in this role? (150 words MAX)'
+    position === 'Honorary Member'
+      ? 'Why do you wish to become an SAC Honorary Member, and what do you hope to contribute to SAC in this role? (150 words MAX)'
       : `Why do you wish to become an SAC Executive, and why do you choose the ${position} position specifically? (150 words MAX)`,
   type: 'textarea',
   required: true,
@@ -105,11 +105,11 @@ const getTeacherSupportQuestion = (position: string): PositionQuestion => ({
   required: true,
 });
 
-// Honourary Member gets its own dedicated 5-question set (matches the
-// Honourary Application Rubric exactly) instead of going through the
+// Honorary Member gets its own dedicated 5-question set (matches the
+// Honorary Application Rubric exactly) instead of going through the
 // shared OVERALL_QUESTION / COMMITMENTS_QUESTION / teacher-refs pipeline.
 // See getQuestionsForPosition below.
-const HONOURARY_QUESTIONS: PositionQuestion[] = [
+const HONORARY_QUESTIONS: PositionQuestion[] = [
   {
     id: 'why_join_sac',
     question:
@@ -303,8 +303,8 @@ const POSITION_SPECIFIC_QUESTIONS: Record<string, PositionQuestion[]> = {
 };
 
 export const getQuestionsForPosition = (position: string): PositionQuestion[] => {
-  if (position === 'Honourary Member') {
-    return HONOURARY_QUESTIONS;
+  if (position === 'Honorary Member') {
+    return HONORARY_QUESTIONS;
   }
 
   const positionSpecificQuestions = POSITION_SPECIFIC_QUESTIONS[position] || [];

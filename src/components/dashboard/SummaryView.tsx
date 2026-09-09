@@ -55,11 +55,11 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
       try {
         const allApplications = await getAllApplications();
         
-        // Filter for only Honourary Member applications
-        const honouraryMemberApplications = allApplications.filter(app => app.position === 'Honourary Member');
+        // Filter for only Honorary Member applications
+        const honoraryMemberApplications = allApplications.filter(app => app.position === 'Honorary Member');
         
         const summaries = await Promise.all(
-          honouraryMemberApplications.map(async (app) => {
+          honoraryMemberApplications.map(async (app) => {
             let grades: ApplicationGrades | null = null;
             try {
               grades = await getApplicationGrades(app.id);
@@ -155,7 +155,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
   };
 
   const generatePrintContent = (apps: ApplicationSummary[]) => {
-    const title = 'Honourary Member Applications Summary';
+    const title = 'Honorary Member Applications Summary';
     
     return `
       <!DOCTYPE html>
@@ -234,7 +234,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${app.userProfile?.fullName || 'Unknown'} - Honourary Member Application</title>
+          <title>${app.userProfile?.fullName || 'Unknown'} - Honorary Member Application</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
             h1, h2 { color: #1f2937; }
@@ -251,7 +251,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
           </style>
         </head>
         <body>
-          <h1>Honourary Member Application - ${app.userProfile?.fullName || 'Unknown Applicant'}</h1>
+          <h1>Honorary Member Application - ${app.userProfile?.fullName || 'Unknown Applicant'}</h1>
           
           <div class="section">
             <h2>Applicant Information</h2>
@@ -259,7 +259,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
             <p><strong>Student Number:</strong> ${app.userProfile?.studentNumber || 'N/A'}</p>
             <p><strong>Grade:</strong> ${app.userProfile?.grade || 'N/A'}</p>
             <p><strong>Program:</strong> ${app.userProfile?.studentType && app.userProfile.studentType !== 'none' ? app.userProfile.studentType : 'N/A'}</p>
-            <p><strong>Position Applied For:</strong> Honourary Member</p>
+            <p><strong>Position Applied For:</strong> Honorary Member</p>
             <p><strong>Application Status:</strong> ${app.status?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
             <p><strong>Submitted:</strong> ${app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Not submitted'}</p>
             ${app.interviewGrade ? `<p><strong>Combined Interview Score:</strong> ${app.interviewGrade.toFixed(1)}/5</p>` : ''}
@@ -348,10 +348,10 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
             </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Honourary Member Applications Summary
+            Honorary Member Applications Summary
           </h1>
           <p className="text-gray-600">
-            Comprehensive view of all Honourary Member applications with grades and feedback
+            Comprehensive view of all Honorary Member applications with grades and feedback
           </p>
         </div>
       </div>
@@ -362,7 +362,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Honourary Member Applications ({applications.length})
+              Honorary Member Applications ({applications.length})
             </CardTitle>
             <CardDescription>
               Comprehensive overview with grades, feedback, and candidate details
@@ -468,7 +468,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
             
             {applications.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                No Honourary Member applications found.
+                No Honorary Member applications found.
               </div>
             )}
           </CardContent>
@@ -487,7 +487,7 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
                   .map(app => (
                     <div key={app.id} className="border-l-4 border-blue-200 pl-4 py-2">
                       <h4 className="font-semibold text-gray-900 mb-2">
-                        {app.userProfile?.fullName} - Honourary Member
+                        {app.userProfile?.fullName} - Honorary Member
                       </h4>
                       <div className="space-y-2">
                         {app.grades?.executiveGrades

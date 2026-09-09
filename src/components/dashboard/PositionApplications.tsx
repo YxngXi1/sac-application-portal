@@ -53,9 +53,9 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
-  // Honourary Member is graded on the rubric's 1/3/5 scale (max 5);
+  // Honorary Member is graded on the rubric's 1/3/5 scale (max 5);
   // everyone else keeps the existing free 0-10 scale.
-  const maxScoreForPosition = positionName === 'Honourary Member' ? 5 : 10;
+  const maxScoreForPosition = positionName === 'Honorary Member' ? 5 : 10;
 
   // Helper function to anonymize names for exec users
   const getDisplayName = (application: ApplicationData) => {
@@ -122,36 +122,36 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
   };
 
    // Load applications and scheduled interviews
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        let applicationsToUse: ApplicationData[];
-        
-        if (filteredApplications) {
-          applicationsToUse = filteredApplications;
-          // Also get all submitted applications for consistent numbering
-          const allPositionApps = await getAllApplicationsByPosition(positionId);
-          const allSubmitted = allPositionApps.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
-          setAllSubmittedApplications(allSubmitted);
-        } else {
-          const positionApplications = await getAllApplicationsByPosition(positionId);
-          applicationsToUse = positionApplications;
-          const allSubmitted = positionApplications.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
-          setAllSubmittedApplications(allSubmitted);
-        }
-        
-        setApplications(applicationsToUse);
+  const loadData = async () => {
+    try {
+      let applicationsToUse: ApplicationData[];
 
-        // Load scheduled interviews for display purposes only
-        const interviews = await getScheduledInterviewsByPosition(positionId);
-        setScheduledInterviews(interviews);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
+      if (filteredApplications) {
+        applicationsToUse = filteredApplications;
+        // Also get all submitted applications for consistent numbering
+        const allPositionApps = await getAllApplicationsByPosition(positionId);
+        const allSubmitted = allPositionApps.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
+        setAllSubmittedApplications(allSubmitted);
+      } else {
+        const positionApplications = await getAllApplicationsByPosition(positionId);
+        applicationsToUse = positionApplications;
+        const allSubmitted = positionApplications.filter(app => app.status === 'submitted').sort((a, b) => a.id.localeCompare(b.id));
+        setAllSubmittedApplications(allSubmitted);
       }
-    };
 
+      setApplications(applicationsToUse);
+
+      // Load scheduled interviews for display purposes only
+      const interviews = await getScheduledInterviewsByPosition(positionId);
+      setScheduledInterviews(interviews);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
   }, [positionId, filteredApplications]);
 
@@ -174,6 +174,9 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
         onBack={() => {
           setSelectedApplicant(null);
           setGradeMode(false);
+          // Refresh applications so the updated score/grade shows up
+          // immediately instead of the stale pre-grading data.
+          loadData();
         }}
         onNavigateToApplication={(newApplication) => setSelectedApplicant(newApplication)}
         filteredApplications={allSubmittedApplications}
