@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Settings, User, AlertTriangle, RotateCcw, CheckCircle, Clock, Briefcase, CalendarX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { loadApplicationProgress, saveApplicationProgress } from '@/services/applicationService';
+import { loadApplicationProgress } from '@/services/applicationService';
+import { clearLocalApplicationDraft } from '@/lib/applicationDraftStorage';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import ProfileEditDialog from './ProfileEditDialog';
 import ExecDashboard from './ExecDashboard';
 import DeadlineTile from './DeadlineTile';
@@ -136,13 +139,8 @@ const ApplicationDashboard = () => {
     if (!userProfile?.uid) return;
     
     try {
-      // Clear Firebase data by saving empty application
-      await saveApplicationProgress(userProfile.uid, {
-        position: '',
-        answers: {},
-        progress: 0,
-        status: 'draft',
-      });
+      await deleteDoc(doc(db, 'applications', userProfile.uid));
+      clearLocalApplicationDraft(userProfile.uid);
       
       setHasStartedApplication(false);
       setApplicationProgress(0);

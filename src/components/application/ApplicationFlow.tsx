@@ -3,13 +3,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { saveApplicationProgress, loadApplicationProgress } from '@/services/applicationService';
+import { saveApplicationProgress, loadApplicationProgress, getFirestoreWriteErrorMessage } from '@/services/applicationService';
 import { useToast } from '@/hooks/use-toast';
 import PositionQuestionsComponent from './PositionQuestionsComponent';
 import ConfirmationPage from './ConfirmationPage';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { APPLICATION_POSITIONS, getQuestionCountForPosition } from '@/lib/applicationConfig';
+import {
+  clearLocalApplicationDraft,
+  countAnsweredQuestions,
+  loadLocalApplicationDraft,
+  mergeApplicationAnswers,
+  saveLocalApplicationDraft,
+} from '@/lib/applicationDraftStorage';
 
 const ApplicationFlow = () => {
   const { user, userProfile } = useAuth();
@@ -22,31 +29,73 @@ const ApplicationFlow = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [forceStartFromBeginning, setForceStartFromBeginning] = useState(false);
 
-  // Load application progress on component mount
   useEffect(() => {
     const loadProgress = async () => {
       if (!user) {
         setLoading(false);
         return;
       }
+
+      if (forceStartFromBeginning) {
+        clearLocalApplicationDraft(user.uid);
+        setCurrentStep(0);
+        setSelectedPosition('');
+        setAnswers({});
+        setUploadedFiles({});
+        setIsSubmitted(false);
+        setLoading(false);
+        return;
+      }
       
       try {
-        console.log('Loading application progress for user:', user.uid);
         const savedApplication = await loadApplicationProgress(user.uid);
-        
-        if (savedApplication && !forceStartFromBeginning) {
-          console.log('Found existing application:', savedApplication);
+        const localDraft = loadLocalApplicationDraft(user.uid);
+
+        if (savedApplication?.status === 'submitted') {
+          clearLocalApplicationDraft(user.uid);
           setSelectedPosition(savedApplication.position);
           setAnswers(savedApplication.answers || {});
-          
-          if (savedApplication.status === 'submitted') {
-            setCurrentStep(3); // Go to confirmation if already submitted
-          } else {
-            setCurrentStep(2); // Go to questions if draft exists
+          setIsSubmitted(true);
+          setCurrentStep(3);
+          return;
+        }
+
+        const mergedAnswers = mergeApplicationAnswers(
+          savedApplication?.answers,
+          localDraft?.answers
+        );
+        const position = savedApplication?.position || localDraft?.position || '';
+        const restoredFromDevice =
+          countAnsweredQuestions(mergedAnswers) > countAnsweredQuestions(savedApplication?.answers);
+
+        if (savedApplication || countAnsweredQuestions(mergedAnswers) > 0 || position) {
+          setSelectedPosition(position);
+          setAnswers(mergedAnswers);
+          setCurrentStep(position ? 2 : 0);
+          saveLocalApplicationDraft(user.uid, position, mergedAnswers);
+
+          if (restoredFromDevice && position) {
+            try {
+              await saveApplicationProgress(user.uid, {
+                position,
+                answers: mergedAnswers,
+                userProfile: {
+                  fullName: userProfile?.fullName || '',
+                  studentNumber: userProfile?.studentNumber || '',
+                  grade: userProfile?.grade || '',
+                  studentType: userProfile?.studentType,
+                },
+              });
+            } catch (error) {
+              console.error('Restored local answers but could not sync them yet:', error);
+            }
+
+            toast({
+              title: "Answers restored",
+              description: "We recovered answers saved on this device and kept them with your application.",
+            });
           }
         } else {
-          console.log('No existing application found, starting fresh');
-          // Start from the beginning - go to get started page
           setCurrentStep(0);
           setSelectedPosition('');
           setAnswers({});
@@ -54,12 +103,22 @@ const ApplicationFlow = () => {
         }
       } catch (error) {
         console.error('Error loading application progress:', error);
-        // If there's an error, start fresh
-        setCurrentStep(0);
-        toast({
-          title: "Welcome",
-          description: "Let's start your application process.",
-        });
+        const localDraft = loadLocalApplicationDraft(user.uid);
+        if (localDraft && (localDraft.position || countAnsweredQuestions(localDraft.answers) > 0)) {
+          setSelectedPosition(localDraft.position);
+          setAnswers(localDraft.answers);
+          setCurrentStep(localDraft.position ? 2 : 0);
+          toast({
+            title: "Answers restored",
+            description: "We could not reach the server, so we loaded answers saved on this device.",
+          });
+        } else {
+          setCurrentStep(0);
+          toast({
+            title: "Welcome",
+            description: "Let's start your application process.",
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -89,18 +148,19 @@ const ApplicationFlow = () => {
     }
 
     try {
-      console.log('Saving position selection:', position);
-      const progress = 20; // Position selected = 20% progress
+      saveLocalApplicationDraft(user.uid, position, answers);
+      const progress = 20;
       
       await saveApplicationProgress(user.uid, {
         position,
-        answers: {},
+        answers,
         progress,
         status: 'draft',
         userProfile: {
           fullName: userProfile?.fullName || '',
           studentNumber: userProfile?.studentNumber || '',
           grade: userProfile?.grade || '',
+          studentType: userProfile?.studentType,
         }
       });
       
@@ -115,7 +175,7 @@ const ApplicationFlow = () => {
       console.error('Error saving position selection:', error);
       toast({
         title: "Error",
-        description: "Failed to save your selection. Please try again.",
+        description: getFirestoreWriteErrorMessage(error),
         variant: "destructive",
       });
     }
@@ -128,8 +188,8 @@ const ApplicationFlow = () => {
       // Delete the application document
       const applicationRef = doc(db, 'applications', user.uid);
       await deleteDoc(applicationRef);
+      clearLocalApplicationDraft(user.uid);
       
-      // Reset all state
       setSelectedPosition('');
       setAnswers({});
       setUploadedFiles({});
@@ -150,11 +210,23 @@ const ApplicationFlow = () => {
   };
 
   const handleAnswerChange = (questionId: string, answer: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: answer
-    }));
+    setAnswers(prev => {
+      const nextAnswers = {
+        ...prev,
+        [questionId]: answer
+      };
+      if (user) {
+        saveLocalApplicationDraft(user.uid, selectedPosition, nextAnswers);
+      }
+      return nextAnswers;
+    });
   };
+
+  useEffect(() => {
+    if (loading || !user || isSubmitted || forceStartFromBeginning) return;
+    if (!selectedPosition && countAnsweredQuestions(answers) === 0) return;
+    saveLocalApplicationDraft(user.uid, selectedPosition, answers);
+  }, [answers, selectedPosition, user, loading, isSubmitted, forceStartFromBeginning]);
 
   const handleFileChange = (questionId: string, files: File[]) => {
     setUploadedFiles(prev => ({
@@ -168,6 +240,7 @@ const ApplicationFlow = () => {
     if (currentStep === 1) return 20;
     if (currentStep === 2) {
       const totalQuestions = getQuestionCount(selectedPosition);
+      if (totalQuestions <= 0) return 20;
       const answeredQuestions = Object.keys(answers).length;
       return Math.min(20 + (answeredQuestions / totalQuestions) * 70, 90);
     }
@@ -204,6 +277,7 @@ const saveProgress = async () => {
         fullName: userProfile?.fullName || '',
         studentNumber: userProfile?.studentNumber || '',
         grade: userProfile?.grade || '',
+        studentType: userProfile?.studentType,
       }
     });
     
@@ -354,6 +428,7 @@ const saveProgress = async () => {
         position={selectedPosition}
         answers={answers}
         uploadedFiles={uploadedFiles}
+        alreadySubmitted={isSubmitted}
         onBack={isSubmitted ? undefined : handleBack}
         onSubmissionComplete={handleSubmissionComplete}
       />

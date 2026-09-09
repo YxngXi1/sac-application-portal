@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import positionQuestions from './PositionQuestions';
+import { getFirestoreWriteErrorMessage } from '@/services/applicationService';
 
 interface PositionQuestionsComponentProps {
   position: string;
@@ -27,6 +28,7 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
 }) => {
   const { toast } = useToast();
   const questions = positionQuestions[position] || [];
+  const [isSaving, setIsSaving] = useState(false);
 
   // Function to count words in a text
   const countWords = (text: string): number => {
@@ -54,25 +56,35 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
     return 'normal';
   };
 
-  const handleSave = async () => {
+  const persistProgress = async (showSuccess: boolean): Promise<boolean> => {
+    setIsSaving(true);
     try {
       await onSave();
-      toast({
-        title: "Progress Saved",
-        description: "Your answers have been saved successfully.",
-      });
+      if (showSuccess) {
+        toast({
+          title: "Progress Saved",
+          description: "Your answers have been saved successfully.",
+        });
+      }
+      return true;
     } catch (error) {
       console.error('Error saving progress:', error);
       toast({
         title: "Error",
-        description: "Failed to save your progress. Please try again.",
+        description: getFirestoreWriteErrorMessage(error),
         variant: "destructive",
       });
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleNext = () => {
-    // Check if all required questions are answered
+  const handleSave = async () => {
+    await persistProgress(true);
+  };
+
+  const handleNext = async () => {
     const unansweredRequired = questions.filter(q => 
       q.required && (!answers[q.id] || answers[q.id].trim() === '')
     );
@@ -86,7 +98,6 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
       return;
     }
 
-    // Check for word limit violations
     const overLimitQuestions = questions.filter(q => 
       q.wordLimit && answers[q.id] && isOverWordLimit(q.id, answers[q.id])
     );
@@ -99,6 +110,9 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
       });
       return;
     }
+
+    const saved = await persistProgress(false);
+    if (!saved) return;
 
     onNext();
   };
@@ -184,6 +198,7 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
                 variant="outline" 
                 onClick={onBack}
                 className="flex-1"
+                disabled={isSaving}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -192,15 +207,17 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
                 variant="outline" 
                 onClick={handleSave}
                 className="flex-1"
+                disabled={isSaving}
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Progress
+                {isSaving ? 'Saving...' : 'Save Progress'}
               </Button>
               <Button 
                 onClick={handleNext}
                 className="flex-1"
+                disabled={isSaving}
               >
-                Next
+                {isSaving ? 'Saving...' : 'Next'}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>

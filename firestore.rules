@@ -83,17 +83,26 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['score', 'interviewScheduled']);
     }
 
+    function unchangedIfPresent(field) {
+      return !resource.data.keys().hasAny([field])
+        || request.resource.data[field] == resource.data[field];
+    }
+
     function validApplicationOwnerUpdate(applicationId) {
       return applicationId == request.auth.uid
-        && request.resource.data.id == resource.data.id
-        && request.resource.data.userId == resource.data.userId
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.createdAt == resource.data.createdAt
+        && unchangedIfPresent('userId')
+        && unchangedIfPresent('id')
+        && unchangedIfPresent('createdAt')
+        && unchangedIfPresent('score')
+        && unchangedIfPresent('interviewScheduled')
+        && (
+          !request.resource.data.keys().hasAny(['id']) ||
+          request.resource.data.id == applicationId
+        )
         && request.resource.data.position is string
         && request.resource.data.answers is map
         && request.resource.data.progress is number
-        && request.resource.data.score == resource.data.score
-        && request.resource.data.interviewScheduled == resource.data.interviewScheduled
         && (
           (resource.data.status == 'submitted' && request.resource.data.status == 'submitted') ||
           (resource.data.status != 'submitted' && ['draft', 'submitted'].hasAny([request.resource.data.status]))

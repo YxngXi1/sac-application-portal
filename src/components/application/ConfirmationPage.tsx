@@ -6,7 +6,8 @@ import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { submitApplication, saveApplicationProgress } from '@/services/applicationService';
+import { submitApplication, saveApplicationProgress, getFirestoreWriteErrorMessage } from '@/services/applicationService';
+import { clearLocalApplicationDraft } from '@/lib/applicationDraftStorage';
 import { getQuestionCountForPosition } from '@/lib/applicationConfig';
 import { APPLICATION_CLOSE_DATE, APPLICATION_CLOSE_LABEL } from '@/lib/applicationSchedule';
 
@@ -14,6 +15,7 @@ interface ConfirmationPageProps {
   position: string;
   answers: Record<string, string>;
   uploadedFiles: Record<string, File[]>;
+  alreadySubmitted?: boolean;
   onBack?: () => void;
   onSubmissionComplete: () => void;
 }
@@ -22,6 +24,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
   position,
   answers,
   uploadedFiles,
+  alreadySubmitted = false,
   onBack,
   onSubmissionComplete
 }) => {
@@ -41,14 +44,23 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
 
   const calculateProgress = () => {
     if (!position) return 0;
-    // Position selected = 20%
     if (Object.keys(answers).length === 0) return 20;
     const totalQuestions = getQuestionCount(position);
+    if (totalQuestions <= 0) return 20;
     const answeredQuestions = Object.keys(answers).length;
     return Math.min(20 + (answeredQuestions / totalQuestions) * 70, 90);
   };
 
   const handleSubmit = async () => {
+    if (alreadySubmitted) {
+      toast({
+        title: "Already Submitted",
+        description: "This application has already been submitted.",
+      });
+      navigate('/thank-you');
+      return;
+    }
+
     if (isDeadlinePassed) {
       toast({
         title: "Deadline Passed",
@@ -70,7 +82,7 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     setIsSubmitting(true);
     
     try {
-      // First: save latest progress to the DB (same call used by Save Progress)
+      await user.getIdToken();
       const progress = calculateProgress();
 
       try {
@@ -82,42 +94,34 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
             fullName: userProfile?.fullName || '',
             studentNumber: userProfile?.studentNumber || '',
             grade: userProfile?.grade || '',
+            studentType: userProfile?.studentType,
           }
         });
-        console.log('Progress saved before final submit');
       } catch (saveError) {
         console.error('Error saving progress before submit:', saveError);
         toast({
           title: "Error",
-          description: "Failed to save your application before submission. Please try again.",
+          description: getFirestoreWriteErrorMessage(saveError),
           variant: "destructive",
         });
-        setIsSubmitting(false);
-        return; // abort submission if we can't save
+        return;
       }
 
-      // Submit the application using the service
       await submitApplication(user.uid);
-      
-      // Clear saved progress
-      localStorage.removeItem('applicationProgress');
-      
-      // Mark submission as complete
+      clearLocalApplicationDraft(user.uid);
       onSubmissionComplete();
       
-      // Show success message and redirect
       toast({
         title: "Success",
         description: "Application submitted successfully!",
       });
       
-      // Redirect to thank you page
       navigate('/thank-you');
     } catch (error) {
       console.error('Error submitting application:', error);
       toast({
         title: "Error",
-        description: "Failed to submit application. Please try again.",
+        description: getFirestoreWriteErrorMessage(error),
         variant: "destructive",
       });
     } finally {
@@ -140,12 +144,18 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
               )}
             </div>
             <CardTitle className="text-2xl">
-              {isDeadlinePassed ? 'Application Deadline Passed' : 'Review Your Application'}
+              {alreadySubmitted
+                ? 'Application Submitted'
+                : isDeadlinePassed
+                  ? 'Application Deadline Passed'
+                  : 'Review Your Application'}
             </CardTitle>
             <p className="text-gray-600">
-              {isDeadlinePassed 
-                ? `The application deadline was ${APPLICATION_CLOSE_LABEL}`
-                : 'Please confirm your details before submitting'
+              {alreadySubmitted
+                ? 'Your application has already been submitted and is awaiting review.'
+                : isDeadlinePassed 
+                  ? `The application deadline was ${APPLICATION_CLOSE_LABEL}`
+                  : 'Please confirm your details before submitting'
               }
             </p>
           </CardHeader>
@@ -235,17 +245,19 @@ const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
               <Button 
                 onClick={handleSubmit}
                 className={`${onBack ? 'flex-1' : 'w-full'} ${
-                  isDeadlinePassed 
+                  alreadySubmitted || isDeadlinePassed 
                     ? 'bg-gray-400 hover:bg-gray-400 cursor-not-allowed' 
                     : 'bg-green-600 hover:bg-green-700'
                 }`}
-                disabled={isSubmitting || isDeadlinePassed}
+                disabled={isSubmitting || isDeadlinePassed || alreadySubmitted}
               >
-                {isDeadlinePassed 
-                  ? 'Deadline Passed' 
-                  : isSubmitting 
-                    ? 'Submitting...' 
-                    : 'Submit Application'
+                {alreadySubmitted
+                  ? 'Already Submitted'
+                  : isDeadlinePassed 
+                    ? 'Deadline Passed' 
+                    : isSubmitting 
+                      ? 'Submitting...' 
+                      : 'Submit Application'
                 }
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import { doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc, serverTimestamp, type DocumentData, type UpdateData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 export interface ApplicationData {
@@ -68,51 +68,162 @@ const toDateValue = (value: unknown): Date | undefined => {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
 };
 
+const getErrorCode = (error: unknown): string => {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    return String((error as { code: unknown }).code);
+  }
+  return '';
+};
+
+export const getFirestoreWriteErrorMessage = (error: unknown): string => {
+  const code = getErrorCode(error);
+  const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+  if (code === 'permission-denied' || message.includes('permission')) {
+    return 'You do not have permission to save this application. Sign out, sign back in, and try again.';
+  }
+  if (
+    code === 'unavailable' ||
+    code === 'deadline-exceeded' ||
+    code === 'resource-exhausted' ||
+    message.includes('network') ||
+    message.includes('offline')
+  ) {
+    return 'Network error while saving. If you are on school Wi-Fi, try mobile data or another network.';
+  }
+  if (message.includes('undefined') || message.includes('invalid data')) {
+    return 'Some application data could not be saved. Please review your answers and try again.';
+  }
+  return 'Failed to save your application. Please try again.';
+};
+
+const isRetryableFirestoreError = (error: unknown): boolean => {
+  const code = getErrorCode(error);
+  return code === 'unavailable' || code === 'deadline-exceeded' || code === 'resource-exhausted' || code === 'aborted';
+};
+
+const withRetries = async <T,>(fn: () => Promise<T>, attempts = 3): Promise<T> => {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableFirestoreError(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+};
+
+const sanitizeAnswers = (answers: unknown): Record<string, string> => {
+  if (!answers || typeof answers !== 'object' || Array.isArray(answers)) {
+    return {};
+  }
+
+  const sanitized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(answers as Record<string, unknown>)) {
+    if (typeof value === 'string') {
+      sanitized[key] = value;
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      sanitized[key] = String(value);
+    }
+  }
+  return sanitized;
+};
+
+const sanitizeProgress = (progress: unknown, fallback = 0): number => {
+  const numeric = typeof progress === 'number' ? progress : Number(progress);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(0, Math.min(100, numeric));
+};
+
+const toOwnerWritableStatus = (
+  requested: ApplicationData['status'] | undefined,
+  existing: unknown
+): 'draft' | 'submitted' => {
+  if (existing === 'submitted' || requested === 'submitted') {
+    return 'submitted';
+  }
+  return 'draft';
+};
+
+const buildUserProfile = (
+  profile: ApplicationData['userProfile'] | undefined
+): ApplicationData['userProfile'] | undefined => {
+  if (!profile) return undefined;
+
+  const built: ApplicationData['userProfile'] = {
+    fullName: profile.fullName || '',
+    studentNumber: profile.studentNumber || '',
+    grade: profile.grade || '',
+  };
+
+  if (profile.studentType === 'AP' || profile.studentType === 'SHSM' || profile.studentType === 'none') {
+    built.studentType = profile.studentType;
+  }
+
+  return built;
+};
+
 export const saveApplicationProgress = async (
   userId: string,
   applicationData: Partial<ApplicationData>
 ): Promise<void> => {
-  console.log('saveApplicationProgress called with:', { userId, applicationData });
-  
-  try {
-    const applicationRef = doc(db, 'applications', userId);
-    
-    const dataToSave = {
-      ...applicationData,
-      userId,
-      updatedAt: new Date(),
-    };
+  const applicationRef = doc(db, 'applications', userId);
+  const existingSnap = await withRetries(() => getDoc(applicationRef));
+  const existingData = existingSnap.exists() ? existingSnap.data() : undefined;
+  const now = new Date();
+  const existingAnswers = sanitizeAnswers(existingData?.answers);
+  const incomingAnswers = applicationData.answers !== undefined
+    ? sanitizeAnswers(applicationData.answers)
+    : undefined;
+  const answers = incomingAnswers
+    ? { ...existingAnswers, ...incomingAnswers }
+    : existingAnswers;
+  const progress = sanitizeProgress(applicationData.progress ?? existingData?.progress, 0);
+  const position = applicationData.position || (typeof existingData?.position === 'string' ? existingData.position : '');
+  const userProfile = buildUserProfile(applicationData.userProfile) ?? existingData?.userProfile;
 
-    // If this is the first save, set createdAt
-    if (!applicationData.id) {
-      dataToSave.createdAt = new Date();
-      dataToSave.id = userId;
-      dataToSave.status = 'draft';
-      console.log('First save detected, setting initial data');
-    }
-
-    console.log('Data being saved to Firestore:', dataToSave);
-    await setDoc(applicationRef, dataToSave, { merge: true });
-    console.log('Save to Firestore successful');
-    
-    // Verify the save by reading back the data
-    const verificationSnap = await getDoc(applicationRef);
-    if (verificationSnap.exists()) {
-      const savedData = verificationSnap.data();
-      console.log('Save verification successful, data exists:', {
-        hasAnswers: !!savedData.answers,
-        answersCount: savedData.answers ? Object.keys(savedData.answers).length : 0,
-        position: savedData.position,
-        status: savedData.status
-      });
-    } else {
-      console.error('Save verification failed - document does not exist after save');
-      throw new Error('Document was not saved properly');
-    }
-  } catch (error) {
-    console.error('Error in saveApplicationProgress:', error);
-    throw error;
+  if (existingData?.status === 'submitted') {
+    return;
   }
+
+  if (!existingSnap.exists()) {
+    const createPayload: Record<string, unknown> = {
+      id: userId,
+      userId,
+      position,
+      answers,
+      progress,
+      status: 'draft',
+      createdAt: now,
+      updatedAt: now,
+    };
+    if (userProfile) {
+      createPayload.userProfile = userProfile;
+    }
+
+    await withRetries(() => setDoc(applicationRef, createPayload as DocumentData));
+    return;
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    userId,
+    position,
+    answers,
+    progress,
+    status: toOwnerWritableStatus(applicationData.status, existingData?.status),
+    updatedAt: now,
+  };
+
+  if (userProfile) {
+    updatePayload.userProfile = userProfile;
+  }
+
+  await withRetries(() => updateDoc(applicationRef, updatePayload as UpdateData<DocumentData>));
 };
 
 export const loadApplicationProgress = async (userId: string): Promise<ApplicationData | null> => {
@@ -148,62 +259,31 @@ export const loadApplicationProgress = async (userId: string): Promise<Applicati
 };
 
 export const submitApplication = async (
-  userId: string, 
+  userId: string,
   currentApplicationData?: Partial<ApplicationData>
 ): Promise<void> => {
-  console.log('submitApplication called for userId:', userId);
-  
-  try {
-    // First, save any current application data if provided
-    if (currentApplicationData) {
-      console.log('Saving current application data before submission');
-      await saveApplicationProgress(userId, currentApplicationData);
-    }
-    
-    const applicationRef = doc(db, 'applications', userId);
-    
-    // Verify data exists before submitting
-    const existingSnap = await getDoc(applicationRef);
-    if (!existingSnap.exists()) {
-      console.error('Cannot submit - no application data found');
-      throw new Error('No application data found to submit');
-    }
-    
-    const existingData = existingSnap.data();
-    console.log('Pre-submission verification:', {
-      hasAnswers: !!existingData.answers,
-      answersCount: existingData.answers ? Object.keys(existingData.answers).length : 0,
-      position: existingData.position
-    });
-    
-    // Create submission time in EST
-    const now = new Date();
-    const submissionTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
-    
-    await updateDoc(applicationRef, {
-      status: 'submitted',
-      submittedAt: submissionTime,
-      updatedAt: submissionTime,
-      progress: 100,
-    });
-    
-    console.log('Application submitted successfully at:', submissionTime);
-    
-    // Verify submission
-    const verificationSnap = await getDoc(applicationRef);
-    if (verificationSnap.exists()) {
-      const submittedData = verificationSnap.data();
-      console.log('Submission verification successful:', {
-        status: submittedData.status,
-        submittedAt: submittedData.submittedAt,
-        hasAnswers: !!submittedData.answers,
-        answersCount: submittedData.answers ? Object.keys(submittedData.answers).length : 0
-      });
-    }
-  } catch (error) {
-    console.error('Error in submitApplication:', error);
-    throw error;
+  if (currentApplicationData) {
+    await saveApplicationProgress(userId, currentApplicationData);
   }
+
+  const applicationRef = doc(db, 'applications', userId);
+  const existingSnap = await withRetries(() => getDoc(applicationRef));
+  if (!existingSnap.exists()) {
+    throw new Error('No application data found to submit');
+  }
+
+  if (existingSnap.data().status === 'submitted') {
+    return;
+  }
+
+  await withRetries(() =>
+    updateDoc(applicationRef, {
+      status: 'submitted',
+      submittedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      progress: 100,
+    })
+  );
 };
 
 export const getAllApplicationsByPosition = async (position: string): Promise<ApplicationData[]> => {
