@@ -47,12 +47,12 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
-  // Honorary Member uses the rubric's discrete 1 / 3 / 5 scale for every
-  // question (including Overall Impression). All other positions keep the
-  // existing free 0-10 scale.
+  // Honorary Member uses a discrete 1-10 option picker for every question
+  // (including Overall Impression). All other positions keep the existing
+  // free 0-10 numeric input. Both scales max out at 10.
   const isHonorary = positionName === 'Honorary Member';
-  const maxScorePerQuestion = isHonorary ? 5 : 10;
-  const rubricScoreOptions = [1, 3, 5];
+  const maxScorePerQuestion = 10;
+  const rubricScoreOptions = Array.from({ length: 10 }, (_, i) => i + 1); // [1, 2, ..., 10]
 
   // Helper function to anonymize names for exec users
   const getDisplayName = (application: ApplicationData) => {
@@ -558,10 +558,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
           <div className="space-y-6">
             <Card className="sticky top-8 border shadow-sm bg-white">
               <CardHeader>
-                <CardTitle>Score Questions</CardTitle>
+                                <CardTitle>Score Questions</CardTitle>
                 <CardDescription>
                   {isHonorary
-                    ? 'Rate each response 1, 3, or 5 per the Honorary rubric'
+                    ? 'Rate each response from 1 to 10'
                     : 'Rate each response out of 10 points (whole or half numbers)'}
                 </CardDescription>
               </CardHeader>
@@ -572,13 +572,13 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                       Question {index + 1} Score
                     </Label>
                     {isHonorary ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {rubricScoreOptions.map((option) => (
                           <Button
                             key={option}
                             type="button"
                             variant={question.score === option ? 'default' : 'outline'}
-                            className={question.score === option ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                            className={`w-10 h-10 p-0 ${question.score === option ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
                             onClick={() => updateScore(question.id, option)}
                           >
                             {option}
@@ -611,13 +611,13 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
                     Overall Impression
                   </Label>
                   {isHonorary ? (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {rubricScoreOptions.map((option) => (
                         <Button
                           key={option}
                           type="button"
                           variant={overallImpression === option ? 'default' : 'outline'}
-                          className={overallImpression === option ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                          className={`w-10 h-10 p-0 ${overallImpression === option ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
                           onClick={() => updateOverallImpression(option)}
                         >
                           {option}

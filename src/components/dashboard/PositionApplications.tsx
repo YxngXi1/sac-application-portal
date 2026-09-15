@@ -53,9 +53,8 @@ const PositionApplications: React.FC<PositionApplicationsProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
-  // Honorary Member is graded on the rubric's 1/3/5 scale (max 5);
-  // everyone else keeps the existing free 0-10 scale.
-  const maxScoreForPosition = positionName === 'Honorary Member' ? 5 : 10;
+  // All positions, including Honorary Member, use the free 1-10 scale.
+  const maxScoreForPosition = 10;
 
   // Helper function to anonymize names for exec users
   const getDisplayName = (application: ApplicationData) => {
