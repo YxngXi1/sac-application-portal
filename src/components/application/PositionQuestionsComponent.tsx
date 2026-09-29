@@ -154,6 +154,17 @@ const PositionQuestionsComponent: React.FC<PositionQuestionsComponentProps> = ({
                     </span>
                     {question.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
+
+                  {question.linkUrl && (
+                    <a
+                      href={question.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-sm underline text-blue-600 hover:text-blue-800"
+                    >
+                      {question.linkText ?? question.linkUrl}
+                    </a>
+                  )}
                   
                   {question.wordLimit && (
                     <div className="flex justify-between items-center text-xs">

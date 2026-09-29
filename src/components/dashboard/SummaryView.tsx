@@ -55,8 +55,8 @@ const SummaryView: React.FC<SummaryViewProps> = ({ onBack }) => {
       try {
         const allApplications = await getAllApplications();
         
-        // Filter for only Honorary Member applications
-        const honoraryMemberApplications = allApplications.filter(app => app.position === 'Honorary Member');
+        // Filter for only Honorary Member and Grade Rep applications
+        const honoraryMemberApplications = allApplications.filter(app => app.position === 'Honorary Member' || app.position === 'Grade Rep');
         
         const summaries = await Promise.all(
           honoraryMemberApplications.map(async (app) => {

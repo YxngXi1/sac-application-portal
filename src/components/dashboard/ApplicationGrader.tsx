@@ -47,10 +47,10 @@ const ApplicationGrader: React.FC<ApplicationGraderProps> = ({
 
   const isExec = userProfile?.role === 'exec';
   const isSuperAdmin = userProfile?.role === 'superadmin';
-  // Honorary Member uses a discrete 1-10 option picker for every question
-  // (including Overall Impression). All other positions keep the existing
-  // free 0-10 numeric input. Both scales max out at 10.
-  const isHonorary = positionName === 'Honorary Member';
+  // Honorary Member and Grade Rep use a discrete 1-10 option picker for every
+  // question (including Overall Impression). All other positions keep the
+  // existing free 0-10 numeric input. Both scales max out at 10.
+  const isHonorary = positionName === 'Honorary Member' || positionName === 'Grade Rep';
   const maxScorePerQuestion = 10;
   const rubricScoreOptions = Array.from({ length: 10 }, (_, i) => i + 1); // [1, 2, ..., 10]
 

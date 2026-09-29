@@ -5,6 +5,8 @@ export interface PositionQuestion {
   options?: string[];
   required: boolean;
   wordLimit?: number;
+  linkText?: string;
+  linkUrl?: string;
 }
 
 export interface ApplicationPosition {
@@ -68,11 +70,20 @@ export const APPLICATION_POSITIONS: ApplicationPosition[] = [
 
 */
 
+/*
   {
     id: 'Honorary Member',
     title: 'Honorary Member',
     shortDescription: 'Student Leaders who go above and beyond to support school life by helping plan, promote, and execute SAC events.',
     fullDescription: 'Honorary Members represent SAC at school events and initiatives, supporting the planning, promotion, and execution of activities throughout the year. They contribute ideas, collaborate with council members, and help create engaging experiences that strengthen student life and school spirit.',
+  },
+*/
+
+  {
+    id: 'Grade Rep',
+    title: 'Grade Representative',
+    shortDescription: 'The voice of your grade on SAC, representing student ideas and helping plan events and spirit weeks.',
+    fullDescription: 'Grade Representatives represent their grade on the Student Activity Council by voicing their peers’ ideas and opinions at meetings, events, and spirit weeks. They help plan and run school events, bring fresh initiatives to the council, and encourage participation across their grade, helping create a more connected and spirited school community.',
   },
 ];
 
@@ -148,6 +159,68 @@ const HONORARY_QUESTIONS: PositionQuestion[] = [
     type: 'textarea',
     required: true,
     wordLimit: 100,
+  },
+];
+
+// Grade Rep gets its own dedicated question set (matches the Grade Rep
+// Application Rubric 2026-27). Same questions for every grade; applicants
+// are split by grade (from their profile) on the dashboard.
+const GRADE_REP_QUESTIONS: PositionQuestion[] = [
+  {
+    id: 'grade_rep_why',
+    question:
+      'Tell us your "why" - why do you want to be a Grade Representative in the 2026-27 school year? (100 words MAX)',
+    type: 'textarea',
+    required: true,
+    wordLimit: 100,
+  },
+  {
+    id: 'grade_rep_involvement',
+    question:
+      'What activities, interests, or contributions have you been involved in over the past year (inside or outside of school) that show your commitment to school spirit, teamwork, or community? How do these experiences connect to what you could bring to the role of SAC Grade Representative? (150 words MAX)',
+    type: 'textarea',
+    required: true,
+    wordLimit: 150,
+  },
+  {
+    id: 'other_commitments',
+    question:
+      'What are your other commitments that you are in or plan to be in both in and out of school. Please write down your role, time commitment per week, and the day(s) of the week if applicable. Jot Notes Only.',
+    type: 'textarea',
+    required: true,
+  },
+  {
+    id: 'grade_rep_platform',
+    question:
+      'What is your platform? In other words, what ideas, initiatives, or changes would you like to introduce, and how will it benefit the student body? (150 words MAX)',
+    type: 'textarea',
+    required: true,
+    wordLimit: 150,
+  },
+  {
+    id: 'grade_rep_communication',
+    question:
+      "As a Grade Rep, communication is key. How will you actively represent and voice your grade's ideas and opinions during SAC meetings, events, and spirit weeks? Please be specific. (150 words MAX)",
+    type: 'textarea',
+    required: true,
+    wordLimit: 150,
+  },
+  {
+    id: 'teacher_references',
+    question:
+      'Reach out to 2 John Fraser teachers that would support you as a Grade Representative. Please list their names and their emails.',
+    type: 'textarea',
+    required: true,
+  },
+  {
+    id: 'rules_and_regulations_link',
+    question:
+      'Please read through the Rules and Regulations for Grade Representative Elections, sign your copy, and provide a Google Drive link of your signed copy. Make sure that is viewable.',
+    linkText: 'Open the Rules and Regulations Form',
+    linkUrl:
+      'https://docs.google.com/document/d/1Q2FKWY7nU4q8fph6l_7gRzyQDhQ3MdiJWM4xIeKO1kU/copy',
+    type: 'textarea',
+    required: true,
   },
 ];
 
@@ -303,6 +376,10 @@ const POSITION_SPECIFIC_QUESTIONS: Record<string, PositionQuestion[]> = {
 };
 
 export const getQuestionsForPosition = (position: string): PositionQuestion[] => {
+  if (position === 'Grade Rep') {
+    return GRADE_REP_QUESTIONS;
+  }
+
   if (position === 'Honorary Member') {
     return HONORARY_QUESTIONS;
   }
